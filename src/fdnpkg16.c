@@ -36,12 +36,13 @@
 enum ACTIONTYPES {
   ACTION_INSTALL,
   ACTION_REMOVE,
+  ACTION_UPGRADE,
   ACTION_HELP
 };
 
 
 static int showhelp(void) {
-  printf("FDNPKG16 v" PVER " Copyright (C) " PDATE " Mateusz Viste\n"
+  printf("FDNPKG16 v" PVER " Copyright (C) " PDATE "\n Mateusz Viste && sparky4\n"
          "\n"
          "FDNPKG16 is a lightweigth package installer for FreeDOS. It is an alternative\n"
          "to FDNPKG, when only basic, local install/remove actions are necessary. FDNPKG16\n"
@@ -49,6 +50,7 @@ static int showhelp(void) {
          "\n"
          "Usage: FDNPKG16 install package.zip\n"
          "       FDNPKG16 remove package\n"
+         "       FDNPKG16 upgrade package\n"
          "\n"
          "FDNPKG16 is published under the MIT license, and shares most of its source code\n"
          "with FDNPKG to guarantee consistent behaviour of both tools. It also uses\n"
