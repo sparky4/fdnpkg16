@@ -42,7 +42,7 @@ enum ACTIONTYPES {
 
 
 static int showhelp(void) {
-  printf("FDNPKG16 v" PVER " Copyright (C) " PDATE "\n Mateusz Viste && sparky4\n"
+  printf("FDNPKG16 v" PVER " Copyright (C) " PDATE "\n Mateusz Viste && sparky4 && rawr64\n"
          "\n"
          "FDNPKG16 is a lightweigth package installer for FreeDOS. It is an alternative\n"
          "to FDNPKG, when only basic, local install/remove actions are necessary. FDNPKG16\n"
