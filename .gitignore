@@ -13,8 +13,6 @@
 FUCK
 *.err
 *.ERR
-*.lib
-*.LIB
 makefile~
 README~
 TODO~
@@ -24,7 +22,6 @@ LICENCE~
 __wcl__.lnk
 #!bcexmm.map
 !makefile
-!modex.lib
 !wbuild.sh
 !WBUILD.BAT
 !ud.sh
