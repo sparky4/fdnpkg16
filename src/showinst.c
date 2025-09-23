@@ -16,7 +16,7 @@
   #include <dirent.h>
 #endif
 
-#include "fdnpkg.h"   /* PKGINST_UPDATE */
+#include "fdnpkg16.h"   /* PKGINST_UPDATE */
 #include "fileexst.h"
 #include "getdelim.h"
 #include "helpers.h"  /* fdnpkg_strcasestr(), slash2backslash()... */

@@ -402,6 +402,9 @@ int main(int argc, char **argv) {
             #endif
 //----            htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
             sprintf(command, "htget.exe -o %s %s", tempfilegz, repoindex);
+#ifdef DEBUG
+            printf("Downloading: %s\n", command);
+#endif
             system(command);
             #ifdef DEBUG
             puts("DEBUG: download stop");

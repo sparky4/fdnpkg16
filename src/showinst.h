@@ -3,7 +3,7 @@
  * Copyright (C) 2013-2017 Mateusz Viste
  */
 
-#include "fdnpkg.h"
+#include "fdnpkg16.h"
 #include "pkgdb.h"
 
 #ifndef showinst_h_sentinel
