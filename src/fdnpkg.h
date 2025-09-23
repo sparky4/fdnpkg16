@@ -10,6 +10,7 @@
 #define PKGINST_NOSOURCE  1
 #define PKGINST_SKIPLINKS 2
 #define PKGINST_UPDATE    4
+#define DEBUG
 
 struct flist_t {
   struct flist_t *next;
