@@ -158,7 +158,9 @@ int main(int argc, char **argv) {
   enum actions action = ACTION_HELP;
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
-  char command[256];
+  char command[512];
+  FILE *batch_file;
+  char commandforbatch[512];
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -406,7 +408,18 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
             printf("Downloading: %s\n", command);
 #endif
-            htgetres = system(command);
+//0000            htgetres = system(command);
+            // lets try this
+            sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
+            batch_file = fopen(commandforbatch, "w");
+            if (batch_file == NULL) {
+              printf("Error: Could not create the batch file.\n");
+              htgetres = -1;
+            } else {
+              fprintf(batch_file, "%s", command);
+              fclose(batch_file);
+              htgetres = system(commandforbatch);
+            }
             #ifdef DEBUG
             printf("\thtgetres == %d\n", htgetres);
             puts("DEBUG: download stop");

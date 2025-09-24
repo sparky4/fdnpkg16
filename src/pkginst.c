@@ -210,7 +210,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     unsigned char *buff;
     int buffreadres;
     char *pkgext; /* zip or zib */
-    char command[256];
+    char command[512];
+    FILE *batch_file;
+    char commandforbatch[512];
     int htgetres;
 
 
@@ -298,8 +300,18 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 #ifdef DEBUG
       printf("Downloading: \n%s\n", *command);
 #endif
-      htgetres = system(command);
-//      htgetres = execvp(command[0], command);
+//0000      htgetres = system(command);
+      // lets try this
+      sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
+      batch_file = fopen(commandforbatch, "w");
+      if (batch_file == NULL) {
+        printf("Error: Could not create the batch file.\n");
+        htgetres = -1;
+      } else {
+        fprintf(batch_file, "%s", command);
+        fclose(batch_file);
+        htgetres = system(commandforbatch);
+      }
       if (htgetres <= 0) {
         kitten_puts(3, 7, "Error downloading package. Aborted.");
 #ifdef DEBUG
