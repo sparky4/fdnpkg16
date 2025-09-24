@@ -50,7 +50,7 @@ unsigned _stklen = 512 * 1024; /* I need 512K of stack space */
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 
 static void printhelp(void) {
-  puts("FDNPKG16 v" PVER " Copyright (C) " PDATE "\n Mateusz Viste && sparky4 && Tanami");
+  puts("FDNPKG16 v" PVER " Copyright (C) " PDATE " Mateusz Viste && sparky4 && Tanami");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
   puts("");
   kitten_puts(1, 1, "Usage: FDNPKG16 action [parameters]");
