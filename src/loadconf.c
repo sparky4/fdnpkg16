@@ -9,11 +9,11 @@
 
 #include <stdio.h>  /* printf(), fclose(), fopen()... */
 #include <string.h> /* strcasecmp() */
-#include <strings.h>   /* strcasecmp() */
+#include <strings.h>/* strcasecmp() */
 #include <stdlib.h> /* malloc(), free() */
 
 #include "crc32.h"  /* crc32() */
-#include "fdnpkg16.h" /* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
+#include "fdnpkg16.h"/* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
 #include "helpers.h" /* slash2backslash(), removeDoubleBackslashes()... */
 #include "kprintf.h"
 #include "loadconf.h"

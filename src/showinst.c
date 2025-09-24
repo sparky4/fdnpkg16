@@ -7,7 +7,7 @@
 #include <ctype.h>    /* tolower() */
 #include <stdlib.h>   /* atoi(), qsort() - not using it after all, redefining it manually later */
 #include <string.h>   /* strlen() */
-#include <strings.h>   /* strcasecmp() */
+#include <strings.h>  /* strcasecmp() */
 #include <sys/types.h>
 
 /* opendir() and friends */
@@ -17,7 +17,7 @@
   #include <dirent.h>
 #endif
 
-#include "fdnpkg16.h"   /* PKGINST_UPDATE */
+#include "fdnpkg16.h" /* PKGINST_UPDATE */
 #include "fileexst.h"
 #include "getdelim.h"
 #include "helpers.h"  /* fdnpkg_strcasestr(), slash2backslash()... */

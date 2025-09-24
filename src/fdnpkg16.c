@@ -26,7 +26,7 @@
 #include <stdio.h>    /* printf() */
 #include <stdlib.h>   /* free() */
 #include <string.h>   /* strcasecmp() */
-#include <strings.h>   /* strcasecmp() */
+#include <strings.h>  /* strcasecmp() */
 #include <unistd.h>   /* unlink() */
 
 #include "helpers.h"  /* various helper functions */
@@ -415,6 +415,7 @@ int main(int argc, char **argv) {
             batch_file = fopen(commandforbatch, "w");
             if (batch_file == NULL) {
               printf("Error: Could not create the batch file.\n");
+              fclose(batch_file);
               htgetres = -1;
             } else {
               fprintf(batch_file, "%s", command);
