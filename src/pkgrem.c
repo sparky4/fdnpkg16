@@ -6,6 +6,7 @@
 #include <ctype.h>    /* toupper() */
 #include <stdio.h>
 #include <string.h>    /* strlen() */
+#include <strings.h>   /* strcasecmp() */
 #include <stdlib.h>    /* free() */
 #include <unistd.h>    /* rmdir(), unlink() */
 

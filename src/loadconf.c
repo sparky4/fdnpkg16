@@ -9,6 +9,7 @@
 
 #include <stdio.h>  /* printf(), fclose(), fopen()... */
 #include <string.h> /* strcasecmp() */
+#include <strings.h>   /* strcasecmp() */
 #include <stdlib.h> /* malloc(), free() */
 
 #include "crc32.h"  /* crc32() */

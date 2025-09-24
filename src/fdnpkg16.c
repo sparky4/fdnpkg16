@@ -26,6 +26,7 @@
 #include <stdio.h>    /* printf() */
 #include <stdlib.h>   /* free() */
 #include <string.h>   /* strcasecmp() */
+#include <strings.h>   /* strcasecmp() */
 #include <unistd.h>   /* unlink() */
 
 #include "helpers.h"  /* various helper functions */
@@ -325,7 +326,7 @@ int main(int argc, char **argv) {
     }
 
     /* prepare the zip file and install it */
-    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[2], flags, repolist, &zipfilefd, dosdir, dirlist, buffmem1k, mapdrv);
     if (zipfileidx != NULL) {
       pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
       fclose(zipfilefd);
@@ -467,7 +468,7 @@ int main(int argc, char **argv) {
       } else if (action == ACTION_INSTALL) {
         if (validate_package_not_installed(argv[2], dosdir, mapdrv) == 0) { /* check that package is not already installed first */
           char membuff1k[1024];
-          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags, repolist, &zipfilefd, dosdir, dirlist, membuff1k, mapdrv);
           if (zipfileidx != NULL) {
             pkginstall_installpackage(argv[2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
             fclose(zipfilefd);
@@ -477,13 +478,13 @@ int main(int argc, char **argv) {
         if (is_package_installed(argv[2], dosdir, mapdrv) == 0) { /* is this package installed at all? */
           kitten_printf(10, 6, "Package %s is not installed.", argv[2]);
           puts("");
-        } else if (checkupdates(dosdir, pkgdb, repolist, argv[2], tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
+        } else if (checkupdates(dosdir, pkgdb, repolist, argv[2], tempdir, 0, dirlist, mapdrv) != 0) { /* no update available */
           kitten_printf(10, 2, "No update found for the '%s' package.", argv[2]);
           puts("");
         } else { /* the package is locally installed, and an update have been found - let's proceed */
           char membuff1k[1024];
           /* prepare the zip file */
-          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, dosdir, dirlist, membuff1k, mapdrv);
           /* if the zip file is ok, remove the old package and install our zip file */
           if (zipfileidx != NULL) {
             if (pkgrem(argv[2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
@@ -495,9 +496,9 @@ int main(int argc, char **argv) {
           }
         }
       } else if (action == ACTION_UPGRADE) { /* recursive UPDATE for the whole system */
-        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags | PKGINST_UPDATE, dirlist, proxy, proxyport, downloadingstring, mapdrv);
+        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags | PKGINST_UPDATE, dirlist, mapdrv);
       } else if (action == ACTION_CHECKUPDATES) { /* checkupdates */
-        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv);
+        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, 0, dirlist, mapdrv);
       }
       /* free memory of the pkg database */
       freedb(&pkgdb);

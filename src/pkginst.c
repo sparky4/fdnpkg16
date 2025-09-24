@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>    /* system() */
 #include <string.h>    /* strcpy() */
+#include <strings.h>   /* strcasecmp() */
 #include <unistd.h>    /* read() */
 #include <sys/types.h> /* struct utimbuf */
 
@@ -172,7 +173,7 @@ static struct flist_t *findfileinlist(struct flist_t *flist, char *fname) {
 
 /* prepare a package for installation. this is mandatory before actually installing it!
  * returns a pointer to the zip file's index on success, NULL on failure. the *zipfile pointer is updated with a file descriptor to the open zip file to install. */
-struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, char *tempdir, char *localfile, int flags, char **repolist, FILE **zipfd, char *proxy, int proxyport, char *downloadingstring, char *dosdir, struct customdirs *dirlist, char *buffmem1k, char *mapdrv) {
+struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, char *tempdir, char *localfile, int flags, char **repolist, FILE **zipfd, char *dosdir, struct customdirs *dirlist, char *buffmem1k, char *mapdrv) {
   char *fname;
   char *zipfile;
   char *appinfofile;

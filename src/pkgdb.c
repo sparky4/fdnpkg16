@@ -9,6 +9,7 @@
 #include <stdio.h>  /* printf(), puts()... */
 #include <stdlib.h> /* malloc(), free()... */
 #include <string.h> /* strcmp() */
+#include <strings.h>   /* strcasecmp() */
 #include <time.h>   /* time() */
 
 #include "getdelim.h" /* a getdelim() implementation - there is none availble on DJGPP */

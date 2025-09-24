@@ -5,6 +5,7 @@
 
 #include <stdio.h>   /* fopen, fclose... */
 #include <string.h>  /* strcasecmp() */
+#include <strings.h>   /* strcasecmp() */
 
 #include "lsm.h"     /* include self for control */
 #include "rtrim.h"
