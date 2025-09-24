@@ -8,6 +8,5 @@ rem del src\*.c
 rem rmdir src
 
 upx --8086 -9 fdinst.exe
-if exist *.obj del *.obj
 
 :gameover

@@ -296,7 +296,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       kitten_printf(3, 6, "Downloading package %s...", fname);
       puts("");
 //----      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
-      sprintf(command, "htget -o %s %s", zipfile, fname);
+      sprintf(command, "@echo off\nhtget -o %s %s", zipfile, fname);
 #ifdef DEBUG
       printf("Downloading: \n%s\n", *command);
 #endif
