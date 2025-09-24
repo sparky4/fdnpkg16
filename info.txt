@@ -1,5 +1,0 @@
-the original 32 bit fdnpkg source code is here orig-src.zip
-
-we need to replicate most things from it and make it at like apt in a sort of way but using an external program to get the files like htget or wget
-and 
-    MOST IMPORTANTLY it needs to be 16 bit!

@@ -287,7 +287,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     /* if it's a network repo, download the package from repoid into the temp directory */
     if (detect_localpath(instrepo) == 0) {
       sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);
-      sprintf(zipfile, "%s\\fdnpkg.tmp", tempdir);
+      sprintf(zipfile, "%s\\fdnpkg16.tmp", tempdir);
       kitten_printf(3, 6, "Downloading package %s...", fname);
       puts("");
 //----      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {

@@ -67,7 +67,7 @@ static void printhelp(void) {
   kitten_puts(1, 13, " checkupdates      - check for available updates of packages and display them");
   kitten_puts(1, 15, " update [pkg]      - update 'pkg' to last version (or all packages if no arg)");
   kitten_puts(1, 7,  " dumpcfg           - print out the configuration loaded from the cfg file");
-  kitten_puts(1, 19, " clearcache        - clear FDNPKG's local cache");
+  kitten_puts(1, 19, " clearcache        - clear FDNPKG16's local cache");
   kitten_puts(1, 8,  " license           - print out the license of this program");
   puts("");
 }
@@ -121,10 +121,10 @@ static int trycreatefileindir(char *dirname) {
   char filename[512];
   int writeres;
   if (dirname == NULL) return(-1);
-  sprintf(filename, "%s\\fdnpkg.tmp", dirname);
+  sprintf(filename, "%s\\fdnpkg16.tmp", dirname);
   fd = fopen(filename, "wb");
   if (fd == NULL) return(-1);
-  writeres = fputs("FDNPKG", fd);
+  writeres = fputs("FDNPKG16", fd);
   fclose(fd);
   if (writeres < 0) return(-1);
   return(0);
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
   #endif
 
   /* First init KITTEN */
-  kittenopen("FDNPKG");
+  kittenopen("FDNPKG16");
 
   /* fetch the 'downloading...' kitten string, we will need to pass it to http_get later, eventually */
   sprintf(downloadingstring, "%s", kittengets(11, 0, "Downloading %s... %ld bytes"));
@@ -420,7 +420,7 @@ int main(int argc, char **argv) {
           } else {
             char *dbmsg;
             /* uncompress and load the index file */
-            sprintf(tempfile, "%s\\fdnpkg.tmp", tempdir);
+            sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
             ungzres = ungz(tempfilegz, tempfile);
             if ((ungzres != 0) || (loaddb(pkgdb, tempfile, x, &dbmsg) != 0)) {
               kitten_puts(2, 11, "An error occured while trying to load repository from tmp file...");

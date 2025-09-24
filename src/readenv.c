@@ -33,7 +33,7 @@ int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen) {
     return(-2);
   }
 
-  /* look for the FDNPKG.CFG env. variable */
+  /* look for the FDNPKG16.CFG env. variable */
   cfg = getenv("FDNPKG16.CFG");
   cfgfilemaxlen -= 1; /* make room for the null terminator */
   if (cfg != NULL) {
