@@ -56,7 +56,7 @@ int ungz(char *srcfile, char *destfile) {
   if (fread(buff, 4, 1, fd) != 1) {
     UNGZ_RETURN(-1);
   }
-//0000  filelen = buff[0] | buff[1] << 8 | buff[2] << 16 | buff[3] << 24;
+//----  filelen = buff[0] | buff[1] << 8 | buff[2] << 16 | buff[3] << 24;
   low_word = buff[0] | ((uint16_t)buff[1] << 8);          // Read the first 16-bit word (bytes 0 and 1)
   high_word = buff[2] | ((uint16_t)buff[3] << 8);         // Read the second 16-bit word (bytes 2 and 3)
   filelen = low_word | ((uint32_t)high_word << 16); // Combine the two words into the final 32-bit value
@@ -177,7 +177,7 @@ int ungz(char *srcfile, char *destfile) {
   if (fread(buff, 4, 1, fd) != 1) {
     UNGZ_RETURN(-21);
   }
-//0000  cksum_from_gz = buff[0] | buff[1] << 8 | buff[2] << 16 | buff[3] << 24;
+//----  cksum_from_gz = buff[0] | buff[1] << 8 | buff[2] << 16 | buff[3] << 24;
   low_word = buff[0] | ((uint16_t)buff[1] << 8);          // Read the first 16-bit word (bytes 0 and 1)
   high_word = buff[2] | ((uint16_t)buff[3] << 8);         // Read the second 16-bit word (bytes 2 and 3)
   cksum_from_gz = low_word | ((uint32_t)high_word << 16); // Combine the two words into the final 32-bit value

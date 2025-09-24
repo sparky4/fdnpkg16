@@ -34,12 +34,12 @@ int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen) {
   }
 
   /* look for the FDNPKG.CFG env. variable */
-  cfg = getenv("FDNPKG.CFG");
+  cfg = getenv("FDNPKG16.CFG");
   cfgfilemaxlen -= 1; /* make room for the null terminator */
   if (cfg != NULL) {
     snprintf(cfgfile, cfgfilemaxlen, "%s", cfg);
   } else { /* not set, so fallback to hardcoded location */
-    snprintf(cfgfile, cfgfilemaxlen, "%s\\bin\\fdnpkg.cfg", *dosdir);
+    snprintf(cfgfile, cfgfilemaxlen, "%s\\bin\\fdnpkg16.cfg", *dosdir);
   }
 
   return(0);

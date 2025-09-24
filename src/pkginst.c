@@ -200,7 +200,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     zipfile[0] = 0;
   }
 
-#ifndef NOREPOS
+//----#ifndef NOREPOS
   if (zipfile[0] == 0) { /* need to download the package from a repository */
     char *instrepo;
     struct pkgdb *pkgnode, *lastnode;
@@ -210,6 +210,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     unsigned char *buff;
     int buffreadres;
     char *pkgext; /* zip or zib */
+    char command[160];
 
     /* look into the db to find the package */
     pkgnode = findpkg(pkgdb, pkgname, &lastnode);
@@ -289,11 +290,19 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       sprintf(zipfile, "%s\\fdnpkg.tmp", tempdir);
       kitten_printf(3, 6, "Downloading package %s...", fname);
       puts("");
-      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
+//----      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
+      sprintf(command, "htget -o %s %s", zipfile, fname);
+#ifdef DEBUG
+            printf("\t\t\t\tDownloading: \n%s\n", command);
+#endif
+        if (system(command) <= 0) {
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }
     } else { /* else it's an on-disk repo, so we can use the package right from there */
+#ifdef DEBUG
+      printf("Package on disk!\n");
+#endif
       sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
     }
     /* check the CRC of the downloaded file */
@@ -320,10 +329,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       return(NULL);
     }
   } /* if (zipfile[0] == 0) */
-#endif
+//----#endif
 
   /* Now let's check the content of the zip file */
-
   *zipfd = fopen(zipfile, "rb");
   if (*zipfd == NULL) {
     kitten_puts(3, 8, "Error: Invalid zip archive! Package not installed.");

@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
   enum actions action = ACTION_HELP;
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
-  char command[80];
+  char command[160];
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -335,7 +335,7 @@ int main(int argc, char **argv) {
   /* clear cache? */
   if (action == ACTION_CLEARCACHE) {
     char tempfile[512];
-    sprintf(tempfile, "%s\\fdnpkg.db", tempdir);
+    sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
     unlink(tempfile);
     kitten_puts(2, 19, "Cache cleared.");
     QUIT(0);
@@ -351,15 +351,16 @@ int main(int argc, char **argv) {
   }
 
   /* if there is at least one online repo, init the Watt32 stack */
-/*0000  for (x = 0; x < repolistcount; x++) {
+  for (x = 0; x < repolistcount; x++) {
     if (detect_localpath(repolist[x]) == 0) {
-      if (net_init() != 0) {
+      if (system("dhcp") != 0) {
+//----      if (net_init() != 0) {
         kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
-        QUIT(0)
+        QUIT(0)//*/
       }
       break;
     }
-  }*/
+  }
 
   if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
     struct customdirs *dircursor;
@@ -381,7 +382,7 @@ int main(int argc, char **argv) {
       char tempfile[512];
       char repoindex[512];
       int ungzres;
-      sprintf(tempfile, "%s\\fdnpkg.db", tempdir);
+      sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
       if (loaddb_fromcache(pkgdb, tempfile, cfgfilecrc, maxcachetime) == 0) { /* load db from cache (if not older than 2h) */
         kitten_puts(2, 13, "Package database loaded from local cache.");
       } else {
@@ -401,18 +402,21 @@ int main(int argc, char **argv) {
             puts("DEBUG: download start");
             #endif
 //----            htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
-            sprintf(command, "htget.exe -o %s %s", tempfilegz, repoindex);
+            sprintf(command, "htget -o %s %s", tempfilegz, repoindex);
 #ifdef DEBUG
             printf("Downloading: %s\n", command);
 #endif
-            system(command);
+            htgetres = system(command);
             #ifdef DEBUG
+            printf("\thtgetres == %d\n", htgetres);
             puts("DEBUG: download stop");
             #endif
           }
           if (htgetres <= 0) {
             kitten_puts(2, 10, "Repository download failed!");
+#ifndef ERRCACHE
             maxcachetime = 0; /* disable cache writing this time */
+#endif
           } else {
             char *dbmsg;
             /* uncompress and load the index file */
@@ -434,7 +438,7 @@ int main(int argc, char **argv) {
         }
         /* save results into the (new) cache file db */
         if (maxcachetime > 0) {
-          sprintf(tempfile, "%s\\fdnpkg.db", tempdir);
+          sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
           dumpdb(pkgdb, tempfile, cfgfilecrc);
         }
       }
