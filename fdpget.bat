@@ -1,5 +1,5 @@
 @echo off
-set ver=0.02d
+set ver=0.02e
 rem set this to something for verboseness of error msg
 set errorecho=
 rem fdpget.bat by sparky4 uses HTGET from mTCP
@@ -7,7 +7,7 @@ REM SETTINGS START
 if [%getter%] == [] set getter=htget
 rem if exist %dosdir%\net\mtcp set getterlocation=%dosdir%\net\mtcp\
 rem if exist %dosdir%\bin\%getter% set getterlocation=%dosdir%\bin\
-set installer=fdinst
+set installer=fdnpkg16
 rem this is the patch for freecom
 rem set patchforcommand=1
 REM SETTINGS END
@@ -17,7 +17,7 @@ if [%2%] == [] goto none
 if [%DOSDIR%] == [] goto none
 if [%temp%] == [] goto none
 set dest=%temp%\%2.zip
-rem not nessesary! 
+rem not nessesary!
 rem set cwdpee=%_CWD%
 rem cdd %temp%
 
@@ -58,13 +58,18 @@ goto inst
 if %ERRORLEVEL%==45 goto done
 if not exist %dest% goto nofile
 echo ==fdpget.bat== installing!
-if %dest%==fdnpkg goto checkfdpkg
-if not %installer%==fdinst goto checkfdpkg
+if %dest%==%installer% goto checkfdinst
+if not %installer%==fdnpkg16 goto checkfdinst
+if exist %dosdir%\bin\fdnpkg16.exe goto fdnpkg16
+:checkfdinst
 if exist %dosdir%\bin\fdinst.exe goto fdinst
-:checkfdpkg
 if exist %dosdir%\bin\fdpkg.exe goto fdpkg
-echo ==fdpget.bat== package manager not found!
+echo ==fdpget.bat== 16-bit package manager not found!
 goto nopkgm
+
+:fdinst
+fdinst install %dest%
+goto done
 
 :fdpkg
 fdpkg /install %dest%
@@ -72,13 +77,13 @@ goto done
 
 :removepkg
 echo ==fdpget.bat== removing so we can update it!
-fdinst remove %2
+%installer% remove %2
 if not [%errorecho%]==[] echo %ERRORLEVEL%
 if %ERRORLEVEL%==1 goto end
 
-:fdinst
-if %dest%==fdnpkg goto fdpkg
-fdinst install %dest%
+:fdnpkg16
+if %dest%==%installer% goto fdinst
+%installer% install %dest%
 if not [%errorecho%]==[] echo %ERRORLEVEL%
 if %ERRORLEVEL%==1 goto removepkg
 goto done

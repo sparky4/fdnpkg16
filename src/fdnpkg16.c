@@ -414,6 +414,9 @@ int main(int argc, char **argv) {
           }
           if (htgetres <= 0) {
             kitten_puts(2, 10, "Repository download failed!");
+#ifdef DEBUG
+        printf("system() returned: %d\n", htgetres);
+#endif
 #ifndef ERRCACHE
             maxcachetime = 0; /* disable cache writing this time */
 #endif
