@@ -10,7 +10,6 @@
 #include <string.h>    /* strcpy() */
 #include <unistd.h>    /* read() */
 #include <sys/types.h> /* struct utimbuf */
-#include <malloc.h>    /* for _heapmin; */
 
 #include "crc32.h"     /* all CRC32 related stuff */
 #include "fdnpkg16.h"    /* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
@@ -212,6 +211,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     int buffreadres;
     char *pkgext; /* zip or zib */
     char command[256];
+    int htgetres;
+
+
 
     /* look into the db to find the package */
     pkgnode = findpkg(pkgdb, pkgname, &lastnode);
@@ -294,11 +296,15 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //----      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
       sprintf(command, "htget -o %s %s", zipfile, fname);
 #ifdef DEBUG
-      printf("Downloading: \n%s\n", command);
+      printf("Downloading: \n%s\n", *command);
 #endif
-      _heapmin;
-      if (system(command) <= 0) {
+      htgetres = system(command);
+//      htgetres = execvp(command[0], command);
+      if (htgetres <= 0) {
         kitten_puts(3, 7, "Error downloading package. Aborted.");
+#ifdef DEBUG
+        printf("system() returned: %d\n", htgetres);
+#endif
         return(NULL);
       }
     } else { /* else it's an on-disk repo, so we can use the package right from there */

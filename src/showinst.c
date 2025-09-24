@@ -7,6 +7,7 @@
 #include <ctype.h>    /* tolower() */
 #include <stdlib.h>   /* atoi(), qsort() - not using it after all, redefining it manually later */
 #include <string.h>   /* strlen() */
+#include <strings.h>  /* strcasecmp() */
 #include <sys/types.h>
 
 /* opendir() and friends */
