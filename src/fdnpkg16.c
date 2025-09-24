@@ -50,10 +50,10 @@ unsigned _stklen = 512 * 1024; /* I need 512K of stack space */
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 
 static void printhelp(void) {
-  puts("FDNPKG v" PVER " Copyright (C) " PDATE "\n Mateusz Viste && sparky4 && Tanami");
+  puts("FDNPKG16 v" PVER " Copyright (C) " PDATE "\n Mateusz Viste && sparky4 && Tanami");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
   puts("");
-  kitten_puts(1, 1, "Usage: FDNPKG action [parameters]");
+  kitten_puts(1, 1, "Usage: FDNPKG16 action [parameters]");
   puts("");
   kitten_puts(1, 2,  "Where action is one of the following:");
   kitten_puts(1, 3,  " search [string]   - search net repositories for package containing 'string'");
@@ -74,7 +74,7 @@ static void printhelp(void) {
 
 
 static void printlic(void) {
-  puts("FDNPKG v" PVER " - FreeDOS Network Package manager\r\n"
+  puts("FDNPKG16 v" PVER " - FreeDOS Network Package manager\r\n"
        "Copyright (C) " PDATE " Mateusz Viste && sparky4 && Tanami\r\n");
 
   puts("Permission is hereby granted, free of charge, to any person obtaining a copy\r\n"
@@ -188,14 +188,14 @@ int main(int argc, char **argv) {
   if (argc > 1) { /* fdnpkg action [param] */
     if (strcasecmp(argv[1], "search") == 0) {
       if (argc > 3) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_SEARCH;
       }
     } else if (strcasecmp(argv[1], "vsearch") == 0) {
       if (argc > 3) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_SEARCH;
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
       if (strcasecmp(argv[1], "install-nosrc") == 0) flags |= PKGINST_NOSOURCE;
       if (strcasecmp(argv[1], "install-wsrc") == 0) flags &= ~(PKGINST_NOSOURCE);
       if (argc != 3) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         int arglen = strlen(argv[2]);
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
       }
     } else if (strcasecmp(argv[1], "remove") == 0) {
       if (argc != 3) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
       } else {
         pkgrem(argv[2], dosdir, mapdrv);
       }
@@ -229,47 +229,47 @@ int main(int argc, char **argv) {
       } else if (argc == 2) {
         action = ACTION_UPGRADE;
       } else {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       }
     } else if ((strcasecmp(argv[1], "listlocal") == 0) || (strcasecmp(argv[1], "showinstalled") == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
       if (argc > 3) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
         action = ACTION_LISTLOCAL;
       }
     } else if (strcasecmp(argv[1], "listfiles") == 0) {
       if (argc != 3) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
         action = ACTION_LISTFILES;
       }
     } else if (strcasecmp(argv[1], "dumpcfg") == 0) {
       if (argc != 2) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_DUMPCFG;
       }
     } else if (strcasecmp(argv[1], "license") == 0) {
       if (argc != 2) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
       } else {
         printlic();
       }
       QUIT(0)
     } else if (strcasecmp(argv[1], "checkupdates") == 0) {
       if (argc != 2) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_CHECKUPDATES;
       }
     } else if (strcasecmp(argv[1], "clearcache") == 0) {
       if (argc != 2) {
-        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg without any parameter for help.");
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_CLEARCACHE;
