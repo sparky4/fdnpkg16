@@ -10,6 +10,7 @@
 #include <string.h>    /* strcpy() */
 #include <unistd.h>    /* read() */
 #include <sys/types.h> /* struct utimbuf */
+#include <malloc.h>    /* for _heapmin; */
 
 #include "crc32.h"     /* all CRC32 related stuff */
 #include "fdnpkg16.h"    /* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
@@ -210,7 +211,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     unsigned char *buff;
     int buffreadres;
     char *pkgext; /* zip or zib */
-    char command[160];
+    char command[256];
 
     /* look into the db to find the package */
     pkgnode = findpkg(pkgdb, pkgname, &lastnode);
@@ -293,9 +294,10 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //----      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
       sprintf(command, "htget -o %s %s", zipfile, fname);
 #ifdef DEBUG
-            printf("\t\t\t\tDownloading: \n%s\n", command);
+      printf("Downloading: \n%s\n", command);
 #endif
-        if (system(command) <= 0) {
+      _heapmin;
+      if (system(command) <= 0) {
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }

@@ -45,9 +45,9 @@
 /* #define DEBUG */ /* uncomment this to enable debug mode */
 
 
-unsigned _stklen = 512 * 1024; /* I need 512K of stack space */
+unsigned _stklen = /*512*/40 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 40k
 
-extern char *wattcpVersion(); /* provided by wattcp to poll its version */
+//----extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 
 static void printhelp(void) {
   puts("FDNPKG16 v" PVER " Copyright (C) " PDATE " Mateusz Viste && sparky4");
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
   enum actions action = ACTION_HELP;
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
-  char command[160];
+  char command[256];
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
