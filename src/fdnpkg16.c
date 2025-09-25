@@ -405,7 +405,7 @@ int main(int argc, char **argv) {
             puts("DEBUG: download start");
             #endif
 //----            htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
-            sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
+            sprintf(command, "@echo off\nhtget -o %s %s", tempfilegz, repoindex);
 #ifdef DEBUG
             printf("Downloading: %s\n", command);
 #endif
