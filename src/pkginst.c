@@ -216,8 +216,6 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     char commandforbatch[512];
     int htgetres;
 
-
-
     /* look into the db to find the package */
     pkgnode = findpkg(pkgdb, pkgname, &lastnode);
     if (pkgnode == NULL) { /* no such package found in repositories */

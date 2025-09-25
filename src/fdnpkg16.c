@@ -46,7 +46,7 @@
 /* #define DEBUG */ /* uncomment this to enable debug mode */
 
 
-unsigned _stklen = /*512*/40 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 40k
+unsigned _stklen = /*512*/20 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 16k
 
 //----extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 
