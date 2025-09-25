@@ -307,7 +307,6 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       batch_file = fopen(commandforbatch, "w");
       if (batch_file == NULL) {
         printf("Error: Could not create the batch file.\n");
-        fclose(batch_file);
         htgetres = -1;
       } else {
         fprintf(batch_file, "%s", command);

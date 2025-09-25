@@ -415,7 +415,6 @@ int main(int argc, char **argv) {
             batch_file = fopen(commandforbatch, "w");
             if (batch_file == NULL) {
               printf("Error: Could not create the batch file.\n");
-              fclose(batch_file);
               htgetres = -1;
             } else {
               fprintf(batch_file, "%s", command);
