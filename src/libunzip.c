@@ -14,6 +14,8 @@
 #include <utime.h>     /* utime() */
 #include <unistd.h>   /* unlink() */
 
+#define NOLZMA
+
 #include "crc32.h"
 #include "kprintf.h"
 #include "parsecmd.h"
