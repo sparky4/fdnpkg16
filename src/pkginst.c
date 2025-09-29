@@ -14,6 +14,7 @@
 
 #include "crc32.h"     /* all CRC32 related stuff */
 #include "fdnpkg16.h"  /* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
+#include "http.h"
 #include "helpers.h"   /* slash2backslash(), strtolower() */
 #include "fileexst.h"
 #include "kprintf.h"
@@ -173,7 +174,7 @@ static struct flist_t *findfileinlist(struct flist_t *flist, char *fname) {
 
 /* prepare a package for installation. this is mandatory before actually installing it!
  * returns a pointer to the zip file's index on success, NULL on failure. the *zipfile pointer is updated with a file descriptor to the open zip file to install. */
-struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, char *tempdir, char *localfile, int flags, char **repolist, FILE **zipfd, char *dosdir, struct customdirs *dirlist, char *buffmem1k, char *mapdrv) {
+struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, char *tempdir, char *localfile, int flags, char **repolist, FILE **zipfd, char *proxy, int proxyport, char *downloadingstring, char *dosdir, struct customdirs *dirlist, char *buffmem1k, char *mapdrv) {
   char *fname;
   char *zipfile;
   char *appinfofile;
@@ -201,7 +202,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     zipfile[0] = 0;
   }
 
-//----#ifndef NOREPOS
+#ifndef NOREPOS
   if (zipfile[0] == 0) { /* need to download the package from a repository */
     char *instrepo;
     struct pkgdb *pkgnode, *lastnode;
@@ -211,10 +212,12 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     unsigned char *buff;
     int buffreadres;
     char *pkgext; /* zip or zib */
+#ifdef USE_EXTERNAL_MTCP
     char command[512];
     FILE *batch_file;
     char commandforbatch[512];
     int htgetres;
+#endif
 
     /* look into the db to find the package */
     pkgnode = findpkg(pkgdb, pkgname, &lastnode);
@@ -294,11 +297,15 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       sprintf(zipfile, "%s\\fdnpkg16.tmp", tempdir);
       kitten_printf(3, 6, "Downloading package %s...", fname);
       puts("");
-//----      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
+#ifndef USE_EXTERNAL_MTCP
+      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
+#else
       sprintf(command, "@echo off\nhtget -o %s %s", zipfile, fname);
+#endif
 #ifdef DEBUG
       printf("Downloading: \n%s\n", *command);
 #endif
+#ifdef USE_EXTERNAL_MTCP
 //0000      htgetres = system(command);
       // lets try this
       sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
@@ -312,9 +319,12 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         htgetres = system(commandforbatch);
       }
       if (htgetres <= 0) {
+#endif
         kitten_puts(3, 7, "Error downloading package. Aborted.");
+#ifdef USE_EXTERNAL_MTCP
 #ifdef DEBUG
         printf("system() returned: %d\n", htgetres);
+#endif
 #endif
         return(NULL);
       }
@@ -348,9 +358,10 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       return(NULL);
     }
   } /* if (zipfile[0] == 0) */
-//----#endif
+#endif
 
   /* Now let's check the content of the zip file */
+
   *zipfd = fopen(zipfile, "rb");
   if (*zipfd == NULL) {
     kitten_puts(3, 8, "Error: Invalid zip archive! Package not installed.");

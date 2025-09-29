@@ -114,7 +114,7 @@ void showinstalledpkgs(char *filterstr, char *dosdir) {
 
 
 /* displays the list of available updates for local packages (or a single package if pkg is not NULL). Returns 0 if some updates are found, non zero otherwise. */
-int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, char *tempdir, int flags, struct customdirs *dirlist, char *mapdrv) {
+int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, char *tempdir, int flags, struct customdirs *dirlist, char *proxy, int proxyport, char *downloadingstring, char *mapdrv) {
   struct pkgdb *curpkg;
   struct pkgrepo *currepo;
   char *packagelist[packagelist_maxlen];
@@ -164,7 +164,7 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
             kitten_printf(10, 3, "An update of '%s' has been found. Update in progress...", packagelist[x]);
             puts("");
             packages_updatefailed += 1; /* increment the updatefailed counter - later we will decrement it if we're okay */
-            zipfileidx = pkginstall_preparepackage(pkgdb, packagelist[x], tempdir, NULL, flags, repolist, &zipfilefd, dosdir, dirlist, buffmem1k, mapdrv);
+            zipfileidx = pkginstall_preparepackage(pkgdb, packagelist[x], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
             if (zipfileidx != NULL) {
               if (pkgrem(packagelist[x], dosdir, mapdrv) != 0) {
                 /* ooops, package removal failed... */

@@ -11,6 +11,6 @@
   void pkg_freeflist(struct flist_t *flist);
   struct flist_t *pkg_loadflist(char *pkgname, char *dosdir);
   void showinstalledpkgs(char *filterstr, char *dosdir);
-  int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, char *tempdir, int flags, struct customdirs *dirlist, char *mapdrv);
+  int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, char *tempdir, int flags, struct customdirs *dirlist, char *proxy, int proxyport, char *downloadingstring, char *mapdrv);
   void listfilesofpkg(char *pkgname, char *dosdir);
 #endif

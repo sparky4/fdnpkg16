@@ -30,11 +30,13 @@
 #include <unistd.h>   /* unlink() */
 
 #include "helpers.h"  /* various helper functions */
+#include "http.h"     /* http_get() */
 #include "kitten.h"   /* required for kitten subsystem */
 #include "kprintf.h"  /* kitten_printf() */
 #include "libgz.h"    /* ungz() */
 #include "libunzip.h" /* zip_freelist()... */
 #include "loadconf.h" /* loadconf() */
+#include "net.h"      /* net_init() */
 #include "pkgdb.h"    /* createdb(), findpkg()... */
 #include "pkgsrch.h"  /* pkgsrch() */
 #include "pkginst.h"  /* pkginstall() */
@@ -46,9 +48,9 @@
 /* #define DEBUG */ /* uncomment this to enable debug mode */
 
 
-unsigned _stklen = /*512*/32 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 16k
+unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 16k
 
-//----extern char *wattcpVersion(); /* provided by wattcp to poll its version */
+extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 
 static void printhelp(void) {
   puts("FDNPKG16 v" PVER " Copyright (C) " PDATE " Mateusz Viste && sparky4");
@@ -71,6 +73,8 @@ static void printhelp(void) {
   kitten_puts(1, 19, " clearcache        - clear FDNPKG16's local cache");
   kitten_puts(1, 8,  " license           - print out the license of this program");
   puts("");
+  kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
+  puts(wattcpVersion());
 }
 
 
@@ -159,9 +163,11 @@ int main(int argc, char **argv) {
   enum actions action = ACTION_HELP;
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
+#ifdef USE_EXTERNAL_MTCP
   char command[512];
   FILE *batch_file;
   char commandforbatch[512];
+#endif
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -326,7 +332,7 @@ int main(int argc, char **argv) {
     }
 
     /* prepare the zip file and install it */
-    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[2], flags, repolist, &zipfilefd, dosdir, dirlist, buffmem1k, mapdrv);
+    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
     if (zipfileidx != NULL) {
       pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
       fclose(zipfilefd);
@@ -356,10 +362,13 @@ int main(int argc, char **argv) {
   /* if there is at least one online repo, init the Watt32 stack */
   for (x = 0; x < repolistcount; x++) {
     if (detect_localpath(repolist[x]) == 0) {
+#ifdef USE_EXTERNAL_MTCP
       if (system("dhcp") != 0) {
-//----      if (net_init() != 0) {
+#else
+      if (net_init() != 0) {
+#endif
         kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
-        QUIT(0)//*/
+        QUIT(0)
       }
       break;
     }
@@ -404,11 +413,15 @@ int main(int argc, char **argv) {
             #ifdef DEBUG
             puts("DEBUG: download start");
             #endif
-//----            htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
+#ifndef USE_EXTERNAL_MTCP
+            htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
+#else
             sprintf(command, "@echo off\nhtget -o %s %s", tempfilegz, repoindex);
+#endif
 #ifdef DEBUG
             printf("Downloading: %s\n", command);
 #endif
+#ifdef USE_EXTERNAL_MTCP
 //0000            htgetres = system(command);
             // lets try this
             sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
@@ -421,6 +434,7 @@ int main(int argc, char **argv) {
               fclose(batch_file);
               htgetres = system(commandforbatch);
             }
+#endif
             #ifdef DEBUG
             printf("\thtgetres == %d\n", htgetres);
             puts("DEBUG: download stop");
@@ -468,7 +482,7 @@ int main(int argc, char **argv) {
       } else if (action == ACTION_INSTALL) {
         if (validate_package_not_installed(argv[2], dosdir, mapdrv) == 0) { /* check that package is not already installed first */
           char membuff1k[1024];
-          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags, repolist, &zipfilefd, dosdir, dirlist, membuff1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
           if (zipfileidx != NULL) {
             pkginstall_installpackage(argv[2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
             fclose(zipfilefd);
@@ -478,13 +492,13 @@ int main(int argc, char **argv) {
         if (is_package_installed(argv[2], dosdir, mapdrv) == 0) { /* is this package installed at all? */
           kitten_printf(10, 6, "Package %s is not installed.", argv[2]);
           puts("");
-        } else if (checkupdates(dosdir, pkgdb, repolist, argv[2], tempdir, 0, dirlist, mapdrv) != 0) { /* no update available */
+        } else if (checkupdates(dosdir, pkgdb, repolist, argv[2], tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
           kitten_printf(10, 2, "No update found for the '%s' package.", argv[2]);
           puts("");
         } else { /* the package is locally installed, and an update have been found - let's proceed */
           char membuff1k[1024];
           /* prepare the zip file */
-          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, dosdir, dirlist, membuff1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
           /* if the zip file is ok, remove the old package and install our zip file */
           if (zipfileidx != NULL) {
             if (pkgrem(argv[2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
@@ -496,9 +510,9 @@ int main(int argc, char **argv) {
           }
         }
       } else if (action == ACTION_UPGRADE) { /* recursive UPDATE for the whole system */
-        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags | PKGINST_UPDATE, dirlist, mapdrv);
+        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags | PKGINST_UPDATE, dirlist, proxy, proxyport, downloadingstring, mapdrv);
       } else if (action == ACTION_CHECKUPDATES) { /* checkupdates */
-        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, 0, dirlist, mapdrv);
+        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv);
       }
       /* free memory of the pkg database */
       freedb(&pkgdb);

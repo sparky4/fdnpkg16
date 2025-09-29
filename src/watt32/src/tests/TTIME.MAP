@@ -1,0 +1,2071 @@
+Open Watcom Linker Version 1.9
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       25/09/28 18:57:22
+Executable Image: ttime.exe
+creating a DOS executable
+Error! E2028: _w32_timeval_diff_ is an undefined reference
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+DGROUP                          2839:0000            000084e0
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+ttime_TEXT             CODE           AUTO           0000:0000       0000046f
+_TEXT                  CODE           AUTO           0000:0470       0000b925
+timer_TEXT             CODE           AUTO           0000:bd95       000006da
+gettod_TEXT            CODE           AUTO           0000:c46f       0000020d
+misc_TEXT              CODE           AUTO           0000:c67c       000007af
+run_TEXT               CODE           AUTO           0000:ce2b       0000069a
+strings_TEXT           CODE           AUTO           0000:d4c5       00000639
+pc_cbrk_TEXT           CODE           AUTO           0000:dafe       00000000
+pcpkt_TEXT             CODE           AUTO           0000:dafe       000012d6
+pkt_lock_TEXT          CODE           AUTO           0000:edd4       000000a7
+pcconfig_TEXT          CODE           AUTO           0ee7:000b       00002068
+sock_ini_TEXT          CODE           AUTO           0ee7:2073       00000000
+asmpkt_TEXT            CODE           AUTO           0ee7:2074       00000641
+pcstat_TEXT            CODE           AUTO           0ee7:26b5       0000168b
+pcqueue_TEXT           CODE           AUTO           0ee7:3d40       000001a4
+pctcp_TEXT             CODE           AUTO           0ee7:3ee4       00003e3d
+pcbootp_TEXT           CODE           AUTO           0ee7:7d21       00000000
+pcdns_TEXT             CODE           AUTO           0ee7:7d21       00000cfa
+ports_TEXT             CODE           AUTO           0ee7:8a1b       000001de
+pcicmp_TEXT            CODE           AUTO           0ee7:8bf9       00000f23
+ip4_out_TEXT           CODE           AUTO           0ee7:9b1c       000000e3
+ip4_frag_TEXT          CODE           AUTO           0ee7:9bff       00000000
+loopback_TEXT          CODE           AUTO           0ee7:9bff       00000000
+netaddr_TEXT           CODE           AUTO           0ee7:9bff       0000052d
+pcsed_TEXT             CODE           AUTO           0ee7:a12c       00000cd2
+pcarp_TEXT             CODE           AUTO           0ee7:adfe       000038af
+bsdname_TEXT           CODE           AUTO           0ee7:e6ad       00000446
+pcdhcp_TEXT            CODE           AUTO           1d96:0003       00002f3f
+pcdbug_TEXT            CODE           AUTO           1d96:2f42       00004510
+udp_rev_TEXT           CODE           AUTO           1d96:7452       00000000
+split_TEXT             CODE           AUTO           1d96:7452       000005d9
+ip4_in_TEXT            CODE           AUTO           1d96:7a2b       000002bf
+tcp_fsm_TEXT           CODE           AUTO           1d96:7cea       000019b7
+pcbuf_TEXT             CODE           AUTO           1d96:96a1       00000532
+chksum_TEXT            CODE           AUTO           1d96:9bd3       00000062
+sock_in_TEXT           CODE           AUTO           1d96:9c35       0000037a
+sock_io_TEXT           CODE           AUTO           1d96:9faf       00000416
+neterr_TEXT            CODE           AUTO           1d96:a3c5       0000013b
+pcping_TEXT            CODE           AUTO           1d96:a500       0000032c
+version_TEXT           CODE           AUTO           1d96:a82c       000001f2
+geteth_TEXT            CODE           AUTO           1d96:aa1e       00000005
+FAR_DATA               FAR_DATA       AUTO           2838:0003       00000000
+_NULL                  BEGDATA        DGROUP         2839:0000       00000020
+_AFTERNULL             BEGDATA        DGROUP         283b:0000       00000002
+CONST                  DATA           DGROUP         283b:0002       000002e8
+CONST2                 DATA           DGROUP         2869:000a       0000016c
+_DATA                  DATA           DGROUP         2880:0006       00001c8a
+XIB                    DATA           DGROUP         2a49:0000       00000000
+XI                     DATA           DGROUP         2a49:0000       00000042
+XIE                    DATA           DGROUP         2a4d:0002       00000000
+YIB                    DATA           DGROUP         2a4d:0002       00000000
+YI                     DATA           DGROUP         2a4d:0002       00000024
+YIE                    DATA           DGROUP         2a4f:0006       00000000
+STRINGS                DATA           DGROUP         2a4f:0006       00000000
+DATA                   DATA           DGROUP         2a4f:0006       00000000
+_emu_init_start        EMU            DGROUP         2a4f:0006       00000000
+_emu_init_end          EMU            DGROUP         2a4f:0006       00000000
+_BSS                   BSS            DGROUP         2a4f:0006       00003b7a
+STACK                  STACK          DGROUP         2e07:0000       00002800
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+0000:0000+     test_timers_
+0000:0090+     test_intel_
+0000:00d2+     test_gettod2_
+0000:01e8+     test_rollover_
+0000:0398+     Usage_
+0000:03be      main_
+0000:0475      __STK
+0000:0495*     __STKOVERFLOW_
+0000:04b2      printf_
+0000:04e1      fputc_
+0000:05b1      kbhit_
+0000:05c8      delay_
+0000:0632      FISRQQ
+0000:0760      __init_87_emulator
+0000:07f1*     __fini_87_emulator
+0000:0868      _dos_getdate_
+0000:0886      _dos_gettime_
+0000:08a4      _dos_setdate_
+0000:08cb      _dos_settime_
+0000:08f2      time_
+0000:093d      sleep_
+0000:0990      __CHP
+0000:09b8      __I4D
+0000:0a07      __U4D
+0000:0a8b      puts_
+0000:0abb      __null_int23_exit_
+0000:0abc      exit_
+0000:0aed      _exit_
+0000:0b06      getopt_
+0000:0d80      _cstart_
+0000:0e32      FICRQQ
+0000:0e53*     _Not_Enough_Memory_
+0000:0f87      __exit_
+0000:0fa6      __do_exit_with_msg__
+0000:1004      __GETDS
+0000:100e*     __exit_with_msg_
+0000:1013      __fatal_runtime_error_
+0000:1032      _chain_intr_
+0000:1052      outp_
+0000:105c      _dos_setvect_
+0000:1069      _dos_getvect_
+0000:1074      inp_
+0000:107c      strcpy_
+0000:10f9+     _vbprintf_
+0000:1145      _bprintf_
+0000:1174+     _vsnprintf_
+0000:11d4*     _snprintf_
+0000:1200      sprintf_
+0000:1249      __fprtf_
+0000:1314      __InitFiles_
+0000:1462*     fcloseall_
+0000:1469      __full_io_exit_
+0000:1473      __ioalloc_
+0000:150d      __flush_
+0000:1632*     FIERQQ
+0000:1640      __set_errno_
+0000:1654*     __set_EDOM_
+0000:1666      __set_ERANGE_
+0000:1678      __set_EINVAL_
+0000:168d      __set_doserrno_
+0000:1699*     __DontCacheOSTZ_
+0000:16b2*     __CacheOSTZ_
+0000:1c3a+     __parse_tz_
+0000:1e0b      tzset_
+0000:1e3a      __get_errno_ptr_
+0000:1e41      __get_doserrno_ptr_
+0000:1e48+     int86x_
+0000:1ee1      int86_
+0000:1f0e      __U4M
+0000:1f0e      __I4M
+0000:1f26      mktime_
+0000:1fe0      __init_8087_emu
+0000:1fe6      __x87id
+0000:2136      __int34
+0000:2173      __int3c
+0000:4000*     FJARQQ
+0000:4a7c      ___dos87emucall
+0000:4aba      __getctime_
+0000:4b43      fputs_
+0000:4c1e      __InitRtns
+0000:4c1e*     __FInitRtns
+0000:4c79*     __FFiniRtns
+0000:4c79      __FiniRtns
+0000:4cdd      rand_
+0000:4d1f      srand_
+0000:4d42+     __open_flags_
+0000:4f42+     _fsopen_
+0000:4fa9      fopen_
+0000:5084*     freopen_
+0000:50fa      abort_
+0000:511c      __terminate_
+0000:5130      strdup_
+0000:5135      intr_
+0000:5163+     _asctime_
+0000:527f*     asctime_
+0000:528e*     _ctime_
+0000:52ae      ctime_
+0000:52bd      _localtime_
+0000:534c      localtime_
+0000:535b      memcpy_
+0000:537d      fprintf_
+0000:53ac      __CMain
+0000:53d7      __setEFGfmt_
+0000:5411*     _fpreset_
+0000:543c      __init_8087_
+0000:546f+     __default_sigfpe_handler_
+0000:5482      __chk8087_
+0000:54f2      __Init_Argv_
+0000:5555+     _getargv_
+0000:5754      __Fini_Argv_
+0000:577e      __EnterWVIDEO_
+0000:57a2      fflush_
+0000:5830      qsort_
+0000:5c32      FIDRQQ
+0000:5da0      __prtf_
+0000:6b87      vsprintf_
+0000:6bb2      _nmalloc_
+0000:6c8c      _fmalloc_
+0000:6c8c      malloc_
+0000:6d99      __doclose_
+0000:6e4a      __shutdown_stream_
+0000:6e64      fclose_
+0000:6eaf      __freefp_
+0000:6f2a      __purgefp_
+0000:6f6b      __chktty_
+0000:6f96      __lseek_
+0000:6fd0      __qwrite_
+0000:702d      fsync_
+0000:7032      __leapyear_
+0000:705c      getenv_
+0000:7121      segread_
+0000:7141      __local_mktime_
+0000:734d      __brktime_
+0000:74b0+     _gmtime_
+0000:74d4*     gmtime_
+0000:7612      __isindst_
+0000:7905      intdos_
+0000:7967      strrchr_
+0000:798c      toupper_
+0000:799a      strlen_
+0000:79af      strncpy_
+0000:79eb      strchr_
+0000:7a0a      tolower_
+0000:7c14      open_
+0000:7c4b      sopen_
+0000:7ce3      fseek_
+0000:7e31      __allocfp_
+0000:7f53      __clib_strdup_
+0000:7fa6      _DoINTR_
+0000:8000      FJSRQQ
+0000:8320      _setjmp_
+0000:8375      longjmp_
+0000:83d2      _ffree_
+0000:83d2      free_
+0000:8418      _fmemcpy_
+0000:843d      _fmemcmp_
+0000:8478      _EFG_Format_
+0000:860b      __cnvs2d_
+0000:862b      __GrabFP87_
+0000:865d      atoi_
+0000:86c5      memcmp_
+0000:86ea      strstr_
+0000:87a4      strupr_
+0000:87c6      strncat_
+0000:8805      strcat_
+0000:8830      stricmp_
+0000:886d      access_
+0000:88a7      atol_
+0000:8920      read_
+0000:8a04      strlwr_
+0000:8a26      close_
+0000:8a2b*     __flushall_
+0000:8a88      flushall_
+0000:8a8d      wctomb_
+0000:8ab6+     utoa_
+0000:8b13      itoa_
+0000:8b37*     _ismbblead_
+0000:8b53      ulltoa_
+0000:8c38*     lltoa_
+0000:8c9a      ultoa_
+0000:8d09*     ltoa_
+0000:8d38      __nmemneed_
+0000:8d40      __MemAllocator
+0000:8e0a      __MemFree
+0000:8fec      __LastFree_
+0000:9066      __ExpandDGROUP_
+0000:9177      __CMain_nheapgrow_
+0000:917c      __GrowSeg_
+0000:926e      __AllocSeg_
+0000:9305      __fmemneed_
+0000:9308      __close_
+0000:933b      isatty_
+0000:9357      _dosretax_
+0000:935c*     _dosret0_
+0000:9363      __set_errno_dos_
+0000:93c1*     __set_errno_dos_reterr_
+0000:93cc      __GetIOMode_
+0000:93f1      __SetIOMode_nogrow_
+0000:9414*     _dos_close_
+0000:9422      _dos_commit_
+0000:9432      _mbterm_
+0000:9474      _mbsnextc_
+0000:94a5      _mbctoupper_
+0000:94c8      _mbsinc_
+0000:9504      _dos_open_
+0000:952a      _dos_creat_
+0000:954e*     _dos_creatnew_
+0000:9570+     __grow_iomode_
+0000:9633+     __shrink_iomode_
+0000:966e      __SetIOMode_
+0000:96d1      lseek_
+0000:9702      tell_
+0000:9714      atexit_
+0000:978e      _nfree_
+0000:9889*     _SetLD64bit_
+0000:9894*     _SetLD80bit_
+0000:989f      _LDisDouble_
+0000:99cb      _LDScale10x_
+0000:9f2e      __LDcvt_
+0000:a23d      FIWRQQ
+0000:a9dd+     __Strtold_
+0000:ab90      strtod_
+0000:ad36      __Init_FPE_handler_
+0000:ad6f      __Fini_FPE_handler_
+0000:ada6*     __FPEHandler
+0000:b038      memmove_
+0000:b0ae      calloc_
+0000:b0ed      _dos_getfileattr_
+0000:b104      __ChkTTYIOMode_
+0000:b142*     __IOMode_
+0000:b190      __mbinit_
+0000:b26b*     sbrk_
+0000:b27b      __brk_
+0000:b2e5*     _heapgrow_
+0000:b2e5*     _fheapgrow_
+0000:b2e6      _nheapgrow_
+0000:b360      __doserror_
+0000:b38c      __setenvp_
+0000:b48f      __freeenvp_
+0000:b4ed      _mbdtoupper_
+0000:b4fb*     _frealloc_
+0000:b4fb      realloc_
+0000:b5d7+     __is_nonIBM_
+0000:b61e      unlink_
+0000:b634      setvbuf_
+0000:b6bc      vfprintf_
+0000:b6ce      fwrite_
+0000:b8c9      __LDClass_
+0000:b917*     _FLClass_
+0000:b92c      __ZBuf2LD
+0000:ba0c      memchr_
+0000:ba25      clearenv_
+0000:bb07*     _msize_
+0000:bb07      _fmsize_
+0000:bb18      __HeapManager_expand_
+0000:bc8f      _nexpand_
+0000:bce2      _fexpand_
+0000:bce2*     _expand_
+0000:bd17      _bfree_
+0000:bd3c      _bexpand_
+0000:bde7      _w32_init_timers_
+0000:be11+     _w32_init_userSuppliedTimerTick_
+0000:be33*     _w32_userTimerTick_
+0000:bea0+     _w32_exit_timer_isr_
+0000:bf08      _w32_init_timer_isr_
+0000:bf7d      _w32_cmp_timers_
+0000:bf9a      _w32_hires_timer_
+0000:bfb2*     _w32_clockbits_
+0000:c000      FJCRQQ
+0000:c01b      _w32_set_timeout_
+0000:c072      _w32_chk_timeout_
+0000:c102*     _w32_set_timediff_
+0000:c123      _w32_get_timediff_
+0000:c14c*     _w32_timeval_diff2_
+0000:c1ea      _w32_time_str_
+0000:c284      _w32_hms_str_
+0000:c2ef      _w32_elapsed_str_
+0000:c40b*     _w32_ms_clock_
+0000:c4b6*     set_utc_offset_
+0000:c4ff+     _w32_gettimeofday_
+0000:c5e7      gettimeofday2_
+0000:c7d8*     __w32_hex_chars_lower
+0000:c7e9      __w32_hex_chars_upper
+0000:c7fa*     __w32_intel
+0000:c83b*     __w32_intel16
+0000:c847      _w32_get_day_num_
+0000:c899      _w32_init_misc_
+0000:c909      _w32_memdbg_init_
+0000:c909      _w32_memdbg_post_init_
+0000:c90a      _w32_fopen_excl_
+0000:c90f      _w32_assert_fail_
+0000:c969*     _w32_assert_fail_test_
+0000:c97f*     _w32_abort_test_
+0000:c98c*     _w32_except_test_
+0000:c9a0*     _w32_leak_test_
+0000:c9b5      _w32_Random_
+0000:c9da*     _w32_RandomWait_
+0000:c9fb      _w32_Wait_
+0000:ca1d*     dos_extender_name_
+0000:ca22*     _w32_os_yield_
+0000:ca73      _w32_ctime_r_
+0000:cacc      _w32_localtime_r_
+0000:cb31      watt_kbhit_
+0000:cb5c      _w32_list_lookup_
+0000:cbab*     _w32_list_lookupX_
+0000:cbf5      _w32_MAC_address_
+0000:cca2*     _w32_dword_str_
+0000:cd9b*     _w32_unfinished_
+0000:cddd*     _w32_unimplemented_
+0000:cdfb      watt_large_check_
+0000:cfd7*     _w32_startup_add_
+0000:d0dc      _w32_rundown_add_
+0000:d1db      _w32_rundown_run_
+0000:d24e      _w32_rundown_dump_
+0000:d2eb      _w32_daemon_add_
+0000:d395      _w32_daemon_del_
+0000:d3d8      daemon_clear_
+0000:d3ed      _w32_daemon_run_
+0000:d4a5*     _w32_addwattcpd_
+0000:d4b5*     _w32_delwattcpd_
+0000:d552      _w32_outsnl_
+0000:d55b      _w32_outs_
+0000:d59c      _w32_outsn_
+0000:d5df      _w32_outhex_
+0000:d634      _w32_outhexes_
+0000:d667      _w32_rip_
+0000:d6a7      atox_
+0000:d6fe      strreplace_
+0000:d749      _strlcpy_
+0000:d7e9      strltrim_
+0000:d829      strrtrim_
+0000:d888      strtrim_
+0000:d949*     strreverse_
+0000:d988      strntrimcpy_
+0000:da4d      _w32_strtok_r_
+0000:dfd4+     _w32_pkt_strerror_
+0000:e067*     _w32_pkt_is_init_
+0000:e31a+     pkt_get_params_
+0000:e375      _w32_pkt_get_mtu_
+0000:e392      _w32_pkt_get_api_ver_
+0000:e3af      _w32_pkt_get_drvr_ver_
+0000:e3d7*     _w32_pkt_get_vector_
+0000:e3dc*     _w32_pkt_get_drvr_class_
+0000:e3e1*     _w32_pkt_get_device_name_
+0000:e52c+     pkt_release_handle_
+0000:e58b+     _w32_pkt_reset_handle_
+0000:e5cc      _w32_pkt_release_
+0000:e62b      _w32_pkt_send_
+0000:e6e6+     _w32_pkt_get_addr_
+0000:e781      _w32_pkt_set_addr_
+0000:e7f3      _w32_pkt_get_stats_
+0000:e933      pkt_get_vjstats_
+0000:e97f      pkt_get_cstate_
+0000:e9ab      _w32_pkt_buf_wipe_
+0000:e9e4      _w32_pkt_free_pkt_
+0000:ea77      _w32_pkt_waiting_
+0000:ea98      _w32_pkt_dropped_
+0000:eb10      _w32_pkt_eth_init_
+0000:ecac+     _w32_pkt_set_rcv_mode_
+0000:ed3c+     _w32_pkt_get_rcv_mode_
+0000:ee7a*     _pkt_end_
+0000:fe32*     FIARQQ
+0ee7:0a07      _add_server_
+0ee7:0ad7      _w32_expand_var_str_
+0ee7:0ad7*     _w32_ExpandVarStr_
+0ee7:1043      _w32_parse_config_table_
+0ee7:1682+     _w32_get_argv0_
+0ee7:16da*     _w32_tcp_set_debug_state_
+0ee7:1850*     _w32_tcp_inject_config_
+0ee7:19de      tcp_parse_file_
+0ee7:1d9a+     _w32_tcp_config_name_
+0ee7:1ef7      _w32_tcp_config_
+0ee7:2668*     __pkt_receiver_rm
+0ee7:2668      _pkt_receiver_rm
+0ee7:2f8f*     _w32_sock_stats_
+0ee7:305b*     _w32_reset_stats_
+0ee7:30d8+     print_cache_stats_
+0ee7:3109+     _w32_print_mac_stats_
+0ee7:3192*     print_rarp_stats_
+0ee7:3193+     _w32_print_arp_stats_
+0ee7:31bd+     _w32_print_vjc_stats_
+0ee7:33fc+     _w32_print_pkt_stats_
+0ee7:350f*     _w32_print_igmp_stats_
+0ee7:350f*     _w32_print_pppoe_stats_
+0ee7:350f*     _w32_print_ip6_stats_
+0ee7:350f*     print_icmp6_stats_
+0ee7:3510+     _w32_print_ip4_stats_
+0ee7:3632+     _w32_print_icmp_stats_
+0ee7:3738+     _w32_print_udp_stats_
+0ee7:37c4+     _w32_print_tcp_stats_
+0ee7:39e0      _w32_print_all_stats_
+0ee7:3a2c      update_in_stat_
+0ee7:3bcd      update_out_stat_
+0ee7:3d67      pktq_check_
+0ee7:3db0      pktq_init_
+0ee7:3e48*     pktq_inc_in_
+0ee7:3e60      pktq_inc_out_
+0ee7:3e7a*     pktq_in_index_
+0ee7:3e8b*     pktq_in_buf_
+0ee7:3ea1      pktq_out_buf_
+0ee7:3eaf      pktq_clear_
+0ee7:3ebd      pktq_queued_
+0ee7:432a*     _w32_udp_listen_
+0ee7:442e      _w32_udp_open_
+0ee7:471f*     _w32_udp_SetTTL_
+0ee7:472b*     _w32_tcp_open_
+0ee7:497d*     _w32_tcp_listen_
+0ee7:4b86      _tcp_close_
+0ee7:4cae      _tcp_abort_
+0ee7:4dad      _tcp_sendsoon_
+0ee7:4eac      _tcp_unthread_
+0ee7:4fce      _w32_tcp_established_
+0ee7:4fe3      _tcp_handler_
+0ee7:57c0      _udp_handler_
+0ee7:5ade+     tcp_Retransmitter_
+0ee7:5ea8      _w32_tcp_tick_
+0ee7:6216      _udp_cancel_
+0ee7:64fe      _tcp_cancel_
+0ee7:6f94      _tcp_send_
+0ee7:73e9      _tcp_send_reset_
+0ee7:7678*     _tcp_keepalive_
+0ee7:7678*     _w32_sock_keepalive_
+0ee7:775b*     _w32_sock_mode_
+0ee7:77fa*     _w32_sock_yield_
+0ee7:782f*     _w32_sock_abort_
+0ee7:7870      _w32_sock_read_
+0ee7:7914      _w32_sock_fastread_
+0ee7:794e      _w32_sock_write_
+0ee7:7a10      _w32_sock_fastwrite_
+0ee7:7a52*     _w32_sock_enqueue_
+0ee7:7aef*     _w32_sock_noflush_
+0ee7:7b05      _w32_sock_flush_
+0ee7:7b40      _w32_sock_flushnext_
+0ee7:7b56      _w32_sock_close_
+0ee7:7b87+     tcp_rtt_add_
+0ee7:7c01+     tcp_rtt_get_
+0ee7:7cd0+     tcp_rtt_clr_
+0ee7:8741      _w32_dom_strerror_
+0ee7:87b9      _w32_dom_remove_dot_
+0ee7:87ec      _w32_resolve_
+0ee7:8a5d      init_localport_
+0ee7:8aa4      find_free_port_
+0ee7:8b9b      reuse_localport_
+0ee7:8bea      maybe_reuse_localport_
+0ee7:9135      icmp_send_unreach_
+0ee7:9254*     icmp_send_timexceed_
+0ee7:9324      icmp_send_mask_req_
+0ee7:95f2      icmp_handler_
+0ee7:9a72      icmp_doredirect_
+0ee7:9b1c*     _get_ip4_id_
+0ee7:9b2c*     _get_this_ip4_id_
+0ee7:9b33      _ip4_output_
+0ee7:9c61      _w32__inet_ntoa_
+0ee7:9d4f      _w32__inet_addr_
+0ee7:9d9b      _w32_aton_
+0ee7:9e17*     _w32_aton_dotless_
+0ee7:9e3d      _w32_isaddr_
+0ee7:9e77+     _w32_isaddr_dotless_
+0ee7:9f0d      inet_ntoa_
+0ee7:9f5a      _inet_atoeth_
+0ee7:9fd6*     _w32_priv_addr_
+0ee7:a059*     mask_len_
+0ee7:a0f5      check_mask_
+0ee7:a229      _w32__eth_formatpacket_
+0ee7:a244      _w32__eth_send_
+0ee7:a625      _w32__eth_init_
+0ee7:a7b9      _w32__eth_set_addr_
+0ee7:a7ee      _w32__eth_get_hwtype_
+0ee7:a8c0      _w32__eth_free_
+0ee7:abe8      _w32__eth_arrived_
+0ee7:ad93*     _w32__eth_release_
+0ee7:bab7*     _arp_gateways_get_
+0ee7:badf      _arp_add_gateway_
+0ee7:bd34      _arp_kill_gateways_
+0ee7:bd7d      _arp_have_default_gw_
+0ee7:bf2e      _arp_reply_
+0ee7:c087+     _arp_cache_get_
+0ee7:c65e      _arp_register_
+0ee7:cdb8      _arp_start_lookup_
+0ee7:ce42      _arp_lookup_
+0ee7:ceeb      _arp_lookup_pending_
+0ee7:cf60*     _arp_lookup_fixed_
+0ee7:d0aa      _arp_resolve_
+0ee7:d251      _arp_cache_add_
+0ee7:d405+     _arp_cache_del_
+0ee7:d5e8      _arp_init_
+0ee7:d637      _arp_handler_
+0ee7:dbbf      _arp_check_own_ip_
+0ee7:dc70      _arp_check_gateways_
+0ee7:dd05      _arp_cache_dump_
+0ee7:de20      _arp_routes_dump_
+0ee7:dea5      _arp_gateways_dump_
+0ee7:dfbd*     _arp_debug_dump_
+0ee7:e55d*     _route_destin_
+0ee7:e6c4*     _gethostid_
+0ee7:e6ce*     _sethostid_
+0ee7:e6d8*     _w32__getpeername_
+0ee7:e7a0*     _w32__getsockname_
+0ee7:e816*     getdomainname_
+0ee7:e881      setdomainname_
+0ee7:e8c6*     gethostname_
+0ee7:e9bd      sethostname_
+0ee7:ea5e      _get_machine_name_
+1d96:1613      _w32_DHCP_release_
+1d96:16cb*     _w32_DHCP_get_server_
+1d96:1dcc      DHCP_do_boot_
+1d96:23f1      DHCP_init_
+1d96:2e6f      _w32_DHCP_read_config_
+1d96:2f26*     _w32_DHCP_set_config_func_
+1d96:4152      tcpStateName_
+1d96:417c      dbug_file_
+1d96:41a7      dbug_open_
+1d96:69a2      dbug_printf_
+1d96:6a19*     db_write_raw_
+1d96:6a19      dbug_write_
+1d96:6a5d+     dbug_putc_
+1d96:6aaa+     dbug_flush_
+1d96:6acb*     _w32_dbug_init_
+1d96:74bb      pkt_get_split_in_
+1d96:74e7      pkt_get_split_out_
+1d96:7511*     pkt_get_type_in_
+1d96:7541*     pkt_get_type_out_
+1d96:7568      pkt_split_mac_in_
+1d96:758c      pkt_split_mac_out_
+1d96:79ee*     pkt_print_split_in_
+1d96:7a0e*     pkt_print_split_out_
+1d96:7a34      _ip4_handler_
+1d96:7b30+     _chk_ip4_header_
+1d96:7bf9      _ip4_is_local_addr_
+1d96:7c2e      _ip4_is_loopback_addr_
+1d96:7c3e*     _ip4_is_unique_addr_
+1d96:7c67      _ip4_is_multihome_addr_
+1d96:7ca0      _ip4_is_ip_brdcast_
+1d96:7cd8      _ip4_is_multicast_
+1d96:803b      _tcp_fsm_
+1d96:97bd*     _w32_sock_rbsize_
+1d96:97ec*     _w32_sock_rbused_
+1d96:980e      _w32_sock_rbleft_
+1d96:9834*     _w32_sock_tbsize_
+1d96:9872*     _w32_sock_tbleft_
+1d96:98b5*     _w32_sock_tbused_
+1d96:98d2*     _w32_sock_setbuf_
+1d96:9960      _sock_check_tcp_buffers_
+1d96:9a99*     _sock_check_udp_buffers_
+1d96:9a9a*     _w32_sock_preread_
+1d96:9b00      _w32__chk_socket_
+1d96:9b46*     _w32_sockerr_
+1d96:9b6b*     _w32_sockerr_clear_
+1d96:9b88*     _w32_sockstate_
+1d96:9bd3      _w32_in_checksum_
+1d96:9c7b      _w32_ip_timer_init_
+1d96:9cb1      _w32_ip_timer_expired_
+1d96:9ccd*     _w32__ip_delay0_
+1d96:9da9*     _w32__ip_delay1_
+1d96:9e5f*     _w32__ip_delay2_
+1d96:9f38*     _w32_sock_timeout_
+1d96:9f7b*     _w32_sock_established_
+1d96:9fbc*     _w32_sock_putc_
+1d96:9ff9*     _w32_sock_puts_
+1d96:a06f*     _w32_sock_gets_
+1d96:a2db*     _w32_sock_getc_
+1d96:a308      _w32_sock_dataready_
+1d96:a3ea*     perror_
+1d96:a3ea*     perror_s_
+1d96:a435      strerror_
+1d96:a435      strerror_s__
+1d96:a48e*     _w32_short_strerror_
+1d96:a568*     _w32__ping_
+1d96:a70e      _w32_add_ping_
+1d96:a7a3*     _w32__chk_ping_
+1d96:a8b9      wattcpVersion_
+1d96:a934*     wattcpBuildCCexe_
+1d96:a93a*     wattcpBuildCC_
+1d96:a940*     wattcpBuildCflags_
+1d96:a988*     wattcpCapabilities_
+1d96:aa1e      _w32_GetEtherName_
+2839:0000*     __nullarea
+2839:028e      ___diyr
+2839:02a8      ___dilyr
+2839:02e4      ___Alphabet
+2839:0344      __IsTable
+2839:0446*     ___f_infinity
+2839:044a*     ___f_posqnan
+2839:044e      ___d_infinity
+2839:0456      ___d_posqnan
+2839:045e*     ___ld_infinity
+2839:0466*     ___ld_posqnan
+2839:046e      __HugeValue
+2839:047a      __w32_start_time
+2839:047e      __w32_start_day
+2839:0482+     __w32_has_8254
+2839:0484+     __w32_has_rdtsc
+2839:0486*     __w32_use_rdtsc
+2839:0488+     __w32_using_int8
+2839:048a*     __w32_clocks_per_usec
+2839:048e      __w32_user_tick_base
+2839:0492      __w32_user_tick_msec
+2839:0496      __w32_user_tick_active
+2839:0498*     __w32_num_cpus
+2839:04ae      ___iob
+2839:0616      __fmode
+2839:0648      ___int23_exit
+2839:064c      ___FPE_handler_exit
+2839:0650+     __w32_win32_dos_box
+2839:0652*     __watt_crtdbg_check
+2839:0654      __watt_fatal_error
+2839:0656      __watt_os_ver
+2839:0658      __w32_errno
+2839:0660+     _optind
+2839:0662+     _opterr
+2839:0664+     ___altoptchar
+2839:0668*     __ovlflag
+2839:0669*     __intno
+2839:066a*     __ovlvec
+2839:066e      _fltused_
+2839:0670      __8087
+2839:0671      __real87
+2839:0672      __dos87emucall
+2839:0674      __dos87real
+2839:0676      __curbrk
+2839:0678      __psp
+2839:067a      __osmajor
+2839:067b      __osminor
+2839:067c      __osmode
+2839:067d      __HShift
+2839:067e      __STACKLOW
+2839:0680      __STACKTOP
+2839:0682      __cbyte
+2839:0684      __child
+2839:0686      __no87
+2839:0688      __get_ovl_stack
+2839:068c      __restore_ovl_stack
+2839:0690      __close_ovl_file
+2839:0694      ___FPE_handler
+2839:0698      __LpCmdLine
+2839:069c      __LpPgmName
+2839:06a8      ___start_dst
+2839:06ba      ___end_dst
+2839:07ce*     _tzname
+2839:07d6      _timezone
+2839:07da      _daylight
+2839:07dc      ___dst_adjust
+2839:086e+     __w32__outch
+2839:0872      __w32__printf
+2839:087a      ___abort
+2839:087e      __watt_handle_cbreak
+2839:0880      __watt_cbroke
+2839:0882      __pktdevclass
+2839:0884      __pkt_ip_ofs
+2839:0886+     __pkt_type_ofs
+2839:0888      __pktserial
+2839:088a+     __pktdevlevel
+2839:088b      __pkt_rxmode
+2839:088d+     __pkt_rxmode0
+2839:088f+     __pkt_errno
+2839:0891*     _pkt_error
+2839:0895+     __pkt_forced_rxmode
+2839:0897      __pktdrvrname
+2839:08ab      __pkt_inf
+2839:0914      ___uselfn
+2839:0916+     ___WD_Present
+2839:0918      __w32_debug_on
+2839:091a      __w32_ctrace_on
+2839:091c      __w32_sock_delay
+2839:091e      __w32_sock_inactive
+2839:0920      __w32_sock_data_timeout
+2839:0922      __w32_multihomes
+2839:0924      __w32_dynamic_host
+2839:0926+     _stkwalk_details
+2839:0928+     _fortify_fail_rate
+2839:092a      __w32_last_cookie
+2839:092c+     __w32_print_hook
+2839:0930      __w32_usr_init
+2839:0934      __w32_usr_post_init
+2839:094c      _watt_init_cfg
+2839:0a50      ___nheapbeg
+2839:0a52      ___MiniHeapRover
+2839:0a54      ___LargestSizeB4MiniHeapRover
+2839:0a56+     ___fheap
+2839:0a58      ___fheapRover
+2839:0a5a      ___LargestSizeB4Rover
+2839:0a5c      __8087cw
+2839:0a5e      __commode
+2839:0a60      __w32__bootp_on
+2839:0a62      __w32__dhcp_on
+2839:0a64*     __w32__dhcp6_on
+2839:0a66      __w32__rarp_on
+2839:0a68      __w32__do_mask_req
+2839:0a6a+     __watt_do_exit
+2839:0a6c      __watt_no_config
+2839:0a6e      __watt_user_config_fn
+2839:0a72+     __w32_survive_eth
+2839:0a74*     __w32_survive_bootp
+2839:0a76+     __w32_survive_dhcp
+2839:0a78*     __w32_survive_rarp
+2839:0a7a      __watt_is_init
+2839:0b72      __amblksiz
+2839:0b74      ___EFG_printf
+2839:0b78      ___EFG_scanf
+2839:0b7c      ___Save8087
+2839:0b80      ___Rest8087
+2839:0b84      __w32_hostname
+2839:0bd5      __w32__mss
+2839:0bd7      __w32__mtu
+2839:0bd9      __w32_mtu_discover
+2839:0bdb      __w32_mtu_blackhole
+2839:0bdd+     __w32_block_tcp
+2839:0bdf*     __w32_block_udp
+2839:0be1      __w32_block_icmp
+2839:0be3      __w32_block_ip
+2839:0be5      __w32_my_ip_addr
+2839:0be9      __w32_sin_mask
+2839:0bed      __udp_allsocs
+2839:0bf1      __w32_tcp_OPEN_TO
+2839:0bf3      __w32_tcp_CLOSE_TO
+2839:0bf5      __w32_tcp_RTO_ADD
+2839:0bf7      __w32_tcp_RTO_BASE
+2839:0bf9      __w32_tcp_RTO_SCALE
+2839:0bfb      __w32_tcp_RST_TIME
+2839:0bfd      __w32_tcp_RETRAN_TIME
+2839:0bff      __w32_tcp_MAX_VJSA
+2839:0c01      __w32_tcp_MAX_VJSD
+2839:0c03      __w32_tcp_opt_ts
+2839:0c05      __w32_tcp_opt_wscale
+2839:0c07      __w32_tcp_opt_sack
+2839:0c09      __w32_tcp_nagle
+2839:0c0b      __w32_tcp_keep_idle
+2839:0c0d      __w32_tcp_keep_intvl
+2839:0c0f      __w32_tcp_max_idle
+2839:0c11      __w32_tcp_recv_win
+2839:0c15      __tcp_allsocs
+2839:0c60      __bootp_host
+2839:0c64      __bootp_timeout
+2839:0c66      __w32_defaultdomain
+2839:0cb7      __w32_def_domain
+2839:0cbb      __w32_last_nameserver
+2839:0cbd      __w32_dns_timeout
+2839:0cbf      __w32_dns_recurse
+2839:0cc1      __w32_dns_do_ipv6
+2839:0cc3      __w32_dns_do_idna
+2839:0cc5      __w32_dns_windns
+2839:0cc8      __w32_use_rand_lport
+2839:0cca      _icmp_type_str
+2839:0d16      _icmp_unreach_str
+2839:0d56      _icmp_redirect_str
+2839:0d66      _icmp_exceed_str
+2839:0d7a      __default_tos
+2839:0d7b      __default_ttl
+2839:0d7d      __ip4_id_increment
+2839:0d7f      __ip4_dont_frag
+2839:0d84      __ip4_frag_reasm
+2839:0d86      _loopback_mode
+2839:0d96      __eth_is_init
+2839:0d98      __ip_recursion
+2839:0d9a      __eth_ndis3pkt
+2839:0d9c+     __eth_SwsVpkt
+2839:0d9e*     __eth_airpcap
+2839:0da0*     __eth_wanpacket
+2839:0da2*     __eth_npcap
+2839:0da4*     __eth_win10pcap
+2839:0da6*     __eth_winpcap
+2839:0da8      __eth_not_init
+2839:0dac+     __eth_recv_hook
+2839:0db0+     __eth_recv_peek
+2839:0db4+     __eth_xmit_hook
+2839:0e00      ___NFiles
+2839:0e02      ___init_mode
+2839:0e2a      ___io_mode
+2839:0e2e      ___umaskval
+2839:0e30      ___longjmp_handler
+2839:0e40      __SignalTable
+2839:0e74      __w32_DHCP_did_gratuitous_arp
+2839:0f58      __w32_debug_xmit
+2839:0f5c      __w32_debug_recv
+2839:107d+     _dbg_mode_all
+2839:107f+     _dbg_print_stat
+2839:1081+     _dbg_dns_details
+2839:12c4+     ___syserr000
+2839:12d2+     ___syserr013
+2839:12ec+     ___syserr014
+2839:1306+     ___syserr002
+2839:131f+     ___syserr006
+2839:133a+     ___syserr018
+2839:1363+     ___syserr004
+2839:137b+     ___syserr019
+2839:139b+     ___syserr017
+2839:13b9+     ___syserr015
+2839:13e1+     ___syserr007
+2839:13f6+     ___syserr034
+2839:140b+     ___syserr020
+2839:1422+     ___syserr016
+2839:1442+     ___syserr009
+2839:145c+     ___syserr021
+2839:146c+     ___syserr022
+2839:1484+     ___syserr011
+2839:14a1+     ___syserr024
+2839:14b9+     ___syserr035
+2839:14da+     ___syserr010
+2839:14f7+     ___syserr036
+2839:150f+     ___syserr001
+2839:1532+     ___syserr003
+2839:154e+     ___syserr037
+2839:1574+     ___syserr005
+2839:158f+     ___syserr012
+2839:15b0+     ___syserr038
+2839:15cd+     ___syserr023
+2839:15e7+     ___syserr039
+2839:1607+     ___syserr026
+2839:1627+     ___syserr027
+2839:1649+     ___syserr028
+2839:165b+     ___syserr029
+2839:166f+     ___syserr030
+2839:168d+     ___syserr031
+2839:16a3+     ___syserr032
+2839:16bb+     ___syserr008
+2839:16d5+     ___syserr042
+2839:16ed+     ___syserr043
+2839:1717+     ___syserr044
+2839:1733+     ___syserr040
+2839:1757+     ___syserr045
+2839:177b+     ___syserr046
+2839:17a3+     ___syserr047
+2839:17cc+     ___syserr048
+2839:17f6+     ___syserr049
+2839:1822+     ___syserr050
+2839:183e+     ___syserr051
+2839:186a+     ___syserr052
+2839:1896+     ___syserr053
+2839:18bf+     ___syserr054
+2839:18eb+     ___syserr055
+2839:191a+     ___syserr056
+2839:1947+     ___syserr057
+2839:197f+     ___syserr058
+2839:19a3+     ___syserr059
+2839:19d2+     ___syserr060
+2839:19ed+     ___syserr061
+2839:1a12+     ___syserr062
+2839:1a42+     ___syserr063
+2839:1a72+     ___syserr064
+2839:1a98+     ___syserr065
+2839:1abc+     ___syserr066
+2839:1ae2+     ___syserr067
+2839:1b05+     ___syserr068
+2839:1b32+     ___syserr069
+2839:1b53+     ___syserr070
+2839:1b75+     ___syserr071
+2839:1b8e+     ___syserr072
+2839:1bae+     ___syserr073
+2839:1bcd+     ___syserr074
+2839:1bf9+     ___syserr075
+2839:1c15+     ___syserr076
+2839:1c36+     ___syserr077
+2839:1c59+     ___syserr078
+2839:1c83+     ___syserr079
+2839:1cac+     ___syserr080
+2839:1cce+     ___syserr081
+2839:1ce7+     ___syserr082
+2839:1d06+     ___syserr083
+2839:1d2d+     ___syserr084
+2839:1d4b+     ___syserr085
+2839:1d64+     ___syserr086
+2839:1d82+     ___syserr087
+2839:1d99+     ___syserr088
+2839:1dc7+     ___syserr089
+2839:1de1+     ___syserr033
+2839:1dfa+     ___syserr025
+2839:1e1a+     ___syserr090
+2839:1e3d+     ___syserr091
+2839:1e60+     ___syserr092
+2839:1e7e+     ___syserr093
+2839:1e96+     ___syserr094
+2839:1eb3+     ___syserr095
+2839:1ed3+     ___syserr096
+2839:1f08+     __sys_errlist
+2839:208c*     __w32_pull_neterr_module
+2839:208e+     __sys_nerr
+2839:2090      ___MBCodePage
+2839:2092      ___heap_enabled
+2839:2094      ___NonIBM
+2839:2096*     _wattcpCopyright
+2839:209a+     _w32_cflags2
+2839:20fe      ___FPE_int
+2839:2100      __Start_XI
+2839:2142      __End_XI
+2839:2142      __Start_YI
+2839:2166      __End_YI
+2839:21d0      ___OpenStreams
+2839:21d4      ___ClosedStreams
+2839:21d8      __watt_assert_buf
+2839:233c+     _optarg
+2839:2340+     _optopt
+2839:2342+     ___optchar
+2839:2344      __argv
+2839:2348      ___argv
+2839:234c      __argc
+2839:234e      ___argc
+2839:2a58+     _errno
+2839:2a5a+     __doserrno
+2839:2aa4      __pkt_enque_ptr
+2839:2aa8+     _pkt_enque_ptr
+2839:2b34+     __w32_cookies
+2839:2cae+     ___RmTmpFileFn
+2839:2cc4+     __w32_pppoestats
+2839:2cd4      __w32_tcpstats
+2839:2dc4+     __w32_ip6stats
+2839:3404      __w32_ip4stats
+2839:346c      __w32_icmpstats
+2839:3534      __w32_udpstats
+2839:355c      __w32_cache_stats
+2839:3574      __w32_macstats
+2839:35c8+     __w32_igmpstats
+2839:35ec*     __w32_icmp6stats
+2839:3e60      ____Argv
+2839:3e64      ____Argc
+2839:3e66      ___historical_splitparms
+2839:3ee8      __w32_def_nameservers
+2839:3f10      __w32_dom_a4list
+2839:3f44      __w32_dom_ttl
+2839:3f48      __w32__resolve_hook
+2839:3f4c*     _from_windns
+2839:3f4e      __w32_dom_errno
+2839:3f50      __w32__resolve_timeout
+2839:3f52      __w32__resolve_exit
+2839:3f54      __w32_dom_cname
+2839:40a8      __eth_last
+2839:46ae      __eth_real_addr
+2839:46b4+     __eth_loop_addr
+2839:46ba      __eth_brdcast
+2839:46c0      __eth_addr
+2839:46c8      __eth_mac_len
+2839:4ed2      ___IsDBCS
+2839:4ed4      ___MBCSIsTable
+2839:4fd6      ___env_mask
+2839:4fda      _environ
+2839:4fde*     __wenviron
+2839:56cc+     ___MiniHeapFreeRover
+
+
+                        +---------------------+
+                        |   Module Segments   |
+                        +---------------------+
+
+! = 32-bit segment
+c = initialized communal data
+
+Module          Segment               Class           Address         Size
+======          =======               =====           =======         ====
+
+C:\Z\FDNPKG16\SRC\WATT32\SRC\TESTS\ttime.c
+                ttime_TEXT            CODE           0000:0000        0000046f
+                CONST                 DATA           283b:0002        000001c7
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0006        00000002
+stk             _TEXT                 CODE           0000:0470        00000042
+                _DATA                 DATA           2880:0008        00000002
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:0000        00000006
+                XIE                   DATA           2a4d:0002        00000000
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:0002        00000000
+                YIE                   DATA           2a4f:0006        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\timer.c
+                timer_TEXT            CODE           0000:bd95        000006da
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:000a        00000034
+                _BSS                  BSS            2a4f:0006        0000006a
+printf.c        _TEXT                 CODE           0000:04b2        0000002f
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:003e        00000000
+iob.c           CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:003e        0000016a
+                _BSS                  BSS            2a4f:0070        00000008
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:0006        00000006
+                XIE                   DATA           2a4d:0002        00000000
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:0002        00000006
+                YIE                   DATA           2a4f:0006        00000000
+fputc.c         _TEXT                 CODE           0000:04e1        000000d0
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01a8        00000000
+kbhit.c         _TEXT                 CODE           0000:05b1        00000017
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01a8        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\gettod.c
+                gettod_TEXT           CODE           0000:c46f        0000020d
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01a8        00000008
+delay.c         _TEXT                 CODE           0000:05c8        0000015f
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01b0        00000000
+initemu.asm     _TEXT                 CODE           0000:0728        00000140
+                _DATA                 DATA           2880:01b0        00000028
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:000c        00000006
+                XIE                   DATA           2a4d:0002        00000000
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:0008        00000006
+                YIE                   DATA           2a4f:0006        00000000
+dosgtime        _TEXT                 CODE           0000:0868        0000003c
+                _DATA                 DATA           2880:01d8        00000000
+dosstime        _TEXT                 CODE           0000:08a4        0000004e
+                _DATA                 DATA           2880:01d8        00000000
+time.c          _TEXT                 CODE           0000:08f2        0000004b
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01d8        00000000
+sleep.c         _TEXT                 CODE           0000:093d        00000052
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01d8        00000000
+fchop87         _TEXT                 CODE           0000:0990        00000027
+                _DATA                 DATA           2880:01d8        00000000
+i4d             _TEXT                 CODE           0000:09b8        000000d3
+                _DATA                 DATA           2880:01d8        00000000
+puts.c          _TEXT                 CODE           0000:0a8b        00000030
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01d8        00000000
+exit.c          _TEXT                 CODE           0000:0abb        0000004b
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01d8        00000008
+C:\Z\FDNPKG16\SRC\WATT32\SRC\misc.c
+                misc_TEXT             CODE           0000:c67c        000007af
+                CONST                 DATA           283b:01ca        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01e0        00000010
+                _BSS                  BSS            2a4f:0078        00000164
+getopt.c        _TEXT                 CODE           0000:0b06        0000027a
+                CONST                 DATA           283b:01ca        00000041
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01f0        00000007
+                _BSS                  BSS            2a4f:01dc        00000007
+cstart          _TEXT                 CODE           0000:0d80        0000028e
+                _DATA                 DATA           2880:01f8        00000006
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:0012        00000000
+                XIE                   DATA           2a4d:0002        00000000
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:000e        00000000
+                YIE                   DATA           2a4f:0006        00000000
+                FAR_DATA              FAR_DATA       2838:0003        00000000
+                _NULL                 BEGDATA        2839:0000        00000020
+                _AFTERNULL            BEGDATA        283b:0000        00000002
+                CONST                 DATA           283b:020c        00000000
+                STRINGS               DATA           2a4f:0006        00000000
+                DATA                  DATA           2a4f:0006        00000000
+                _BSS                  BSS            2a4f:01e4        00000000
+                STACK                 STACK          2e07:0000        00000800
+fltused.c       CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:01fe        00000002
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:0012        00000006
+                XIE                   DATA           2a4d:0002        00000000
+cmodel          _DATA                 DATA           2880:0200        00000000
+_8087           _DATA                 DATA           2880:0200        00000005
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:0018        00000006
+                XIE                   DATA           2a4d:0002        00000000
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:000e        00000000
+                YIE                   DATA           2a4f:0006        00000000
+argcv.c         CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0206        00000000
+                _BSS                  BSS            2a4f:01e4        0000000c
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:001e        00000006
+                XIE                   DATA           2a4d:0002        00000000
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:000e        00000006
+                YIE                   DATA           2a4f:0006        00000000
+xmsg.c          _TEXT                 CODE           0000:100e        00000023
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0206        00000000
+crwdata         _DATA                 DATA           2880:0206        0000002a
+chainint        _TEXT                 CODE           0000:1032        00000020
+                _DATA                 DATA           2880:0230        00000000
+outp.c          _TEXT                 CODE           0000:1052        0000000a
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0230        00000000
+d_setvec.c      _TEXT                 CODE           0000:105c        0000000d
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0230        00000000
+d_getvec.c      _TEXT                 CODE           0000:1069        0000000b
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0230        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\run.c
+                run_TEXT              CODE           0000:ce2b        0000069a
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0230        00000008
+                _BSS                  BSS            2a4f:01f0        00000708
+inp.c           _TEXT                 CODE           0000:1074        00000008
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+strcpy.c        _TEXT                 CODE           0000:107c        0000004b
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+bprintf.c       _TEXT                 CODE           0000:10c7        00000139
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+sprintf.c       _TEXT                 CODE           0000:1200        0000002f
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+fprtf.c         _TEXT                 CODE           0000:122f        000000e5
+                CONST                 DATA           283b:020c        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+initfile.c      _TEXT                 CODE           0000:1314        000000d5
+                CONST                 DATA           283b:020c        0000002e
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+ioexit.c        _TEXT                 CODE           0000:13e9        0000008a
+                CONST                 DATA           283b:023a        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+ioalloc.c       _TEXT                 CODE           0000:1473        0000009a
+                CONST                 DATA           283b:023a        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+flush.c         _TEXT                 CODE           0000:150d        00000133
+                CONST                 DATA           283b:023a        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+seterrno.c      _TEXT                 CODE           0000:1640        00000059
+                CONST                 DATA           283b:023a        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        00000000
+tzset.c         _TEXT                 CODE           0000:1699        000007a1
+                CONST                 DATA           283b:023a        00000003
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0238        0000015c
+errno.c         _TEXT                 CODE           0000:1e3a        0000000e
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0394        00000000
+                _BSS                  BSS            2a4f:08f8        00000004
+intx086.c       _TEXT                 CODE           0000:1e48        000000c6
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0394        00000000
+i4m             _TEXT                 CODE           0000:1f0e        00000018
+                _DATA                 DATA           2880:0394        00000000
+mktime.c        _TEXT                 CODE           0000:1f26        000000ba
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0394        00000000
+init8087        _TEXT                 CODE           0000:1fe0        00000045
+                _DATA                 DATA           2880:0394        00000000
+emu8087.asm     _TEXT                 CODE           0000:2026        00002a56
+                _DATA                 DATA           2880:0394        0000006a
+dosinit.asm     _TEXT                 CODE           0000:4a7c        0000003e
+                _DATA                 DATA           2880:03fe        00000000
+gtctm.c         _TEXT                 CODE           0000:4aba        00000089
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:03fe        00000000
+fputs.c         _TEXT                 CODE           0000:4b43        000000a0
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:03fe        00000000
+initrtns.c      _TEXT                 CODE           0000:4be3        000000fa
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:03fe        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\strings.c
+                strings_TEXT          CODE           0000:d4c5        00000639
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:03fe        00000008
+rand.c          _TEXT                 CODE           0000:4cdd        00000065
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:0406        00000004
+fopen.c         _TEXT                 CODE           0000:4d42        000003b8
+                CONST                 DATA           283b:023e        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:040a        00000000
+abort.c         _TEXT                 CODE           0000:50fa        00000035
+                CONST                 DATA           283b:023e        00000015
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:040a        00000004
+_icstrdu.asm    _TEXT                 CODE           0000:5130        00000005
+                _DATA                 DATA           2880:040e        00000000
+intr.c          _TEXT                 CODE           0000:5135        00000014
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:000a        00000000
+                _DATA                 DATA           2880:040e        00000000
+asctime.c       _TEXT                 CODE           0000:5149        00000174
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:000a        00000039
+                _DATA                 DATA           2880:040e        00000000
+                _BSS                  BSS            2a4f:08fc        0000001a
+localtim.c      _TEXT                 CODE           0000:52bd        0000009e
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0044        00000000
+                _DATA                 DATA           2880:040e        00000000
+                _BSS                  BSS            2a4f:0916        00000012
+memcpy.c        _TEXT                 CODE           0000:535b        00000022
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0044        00000000
+                _DATA                 DATA           2880:040e        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pc_cbrk.c
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0044        00000000
+                _DATA                 DATA           2880:040e        00000004
+                _BSS                  BSS            2a4f:0928        0000001c
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcpkt.c
+                pcpkt_TEXT            CODE           0000:dafe        000012d6
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0044        00000000
+                _DATA                 DATA           2880:0412        00000091
+                _BSS                  BSS            2a4f:0944        0000008c
+                pkt_lock_TEXT         CODE           0000:edd4        000000a7
+fprintf.c       _TEXT                 CODE           0000:537d        0000002f
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0044        00000000
+                _DATA                 DATA           2880:04a4        00000000
+istable.c       CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0044        00000101
+                _DATA                 DATA           2880:04a4        00000000
+cmain086.c      _TEXT                 CODE           0000:53ac        0000002b
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:04a4        00000000
+uselfn.c        CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:04a4        00000001
+dosseg          _DATA                 DATA           2880:04a6        00000000
+setefg.c        _TEXT                 CODE           0000:53d7        0000001e
+                CONST                 DATA           283b:0254        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:04a6        00000000
+chk8087.c       _TEXT                 CODE           0000:53f5        000000fd
+                CONST                 DATA           283b:0254        00000019
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:04a6        00000000
+initargv.c      _TEXT                 CODE           0000:54f2        0000028c
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:04a6        00000000
+                _BSS                  BSS            2a4f:09d0        00000004
+enterdb.c       _TEXT                 CODE           0000:577e        00000024
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:04a6        00000001
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcconfig.c
+                pcconfig_TEXT         CODE           0ee7:000b        00002068
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:04a8        00000138
+                _BSS                  BSS            2a4f:09d4        00000179
+fflush.c        _TEXT                 CODE           0000:57a2        00000015
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05e0        00000000
+qsort.c         _TEXT                 CODE           0000:57b7        000005e9
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05e0        00000000
+prtf.c          _TEXT                 CODE           0000:5da0        00000dce
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05e0        00000000
+vsprintf.c      _TEXT                 CODE           0000:6b6e        00000044
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05e0        00000000
+nmalloc.c       _TEXT                 CODE           0000:6bb2        000000da
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05e0        00000006
+fmalloc.c       _TEXT                 CODE           0000:6c8c        0000010d
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05e6        00000006
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:0024        00000006
+                XIE                   DATA           2a4d:0002        00000000
+fclose.c        _TEXT                 CODE           0000:6d99        00000116
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+                _BSS                  BSS            2a4f:0b4e        00000004
+freefp.c        _TEXT                 CODE           0000:6eaf        000000bc
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+chktty.c        _TEXT                 CODE           0000:6f6b        0000002b
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+__lseek.c       _TEXT                 CODE           0000:6f96        0000003a
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+qwrit.c         _TEXT                 CODE           0000:6fd0        0000005d
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+fsync.c         _TEXT                 CODE           0000:702d        00000005
+                CONST                 DATA           283b:026e        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+leapyear.c      _TEXT                 CODE           0000:7032        0000002a
+                CONST                 DATA           283b:026e        00000034
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+getenv.c        _TEXT                 CODE           0000:705c        000000c5
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+segread.c       _TEXT                 CODE           0000:7121        00000020
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+locmktim.c      _TEXT                 CODE           0000:7141        000001c7
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+gmtime.c        _TEXT                 CODE           0000:7308        000001db
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+                _BSS                  BSS            2a4f:0b52        00000012
+timeutil.c      _TEXT                 CODE           0000:74e3        00000422
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000000
+8087cw.c        CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ec        00000002
+sgdef086        _DATA                 DATA           2880:05ee        00000000
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:002a        00000000
+                XIE                   DATA           2a4d:0002        00000000
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:0014        00000000
+                YIE                   DATA           2a4f:0006        00000000
+intd086.c       _TEXT                 CODE           0000:7905        00000062
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ee        00000000
+strrchr.c       _TEXT                 CODE           0000:7967        00000025
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ee        00000000
+toupper.c       _TEXT                 CODE           0000:798c        0000000e
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ee        00000000
+strlen.c        _TEXT                 CODE           0000:799a        00000015
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ee        00000000
+strncpy.c       _TEXT                 CODE           0000:79af        0000003c
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ee        00000000
+strchr.c        _TEXT                 CODE           0000:79eb        0000001f
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ee        00000000
+comtflag.c      CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05ee        00000002
+tolower.c       _TEXT                 CODE           0000:7a0a        0000000e
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05f0        00000000
+open.c          _TEXT                 CODE           0000:7a18        00000260
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05f0        00000000
+fseek.c         _TEXT                 CODE           0000:7c78        000001b9
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05f0        00000000
+allocfp.c       _TEXT                 CODE           0000:7e31        00000122
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05f0        00000000
+strdup.c        _TEXT                 CODE           0000:7f53        00000052
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05f0        00000000
+dointr          _TEXT                 CODE           0000:7fa6        00000379
+                _DATA                 DATA           2880:05f0        00000000
+setjmp          _TEXT                 CODE           0000:8320        000000b2
+                _DATA                 DATA           2880:05f0        00000000
+signl.c         CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05f0        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\sock_ini.c
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:05f0        00000026
+C:\Z\FDNPKG16\SRC\WATT32\SRC\asmpkt.asm
+                asmpkt_TEXT           CODE           0ee7:2074        00000641
+                _DATA                 DATA           2880:0616        00000082
+ffree.c         _TEXT                 CODE           0000:83d2        00000046
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0698        00000000
+fmemcpy.c       _TEXT                 CODE           0000:8418        00000025
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0698        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcstat.c
+                pcstat_TEXT           CODE           0ee7:26b5        0000168b
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0698        0000006a
+                _BSS                  BSS            2a4f:0b64        0000119c
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcqueue.c
+                pcqueue_TEXT          CODE           0ee7:3d40        000001a4
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0702        00000000
+fmemcmp.c       _TEXT                 CODE           0000:843d        00000028
+                CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0702        00000000
+___argc.c       CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0702        00000000
+                _BSS                  BSS            2a4f:1d00        00000006
+amblksiz.c      CONST                 DATA           283b:02a2        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0702        00000002
+noefgfmt.c      _TEXT                 CODE           0000:8465        00000013
+                CONST                 DATA           283b:02a2        00000022
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0704        00000008
+efgfmt.c        _TEXT                 CODE           0000:8478        00000193
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:070c        00000000
+cnvs2d.c        _TEXT                 CODE           0000:860b        0000001f
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:070c        00000000
+save8087.c      _TEXT                 CODE           0000:862a        00000001
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:070c        00000008
+grabfp87.c      _TEXT                 CODE           0000:862b        00000032
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0714        00000000
+histsplt.c      CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0714        00000000
+                _BSS                  BSS            2a4f:1d06        00000002
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pctcp.c
+                pctcp_TEXT            CODE           0ee7:3ee4        00003e3d
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0714        000000db
+                _BSS                  BSS            2a4f:1d08        00000080
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcbootp.c
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:07f0        00000006
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcdns.c
+                pcdns_TEXT            CODE           0ee7:7d21        00000cfa
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:07f6        00000061
+                _BSS                  BSS            2a4f:1d88        0000010f
+C:\Z\FDNPKG16\SRC\WATT32\SRC\ports.c
+                ports_TEXT            CODE           0ee7:8a1b        000001de
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0858        00000002
+                _BSS                  BSS            2a4f:1e98        00000004
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcicmp.c
+                pcicmp_TEXT           CODE           0ee7:8bf9        00000f23
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:085a        000000b0
+C:\Z\FDNPKG16\SRC\WATT32\SRC\ip4_out.c
+                ip4_out_TEXT          CODE           0ee7:9b1c        000000e3
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:090a        00000009
+C:\Z\FDNPKG16\SRC\WATT32\SRC\ip4_frag.c
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0914        00000002
+C:\Z\FDNPKG16\SRC\WATT32\SRC\loopback.c
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0916        00000002
+atoi.c          _TEXT                 CODE           0000:865d        00000068
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0918        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\netaddr.c
+                netaddr_TEXT          CODE           0ee7:9bff        0000052d
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0918        0000000e
+                _BSS                  BSS            2a4f:1e9c        000000a0
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcsed.c
+                pcsed_TEXT            CODE           0ee7:a12c        00000cd2
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0926        00000038
+                _BSS                  BSS            2a4f:1f3c        0000062d
+memcmp.c        _TEXT                 CODE           0000:86c5        00000025
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:095e        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcarp.c
+                pcarp_TEXT            CODE           0ee7:adfe        000038af
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:095e        0000001e
+                _BSS                  BSS            2a4f:256a        00000808
+strstr.c        _TEXT                 CODE           0000:86ea        000000ba
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+strupr.c        _TEXT                 CODE           0000:87a4        00000022
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+strncat.c       _TEXT                 CODE           0000:87c6        0000003f
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+strcat.c        _TEXT                 CODE           0000:8805        0000002b
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+stricmp.c       _TEXT                 CODE           0000:8830        0000003d
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\bsdname.c
+                bsdname_TEXT          CODE           0ee7:e6ad        00000446
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+accss.c         _TEXT                 CODE           0000:886d        0000003a
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+atol.c          _TEXT                 CODE           0000:88a7        00000079
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+read.c          _TEXT                 CODE           0000:8920        000000e4
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+strlwr.c        _TEXT                 CODE           0000:8a04        00000022
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+close.c         _TEXT                 CODE           0000:8a26        00000005
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+flushall.c      _TEXT                 CODE           0000:8a2b        00000062
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+wctomb.c        _TEXT                 CODE           0000:8a8d        00000029
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+itoa.c          _TEXT                 CODE           0000:8ab6        00000081
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+mbisdbcs.c      CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+                _BSS                  BSS            2a4f:2d72        00000002
+mbislead.c      _TEXT                 CODE           0000:8b37        0000001c
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+                _BSS                  BSS            2a4f:2d74        00000101
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:002a        00000006
+                XIE                   DATA           2a4d:0002        00000000
+lltoa.c         _TEXT                 CODE           0000:8b53        00000147
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+ltoa.c          _TEXT                 CODE           0000:8c9a        0000009e
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+nmemneed.c      _TEXT                 CODE           0000:8d38        00000003
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+mem.c           _TEXT                 CODE           0000:8d40        00000227
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+grownear.c      _TEXT                 CODE           0000:8f67        00000210
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+hpgrw086.c      _TEXT                 CODE           0000:9177        00000005
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+growseg.c       _TEXT                 CODE           0000:917c        000000f2
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+allocseg.c      _TEXT                 CODE           0000:926e        00000097
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+fmemneed.c      _TEXT                 CODE           0000:9305        00000003
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+_clse.c         _TEXT                 CODE           0000:9308        00000033
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+isatt.c         _TEXT                 CODE           0000:933b        0000001c
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000000
+dosret.c        _TEXT                 CODE           0000:9357        00000075
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:097c        00000014
+iomode.c        _TEXT                 CODE           0000:93cc        00000048
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0990        0000002e
+filedos.c       _TEXT                 CODE           0000:9414        0000001e
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09be        00000000
+environ.c       CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09be        00000000
+                _BSS                  BSS            2a4f:2e76        0000000c
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:0030        00000006
+                XIE                   DATA           2a4d:0002        00000000
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:0014        00000006
+                YIE                   DATA           2a4f:0006        00000000
+mbterm.c        _TEXT                 CODE           0000:9432        00000042
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09be        00000000
+mbsnextc.c      _TEXT                 CODE           0000:9474        00000031
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09be        00000000
+mbcupper.c      _TEXT                 CODE           0000:94a5        00000023
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09be        00000000
+mbsinc.c        _TEXT                 CODE           0000:94c8        0000003c
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09be        00000000
+opendos.c       _TEXT                 CODE           0000:9504        00000026
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09be        00000000
+umaskval.c      CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09be        00000002
+creatdos.c      _TEXT                 CODE           0000:952a        00000046
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09c0        00000000
+stiomode.c      _TEXT                 CODE           0000:9570        00000161
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09c0        00000000
+                _BSS                  BSS            2a4f:2e82        00000002
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:001a        00000006
+                YIE                   DATA           2a4f:0006        00000000
+lseek.c         _TEXT                 CODE           0000:96d1        00000031
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09c0        00000000
+tell.c          _TEXT                 CODE           0000:9702        00000011
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09c0        00000000
+ljmphdl.c       _TEXT                 CODE           0000:9713        00000001
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09c0        00000004
+sigsy.c         CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09c4        0000000c
+sigtab.c        CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:09d0        00000034
+sigfpe.c        CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0a04        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcdhcp.c
+                pcdhcp_TEXT           CODE           1d96:0003        00002f3f
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0a04        000000af
+                _BSS                  BSS            2a4f:2e84        00000484
+atexit.c        _TEXT                 CODE           0000:9714        0000007a
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0ab4        00000000
+                _BSS                  BSS            2a4f:3308        00000082
+                YIB                   DATA           2a4d:0002        00000000
+                YI                    DATA           2a4d:0020        00000006
+                YIE                   DATA           2a4f:0006        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcdbug.c
+                pcdbug_TEXT           CODE           1d96:2f42        00004510
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0ab4        000002cc
+                _BSS                  BSS            2a4f:338a        000001e2
+C:\Z\FDNPKG16\SRC\WATT32\SRC\udp_rev.c
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0d80        00000000
+nfree.c         _TEXT                 CODE           0000:978e        000000fb
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0d80        00000000
+                _BSS                  BSS            2a4f:356c        00000002
+C:\Z\FDNPKG16\SRC\WATT32\SRC\split.c
+                split_TEXT            CODE           1d96:7452        000005d9
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0d80        00000000
+                _BSS                  BSS            2a4f:356e        000000a0
+rtcntrl.c       _TEXT                 CODE           0000:9889        00000029
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0d80        00000001
+ldcvt.c         _TEXT                 CODE           0000:98b2        00000bb2
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0d82        0000008c
+strtod.c        _TEXT                 CODE           0000:a464        000008ce
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e0e        00000000
+fpe87           _TEXT                 CODE           0000:ad32        00000306
+                _DATA                 DATA           2880:0e0e        00000016
+                _emu_init_start       EMU            2a4f:0006        00000000
+                _emu_init_end         EMU            2a4f:0006        00000000
+                _BSS                  BSS            2a4f:360e        00000204
+C:\Z\FDNPKG16\SRC\WATT32\SRC\ip4_in.c
+                ip4_in_TEXT           CODE           1d96:7a2b        000002bf
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e24        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\tcp_fsm.c
+                tcp_fsm_TEXT          CODE           1d96:7cea        000019b7
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e24        00000030
+                _BSS                  BSS            2a4f:3812        0000000a
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcbuf.c
+                pcbuf_TEXT            CODE           1d96:96a1        00000532
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e54        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\chksum.c
+                chksum_TEXT           CODE           1d96:9bd3        00000062
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e54        00000000
+memmove.c       _TEXT                 CODE           0000:b038        00000076
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e54        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\sock_in.c
+                sock_in_TEXT          CODE           1d96:9c35        0000037a
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e54        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\sock_io.c
+                sock_io_TEXT          CODE           1d96:9faf        00000416
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e54        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\neterr.c
+                neterr_TEXT           CODE           1d96:a3c5        0000013b
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:0e54        00000dcc
+                _BSS                  BSS            2a4f:381c        00000146
+calloc.c        _TEXT                 CODE           0000:b0ae        0000003f
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c20        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\pcping.c
+                pcping_TEXT           CODE           1d96:a500        0000032c
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c20        00000000
+                _BSS                  BSS            2a4f:3962        00000078
+gfattdos.c      _TEXT                 CODE           0000:b0ed        00000017
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c20        00000000
+iomodtty.c      _TEXT                 CODE           0000:b104        0000004e
+                CONST                 DATA           283b:02c4        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c20        00000000
+alphabet.c      CONST                 DATA           283b:02c4        00000025
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c20        00000000
+mbinit.c        _TEXT                 CODE           0000:b152        00000119
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c20        00000002
+heapen.c        CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c22        00000002
+sbrk.c          _TEXT                 CODE           0000:b26b        0000007a
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c24        00000000
+heapgrow.c      _TEXT                 CODE           0000:b2e5        0000007b
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c24        00000000
+doserror        _TEXT                 CODE           0000:b360        0000000e
+                _DATA                 DATA           2880:1c24        00000000
+setenvp.c       _TEXT                 CODE           0000:b36e        0000017f
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c24        00000000
+                _BSS                  BSS            2a4f:39da        00000004
+mbdtoupp.c      _TEXT                 CODE           0000:b4ed        0000000e
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c24        00000000
+frealloc.c      _TEXT                 CODE           0000:b4fb        000000dc
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c24        00000000
+nonibm.c        _TEXT                 CODE           0000:b5d7        00000047
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c24        00000002
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:0036        00000006
+                XIE                   DATA           2a4d:0002        00000000
+unlnk.c         _TEXT                 CODE           0000:b61e        00000016
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c26        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\version.c
+                version_TEXT          CODE           1d96:a82c        000001f2
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c26        00000067
+                _BSS                  BSS            2a4f:39de        000001a2
+setvbuf.c       _TEXT                 CODE           0000:b634        00000088
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c8e        00000000
+C:\Z\FDNPKG16\SRC\WATT32\SRC\geteth.c
+                geteth_TEXT           CODE           1d96:aa1e        00000005
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c8e        00000000
+vfprintf.c      _TEXT                 CODE           0000:b6bc        00000012
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c8e        00000000
+fwrite.c        _TEXT                 CODE           0000:b6ce        000001fb
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c8e        00000000
+ldclass.c       _TEXT                 CODE           0000:b8c9        00000062
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000000
+                _DATA                 DATA           2880:1c8e        00000000
+bufld086        _TEXT                 CODE           0000:b92c        000000c8
+                _DATA                 DATA           2880:1c8e        00000000
+inf_nan.c       CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0146        00000028
+                _DATA                 DATA           2880:1c8e        00000000
+hugeval.c       CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:016e        00000008
+                _DATA                 DATA           2880:1c8e        00000000
+fpeint.c        _TEXT                 CODE           0000:b9f4        00000018
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0176        00000000
+                _DATA                 DATA           2880:1c8e        00000001
+                XIB                   DATA           2a49:0000        00000000
+                XI                    DATA           2a49:003c        00000006
+                XIE                   DATA           2a4d:0002        00000000
+memchr.c        _TEXT                 CODE           0000:ba0c        00000019
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0176        00000000
+                _DATA                 DATA           2880:1c90        00000000
+clearenv.c      _TEXT                 CODE           0000:ba25        000000e2
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0176        00000000
+                _DATA                 DATA           2880:1c90        00000000
+fmsize.c        _TEXT                 CODE           0000:bb07        00000011
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0176        00000000
+                _DATA                 DATA           2880:1c90        00000000
+nexpand.c       _TEXT                 CODE           0000:bb18        000001ca
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0176        00000000
+                _DATA                 DATA           2880:1c90        00000000
+fexpand.c       _TEXT                 CODE           0000:bce2        00000035
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0176        00000000
+                _DATA                 DATA           2880:1c90        00000000
+bfree.c         _TEXT                 CODE           0000:bd17        00000025
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0176        00000000
+                _DATA                 DATA           2880:1c90        00000000
+bexpand.c       _TEXT                 CODE           0000:bd3c        00000059
+                CONST                 DATA           283b:02ea        00000000
+                CONST2                DATA           2869:0176        00000000
+                _DATA                 DATA           2880:1c90        00000000
+
+
+                        +---------------------------+
+                        |   Unresolved References   |
+                        +---------------------------+
+
+Undefined Symbol                Referenced by
+================                =============
+
+_w32_timeval_diff_              ttime.obj(C:\Z\FDNPKG16\SRC\WATT32\SRC\TESTS\ttime.c)
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+..\..\lib\wattcpwl.lib
+c:\fdos\WATCOM/lib286/dos\clibl.lib
+c:\fdos\WATCOM/lib286\math87l.lib
+c:\fdos\WATCOM/lib286/dos\emu87.lib
