@@ -122,7 +122,7 @@ PKT_STUB = pkt_stub.h
 .EXTENSIONS: .l
 
 CC      = wcc
-CFLAGS  = -ml -0 -os -zc -s -bt=dos
+CFLAGS  = -ml -0 -opnr -oe=24 -oil+ -outback -ohm -sg -zc -bt=dos
 AFLAGS  = -bt=dos
 TARGET  = ..\lib\wattcpwl.lib
 OBJDIR  = watcom\large
