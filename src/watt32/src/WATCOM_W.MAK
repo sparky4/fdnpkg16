@@ -135,7 +135,7 @@ LINKARG = $(OBJDIR)\wlink.arg
 C_ARGS  = $(OBJDIR)\cc.arg
 
 AFLAGS += -zq -fr=nul -w3 -d1
-CFLAGS += -zq -fr=nul -wx -fpi -DWATT32_BUILD -I..\inc
+CFLAGS += -zq -fr=nul -wx -fpc -DWATT32_BUILD -I..\inc
 
 #
 # WCC386-flags used:
