@@ -12,7 +12,7 @@
 #include "powerpak.h"
 #include "x32vm.h"
 
-#if defined(__MSDOS__)
+#if !defined(WIN32)
 /*
  * Disable stack-checking here because interrupt handlers might not
  * setup a legal stack.
@@ -87,5 +87,5 @@ void dhex8int (DWORD x)
   dhex4int ((int)(x & 0xFFFF));
   dputch (' ');
 }
-#endif  /* __MSDOS__ */
+#endif  /* WIN32 */
 

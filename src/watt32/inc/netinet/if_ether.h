@@ -42,21 +42,7 @@
 #ifndef __NETINET_IF_ETHER_H
 #define __NETINET_IF_ETHER_H
 
-#ifndef __SYS_MBUF_H
-#include <sys/mbuf.h>
-#endif
-
-#ifndef __NET_IF_H
-#include <net/if.h>
-#endif
-
-#ifndef __NET_IF_ARP_H
-#include <net/if_arp.h>
-#endif
-
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /*
  * Ethernet address - 6 octets
@@ -77,7 +63,7 @@ struct ether_header {
 
 #define ETHERTYPE_PUP           0x0200  /* PUP protocol */
 /* the IBM header corrects the following to 0x608 for OS/2 but I believe
- * this is just a dirty hack
+ * this is just a dirty hack 
  */
 #define ETHERTYPE_ARP           0x0806  /* address resolution protocol */
 #define ETHERTYPE_IP            0x0800  /* IP protocol */
@@ -111,11 +97,12 @@ struct ether_header {
           (enaddr)[5] = ((u_char *)ipaddr)[3]; \
         }
 
+
 /*
  * Ethernet Address Resolution Protocol.
  *
  * See RFC 826 for protocol description.  Structure below is adapted
- * to resolving internet addresses.  Field names used correspond to
+ * to resolving internet addresses.  Field names used correspond to 
  * RFC 826.
  */
 struct ether_arp {
@@ -191,9 +178,7 @@ struct ether_multistep {
        struct ether_multi  *e_enm;
      };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 /*
  * Macro for looking up the ether_multi record for a given range of Ethernet

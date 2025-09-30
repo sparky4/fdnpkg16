@@ -41,7 +41,7 @@ enum punycode_status {
  * except punycode_bad_input; if not punycode_success, then
  * output_size and output might contain garbage.
  */
-enum punycode_status punycode_encode (size_t input_length,
+enum punycode_status punycode_encode (DWORD input_length,
                                       const DWORD *input,
                                       const BYTE *case_flags,
                                       size_t *output_length,

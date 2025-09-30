@@ -2,9 +2,9 @@
  * BSD ioctlsocket().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -136,8 +136,7 @@ static int file_ioctrl (Socket *socket, long cmd, char *argp)
          else
          {
            socket->so_state &= ~SS_NBIO;
-           if (socket->tcp_sock)  /* Only TCP sockets timeout on inactivety */
-              socket->timeout = sock_delay;
+           socket->timeout = sock_delay;
          }
          SOCK_DEBUGF ((" %d", (socket->so_state & SS_NBIO) ? 1 : 0));
          break;
@@ -255,7 +254,7 @@ static int iface_ioctrl (Socket *socket, long cmd, char *argp)
   struct ifconf      *ifc = (struct ifconf*) argp;
   struct sockaddr_in *sin;
   const eth_address  *eth;
-  int   len, i;
+  int   len;
 
   VERIFY_RW (argp, sizeof(*ifr));
 
@@ -438,14 +437,11 @@ static int iface_ioctrl (Socket *socket, long cmd, char *argp)
          ifc = (struct ifconf*) ifc->ifc_buf; /* user's buffer */
          VERIFY_RW (ifc, len);
 
-         i = 0;
-         for (ifr = (struct ifreq*)ifc; i < len; ifr++, i += sizeof(*ifr))
-         {
-           __get_ifname (ifr->ifr_name);
-           sin = (struct sockaddr_in*) &ifr->ifr_addr;
-           sin->sin_addr.s_addr = htonl (my_ip_addr);
-           sin->sin_family      = AF_INET;
-         }
+         ifr = (struct ifreq*) ifc;
+         __get_ifname (ifr->ifr_name);
+         sin = (struct sockaddr_in*) &ifr->ifr_addr;
+         sin->sin_addr.s_addr = htonl (my_ip_addr);
+         sin->sin_family      = AF_INET;
          break;
 
     case SIOCGIFHWADDR:
@@ -545,7 +541,7 @@ static int arp_ioctrl (Socket *socket, long cmd, char *argp)
     case SIOCSARP:      /* add given IP/MAC-addr pair to ARP cache */
          ip  = intel (*(DWORD*)arp->arp_pa.sa_data);
          eth = (eth_address*) arp->arp_ha.sa_data;
-         if (!_arp_cache_add (ip, (const eth_address*)eth, FALSE))
+         if (!_arp_add_cache (ip, (const eth_address*)eth, FALSE))
          {
            SOCK_ERRNO (EINVAL);
            return (-1);
@@ -556,11 +552,11 @@ static int arp_ioctrl (Socket *socket, long cmd, char *argp)
     case OSIOCGARP:
          ip  = intel (*(DWORD*)arp->arp_pa.sa_data);
          eth = (eth_address*) arp->arp_ha.sa_data;
-         if (_arp_lookup_fixed (ip, eth))
+         if (arp_lookup_fixed (ip, eth))
          {
            arp->arp_flags |= (ATF_INUSE | ATF_COM | ATF_PERM);  /* fixed addr */
          }
-         else if (_arp_lookup (ip, eth))
+         else if (arp_lookup (ip, eth))
          {
            arp->arp_flags |= (ATF_INUSE | ATF_COM);   /* dynamic addr */
          }
@@ -574,7 +570,7 @@ static int arp_ioctrl (Socket *socket, long cmd, char *argp)
 
     case SIOCDARP:      /* delete ARP-entry for given ip */
          ip = intel (*(DWORD*)arp->arp_pa.sa_data);
-         if (!_arp_cache_del(ip))
+         if (!_arp_delete_cache (ip))
          {
            SOCK_ERRNO (ENOENT);
            return (-1);
@@ -593,7 +589,7 @@ static int arp_ioctrl (Socket *socket, long cmd, char *argp)
 /*
  * Return string for ioctlsocket() command
  */
-#if defined(USE_DEBUG)
+#if defined (USE_DEBUG)
 static const struct search_list commands[] = {
                   { FIOCLEX,         "FIOCLEX"         },
                   { FIONCLEX,        "FIONCLEX"        },
@@ -672,16 +668,16 @@ static const char *get_ioctl_cmd (long cmd)
 #if defined(TEST_PROG)
 
 #undef  assert
-#define assert(x) ((x) ? (void)0 : __assert_fail(__LINE__))
+#define assert(x) ((x) ? (void)0 : AssertFail(__LINE__))
 
-void __assert_fail (unsigned line)
+void AssertFail (unsigned line)
 {
   fprintf (stderr, "\nAssert failed at line %d, errno = %d (%s)\n",
-           line, errno, strerror(errno));
+           line, errno, strerror (errno));
   exit (-1);
 }
 
-const char *eth_addr_string (struct ether_addr *eth)
+char *eth_addr_string (struct ether_addr *eth)
 {
   static char buf[20];
 
@@ -692,50 +688,6 @@ const char *eth_addr_string (struct ether_addr *eth)
            eth->ether_addr_octet[3],
            eth->ether_addr_octet[4],
            eth->ether_addr_octet[5]);
-  return (buf);
-}
-
-const char *if_flags_string (unsigned short flags)
-{
-  static char buf[200];
-
-  buf[0] = '\0';
-
-  if (flags & IFF_UP)
-     strcat (buf,"up,");
-  if (flags & IFF_BROADCAST)
-     strcat (buf,"broadcast,");
-  if (flags & IFF_DEBUG)
-     strcat (buf,"debug,");
-  if (flags & IFF_LOOPBACK)
-     strcat (buf,"loopback,");
-  if (flags & IFF_POINTOPOINT)
-     strcat (buf,"p-to-p,");
-  if (flags & IFF_NOTRAILERS)
-     strcat (buf,"no-trail,");
-  if (flags & IFF_RUNNING)
-     strcat (buf,"running,");
-  if (flags & IFF_NOARP)
-     strcat (buf,"no-arp,");
-  if (flags & IFF_PROMISC)
-     strcat (buf,"promisc,");
-  if (flags & IFF_ALLMULTI)
-     strcat (buf,"all-multi,");
-  if (flags & IFF_OACTIVE)
-     strcat (buf,"out-act,");
-  if (flags & IFF_SIMPLEX)
-     strcat (buf,"simplex,");
-  if (flags & IFF_LINK0)
-     strcat (buf,"link0,");
-  if (flags & IFF_LINK1)
-     strcat (buf,"link1,");
-  if (flags & IFF_LINK2)
-     strcat (buf,"link2,");
-  if (flags & IFF_MULTICAST)
-     strcat (buf,"mcast,");
-
-  if (buf[0])
-     buf[strlen(buf)-1] = '\0';
   return (buf);
 }
 
@@ -756,7 +708,7 @@ int main (void)
   assert (ioctlsocket (sock, SIOCGIFADDR, (char*)&ifr) == 0);
   printf ("Interface `%s':\n\t ether-addr: %s\n",
           ifr.ifr_name,
-          eth_addr_string ((struct ether_addr*)&ifr.ifr_hwaddr.sa_data));
+          eth_addr_string ((struct ether_addr*)&ifr.ifr_addr.sa_data));
 
   assert (ioctlsocket (sock, SIOCGIFBRDADDR, (char*)&ifr) == 0);
   sin = (struct sockaddr_in*) &ifr.ifr_broadaddr;
@@ -769,15 +721,7 @@ int main (void)
   printf ("\t inet-addr:  %s\n", inet_ntoa (sin->sin_addr));
 
   assert (ioctlsocket (sock, SIOCGIFNETMASK, (char*)&ifr) == 0);
-  sin = (struct sockaddr_in*) &ifr.ifr_addr;
-  printf ("\t net-mask :  %s\n", inet_ntoa (sin->sin_addr));
-
-  assert (ioctlsocket (sock, SIOCGIFMTU, (char*)&ifr) == 0);
-  printf ("\t MTU      :  %u\n",ifr.ifr_mtu);
-
-  assert (ioctlsocket (sock, SIOCGIFFLAGS, (char*)&ifr) == 0);
-  printf ("\t Flags    :  0x%04X: %s\n",
-          ifr.ifr_flags, if_flags_string(ifr.ifr_flags));
+  printf ("\t net-mask :  %s\n", inet_ntoa (*(struct in_addr*)&ifr.ifr_addr.sa_data));
 
   assert (close_s(sock) >= 0);
   return (0);

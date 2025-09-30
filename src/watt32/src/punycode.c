@@ -104,7 +104,7 @@ static DWORD adapt (DWORD delta, DWORD numpoints, int firsttime)
 /*
  *Main encode function
  */
-enum punycode_status punycode_encode (size_t input_length,
+enum punycode_status punycode_encode (DWORD input_length,
                                       const DWORD *input,
                                       const BYTE *case_flags,
                                       size_t *output_length,
@@ -250,7 +250,7 @@ enum punycode_status punycode_decode (DWORD input_length,
   /* Main decoding loop:  Start just after the last delimiter if any
    * basic code points were copied; start at the beginning otherwise.
    */
-  for (in = (b > 0) ? (b + 1) : 0; in < input_length; ++out)
+  for (in = b > 0 ? b + 1 : 0; in < input_length; ++out)
   {
     /* in is the index of the next character to be consumed, and
      * out is the number of code points in the output array.

@@ -58,17 +58,16 @@ unsigned long net_dnsresolve(const char *name) {
 }
 
 
-/*0000
+
 static int dummy_printf(const char * format, ...) {
   if (format == NULL) return(-1);
   return(0);
-}*/
+}
 
 /* must be called before using libtcp. returns 0 on success, or non-zero if network subsystem is not available. */
 int net_init() {
   tzset();
-//0000  _printf = dummy_printf;  /* this is to avoid watt32 printing its stuff to console */
-//0000  _printf = printf;
+  _printf = dummy_printf;  /* this is to avoid watt32 printing its stuff to console */
   return(sock_init());
 }
 

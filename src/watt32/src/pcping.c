@@ -17,11 +17,12 @@
 #include "ip4_out.h"
 #include "pcsed.h"
 #include "pcarp.h"
-#include "pcdbug.h"
+#include "pcconfig.h"
 #include "pctcp.h"
 #include "pcicmp.h"
+#include "pcping.h"
 
-// #undef time
+#undef time
 
 /*!\struct ping_cache
  * Our little ping-cache.
@@ -31,6 +32,8 @@ static struct ping_cache {
        DWORD  time;
        DWORD  number;
      } pcache [10];
+
+typedef int (MS_CDECL *CmpFunc) (const void *, const void *);
 
 /**
  * Format and send an ICMP echo request (ping).
@@ -42,7 +45,7 @@ static struct ping_cache {
  *           header will be sent.
  *   \note   Sends fragments if needed.
  */
-int W32_CALL _ping (DWORD host, DWORD countnum, const BYTE *pattern, size_t len)
+int _ping (DWORD host, DWORD countnum, const BYTE *pattern, size_t len)
 {
   struct ping_pkt  *pkt;
   struct ICMP_echo *icmp;
@@ -64,7 +67,7 @@ int W32_CALL _ping (DWORD host, DWORD countnum, const BYTE *pattern, size_t len)
 
   if (debug_on >= 2)
   {
-    outs (_LANG("\nDEBUG: destination hardware: "));
+    outs (_LANG("\nDEBUG: destination hardware :"));
     outhexes ((char*)&dest, sizeof(dest));
     outs ("\n");
   }
@@ -93,7 +96,7 @@ int W32_CALL _ping (DWORD host, DWORD countnum, const BYTE *pattern, size_t len)
     icmp->type       = ICMP_ECHO;
     icmp->code       = 0;
     icmp->index      = countnum;
-    icmp->identifier = set_timeout (0) & 0xFFFF;  /* "random" id */
+    icmp->identifier = (WORD) set_timeout (0);  /* "random" id */
     icmp->sequence   = 0;
     icmp->checksum   = 0;
     icmp->checksum   = ~CHECKSUM (icmp, len);
@@ -123,7 +126,7 @@ int W32_CALL _ping (DWORD host, DWORD countnum, const BYTE *pattern, size_t len)
   icmp->type       = ICMP_ECHO;
   icmp->code       = 0;
   icmp->index      = countnum;
-  icmp->identifier = set_timeout (0) & 0xFFFF;  /* "random" id */
+  icmp->identifier = (WORD) set_timeout (0);  /* "random" id */
   icmp->sequence   = 0;
   icmp->checksum   = 0;
   icmp->checksum   = ~CHECKSUM (icmp, len);
@@ -144,7 +147,7 @@ static int MS_CDECL compare (const struct ping_cache *a,
 /**
  * Add an ICMP echo reply to the ping-cache.
  */
-void W32_CALL add_ping (DWORD host, DWORD time, DWORD number)
+void add_ping (DWORD host, DWORD time, DWORD number)
 {
   int i;
 
@@ -156,7 +159,7 @@ void W32_CALL add_ping (DWORD host, DWORD time, DWORD number)
         pcache[i].host   = host;
         pcache[i].time   = time;
         pcache[i].number = number;
-        qsort ((void*)&pcache, DIM(pcache), sizeof(pcache[0]), (CmpFunc)compare);
+        qsort ((void*)pcache, DIM(pcache), sizeof(pcache[0]), (CmpFunc)compare);
         break;
       }
 }
@@ -166,7 +169,7 @@ void W32_CALL add_ping (DWORD host, DWORD time, DWORD number)
  * \retval  reply time in system ticks.
  * \retval  (DWORD)-1 on failure
  */
-DWORD W32_CALL _chk_ping (DWORD host, DWORD *number)
+DWORD _chk_ping (DWORD host, DWORD *number)
 {
   int i;
 

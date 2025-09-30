@@ -3,9 +3,9 @@
  */
 
 /*
- *  BSD sockets functionality for Watt-32 TCP/IP
+ *  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -68,17 +68,17 @@ static const struct search_list commands[] = {
 
 int MS_CDECL fcntlsocket (int s, int cmd, ...)
 {
-  Socket *socket = _socklist_find (s);
-  size_t  arg;   /* same size as a pointer */
-  int     rc = 0;
-  va_list va;
+  Socket  *socket = _socklist_find (s);
+  unsigned arg;
+  int      rc = 0;
+  va_list  va;
 
   va_start (va, cmd);
-  arg = va_arg (va, size_t);
+  arg = va_arg (va, unsigned);
 
   SOCK_PROLOGUE (socket, "\nfcntlsocket:%d, ", s);
 
-  SOCK_DEBUGF ((", %s: ", list_lookup(cmd,commands,DIM(commands))));
+  SOCK_DEBUGF ((", %s: ", list_lookup (cmd, commands, DIM(commands))));
 
   /* fcntl is always file-ioctrl
    */

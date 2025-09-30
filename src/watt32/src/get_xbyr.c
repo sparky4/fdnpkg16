@@ -6,7 +6,7 @@
  *    Reentrant (MT-safe) version of some
  *    getXbyY function from <netdb.h>
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions

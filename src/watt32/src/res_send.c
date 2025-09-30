@@ -58,7 +58,7 @@
  */
 
 /*
- * 10.Dec-97   Adapted for Watt-32 TCP/IP - G. Vanem (gvanem@yahoo.no)
+ * 10.Dec-97   Adapted for Waterloo TCP/IP - G. Vanem (giva@bgnett.no)
  *
  */
 
@@ -85,10 +85,10 @@ static void resolve_close    (void);
                              (*_printf) args; \
                            } while (0)
 
-#define DprintQ(cond,args,query,size)                         \
-                          if (cond) do {                      \
-                             (*_printf) args;                 \
-                             __fp_nquery (query,size,stdout); \
+#define DprintQ(cond,args,query,size)                        \
+                          if (cond) do {                     \
+                             (*_printf) args;                \
+                             __fp_nquery (query,size,stdout);\
                           } while (0)
 
 static void Aerror (const char *str, const char *error,
@@ -109,12 +109,12 @@ static void Perror (const char *str, const char *error)
 static res_send_qhook Qhook = NULL;
 static res_send_rhook Rhook = NULL;
 
-void W32_CALL res_send_setqhook (res_send_qhook hook)
+void res_send_setqhook (res_send_qhook hook)
 {
   Qhook = hook;
 }
 
-void W32_CALL res_send_setrhook (res_send_rhook hook)
+void res_send_setrhook (res_send_rhook hook)
 {
   Rhook = hook;
 }
@@ -128,7 +128,7 @@ void W32_CALL res_send_setrhook (res_send_rhook hook)
  * author:
  *    paul vixie, 29may94
  */
-int W32_CALL res_isourserver (const struct sockaddr_in *inp)
+int res_isourserver (const struct sockaddr_in *inp)
 {
   struct sockaddr_in ina = *inp;
   int    ns;
@@ -156,8 +156,8 @@ int W32_CALL res_isourserver (const struct sockaddr_in *inp)
  * author:
  *     paul vixie, 29may94
  */
-int W32_CALL res_nameinquery (const char *name, int type, int Class,
-                              const u_char *buf, const u_char *eom)
+int res_nameinquery (const char *name, int type, int Class,
+                     const u_char *buf, const u_char *eom)
 {
   const u_char *cp = buf + HFIXEDSZ;
   int   qdcount    = ntohs (((HEADER*)buf)->qdcount);
@@ -193,8 +193,8 @@ int W32_CALL res_nameinquery (const char *name, int type, int Class,
  * author:
  *     paul vixie, 29may94
  */
-int W32_CALL res_queriesmatch (const u_char *buf1, const u_char *eom1,
-                               const u_char *buf2, const u_char *eom2)
+int res_queriesmatch (const u_char *buf1, const u_char *eom1,
+                      const u_char *buf2, const u_char *eom2)
 {
   const u_char *cp = buf1 + HFIXEDSZ;
   int   qdcount    = ntohs (((HEADER*)buf1)->qdcount);
@@ -230,7 +230,7 @@ static int     ns_buflen, ns_anssiz;
 static u_long  badns;
 static u_char *ns_buf,   *ns_ans;
 
-int W32_CALL res_send (const u_char *buf, int buflen, u_char *ans, int anssiz)
+int res_send (const u_char *buf, int buflen, u_char *ans, int anssiz)
 {
   hp   = (HEADER *) buf;
   anhp = (HEADER *) ans;
@@ -395,7 +395,7 @@ static int name_server_send (int ns, struct sockaddr_in *nsap)
 
   if (v_circuit)  /* i.e. TCP */
   {
-    int     truncated, slen;
+    int     truncated;
     u_short len;
     u_char *cp;
 
@@ -454,8 +454,7 @@ static int name_server_send (int ns, struct sockaddr_in *nsap)
     {
       cp  += n;
       len -= n;
-      slen = (int)len;
-      if (slen <= 0)
+      if ((signed)len <= 0)
          break;
     }
     if (n <= 0)

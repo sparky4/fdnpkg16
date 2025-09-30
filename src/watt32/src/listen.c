@@ -2,9 +2,9 @@
  * BSD listen().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -99,9 +99,7 @@ int W32_CALL listen (int s, int backlog)
 
 #if defined(TEST_PROG)  /* A simple finger server */
 
-#ifndef __CYGWIN__
 #include <conio.h>
-#endif
 
 #define FINGER_PORT 79
 
@@ -156,7 +154,7 @@ int main (void)
        quit = TRUE;
 
     FD_ZERO (&rd);
-    FD_SET (serv_sock, &rd);
+    FD_SET (s, &rd);
 
     num = select_s (serv_sock+1, &rd, NULL, NULL, &tv);
     if (num < 0)

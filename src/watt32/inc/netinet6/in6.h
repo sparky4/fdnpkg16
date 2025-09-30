@@ -3,7 +3,7 @@
  */
 
 /*      $FreeBSD: src/sys/netinet6/in6.h,v 1.22 2002/07/25 20:40:09 ume Exp $   */
-/*	$KAME: in6.h,v 1.89 2001/05/27 13:28:35 itojun Exp $ */
+/*	$KAME: in6.h,v 1.89 2001/05/27 13:28:35 itojun Exp $	*/
 
 /*
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
@@ -78,11 +78,7 @@
  * has the table of implementation/integration differences.
  */
 #define __KAME__
-#define __KAME_VERSION  "20010528/FreeBSD"
-
-#ifndef __SYS_MBUF_H
-#include <sys/mbuf.h>
-#endif
+#define __KAME_VERSION		"20010528/FreeBSD"
 
 /*
  * Local port number conventions:
@@ -320,20 +316,20 @@ extern const struct in6_addr in6addr_linklocal_allrouters;
  * Unicast Scope
  * Note that we must check topmost 10 bits only, not 16 bits (see RFC2373).
  */
-#define IN6_IS_ADDR_LINKLOCAL(a) \
+#define IN6_IS_ADDR_LINKLOCAL(a)	\
 	(((a)->s6_addr[0] == 0xfe) && (((a)->s6_addr[1] & 0xc0) == 0x80))
-#define IN6_IS_ADDR_SITELOCAL(a) \
+#define IN6_IS_ADDR_SITELOCAL(a)	\
 	(((a)->s6_addr[0] == 0xfe) && (((a)->s6_addr[1] & 0xc0) == 0xc0))
 
 /*
  * Multicast
  */
-#define IN6_IS_ADDR_MULTICAST(a)   ((a)->s6_addr[0] == 0xff)
+#define IN6_IS_ADDR_MULTICAST(a)	((a)->s6_addr[0] == 0xff)
 
 #ifdef _KERNEL	/* XXX nonstandard */
-#define IPV6_ADDR_MC_SCOPE(a)      ((a)->s6_addr[1] & 0x0f)
+#define IPV6_ADDR_MC_SCOPE(a)		((a)->s6_addr[1] & 0x0f)
 #else
-#define __IPV6_ADDR_MC_SCOPE(a)    ((a)->s6_addr[1] & 0x0f)
+#define __IPV6_ADDR_MC_SCOPE(a)		((a)->s6_addr[1] & 0x0f)
 #endif
 
 /*

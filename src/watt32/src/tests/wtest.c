@@ -8,7 +8,7 @@ unsigned long cdecl Get_CR4 (void);
 #pragma aux (__cdecl) Get_CR4 "*"
 
 #ifdef __cplusplus
-}
+};
 #endif
 
 int main (void)

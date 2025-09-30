@@ -1,7 +1,7 @@
 /*!\file lookup.c
  *  Host lookup function.
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -36,36 +36,37 @@
 #include "strings.h"
 #include "language.h"
 #include "netaddr.h"
-#include "misc.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "ip4_in.h"
-#include "pcdbug.h"
+#include "pcconfig.h"
 #include "pctcp.h"
 
-DWORD W32_CALL lookup_host (const char *host, char *ip_str)
+DWORD lookup_host (const char *host, char *ip_str)
 {
   DWORD ip;
-
-  WATT_ASSERT (host);
 
   if (isaddr(host))
      ip = aton (host);
   else
   {
+#if defined(USE_DEBUG)
+    (*_printf) ("Resolving `%s'...", host);
+    fflush (stdout);
+    ip = resolve (host);
+    if (ip)
+    {
+      if (dom_cname[0] && debug_on >= 1)
+         (*_printf) ("CNAME %s ", dom_cname);
+      (*_printf) ("[%s]\n", _inet_ntoa(NULL,ip));
+    }
+#else
     outs (_LANG("Resolving "));
     outs (host);
     outs ("...");
     ip = resolve (host);
     if (ip)
-    {
-      if (dom_cname[0] && debug_on >= 1)
-      {
-        outs ("CNAME ");
-        outs (dom_cname);
-        outs (" ");
-      }
-      outsnl (_inet_ntoa(NULL,ip));
-    }
+       outsnl (_inet_ntoa(NULL,ip));
+#endif
   }
 
   if (!_ip4_is_loopback_addr(ip) && _ip4_is_multihome_addr(ip))

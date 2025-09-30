@@ -11,7 +11,7 @@
 #define RP_OFF(rp)          (WORD)((DWORD)(rp) & 0xFFFF)
 #define RP_SEG(rp)          (WORD)((DWORD)(rp) >> 16)
 
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 typedef struct SWI_REGS {
         DWORD  r_ax;
@@ -48,30 +48,30 @@ typedef struct {
 typedef void (*pmodeHook) (SWI_REGS *);
 typedef void (*rmodeHook) (void);
 
-#include <sys/pack_off.h>
+#include <sys/packoff.h>
 
-#define _dx_rmiv_get    W32_NAMESPACE (_dx_rmiv_get)
-#define _dx_rmiv_set    W32_NAMESPACE (_dx_rmiv_set)
-#define _dx_real_int    W32_NAMESPACE (_dx_real_int)
-#define _dx_real_free   W32_NAMESPACE (_dx_real_free)
-#define _dx_real_above  W32_NAMESPACE (_dx_real_above)
-#define _dx_real_alloc  W32_NAMESPACE (_dx_real_alloc)
-#define _dx_call_real   W32_NAMESPACE (_dx_call_real)
-#define _dx_lock_pgs    W32_NAMESPACE (_dx_lock_pgs)
-#define _dx_lock_pgsn   W32_NAMESPACE (_dx_lock_pgsn)
-#define _dx_ulock_pgsn  W32_NAMESPACE (_dx_ulock_pgsn)
-#define _dx_rmlink_get  W32_NAMESPACE (_dx_rmlink_get)
+#define _dx_rmiv_get    NAMESPACE (_dx_rmiv_get)
+#define _dx_rmiv_set    NAMESPACE (_dx_rmiv_set)
+#define _dx_real_int    NAMESPACE (_dx_real_int)
+#define _dx_real_free   NAMESPACE (_dx_real_free)
+#define _dx_real_above  NAMESPACE (_dx_real_above)
+#define _dx_real_alloc  NAMESPACE (_dx_real_alloc)
+#define _dx_call_real   NAMESPACE (_dx_call_real)
+#define _dx_lock_pgs    NAMESPACE (_dx_lock_pgs)
+#define _dx_lock_pgsn   NAMESPACE (_dx_lock_pgsn)
+#define _dx_ulock_pgsn  NAMESPACE (_dx_ulock_pgsn)
+#define _dx_rmlink_get  NAMESPACE (_dx_rmlink_get)
 
-#define ReadRealMem     W32_NAMESPACE (ReadRealMem)
-#define WriteRealMem    W32_NAMESPACE (WriteRealMem)
-#define PokeRealWord    W32_NAMESPACE (PokeRealWord)
-#define PeekRealWord    W32_NAMESPACE (PeekRealWord)
-#define PeekRealDWord   W32_NAMESPACE (PeekRealDWord)
-#define stack_rewind    W32_NAMESPACE (stack_rewind)
+#define ReadRealMem     NAMESPACE (ReadRealMem)
+#define WriteRealMem    NAMESPACE (WriteRealMem)
+#define PokeRealWord    NAMESPACE (PokeRealWord)
+#define PeekRealWord    NAMESPACE (PeekRealWord)
+#define PeekRealDWord   NAMESPACE (PeekRealDWord)
+#define stack_rewind    NAMESPACE (stack_rewind)
 
-#define _dx_alloc_rmode_wrapper_retf W32_NAMESPACE (_dx_alloc_rmode_wrapper_retf)
-#define _dx_alloc_rmode_wrapper_iret W32_NAMESPACE (_dx_alloc_rmode_wrapper_iret)
-#define _dx_free_rmode_wrapper       W32_NAMESPACE (_dx_free_rmode_wrapper)
+#define _dx_alloc_rmode_wrapper_retf NAMESPACE (_dx_alloc_rmode_wrapper_retf)
+#define _dx_alloc_rmode_wrapper_iret NAMESPACE (_dx_alloc_rmode_wrapper_iret)
+#define _dx_free_rmode_wrapper       NAMESPACE (_dx_free_rmode_wrapper)
 
 extern void _dx_rmiv_get  (int int_no, REALPTR *handler);
 extern void _dx_rmiv_set  (int int_no, REALPTR handler);

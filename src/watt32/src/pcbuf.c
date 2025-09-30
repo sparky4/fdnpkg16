@@ -41,7 +41,7 @@ static int num_free_raw6 (const _raw6_Socket *raw)
 #endif
 
 
-size_t W32_CALL sock_rbsize (const sock_type *s)
+size_t sock_rbsize (const sock_type *s)
 {
   switch (_chk_socket(s))
   {
@@ -59,7 +59,7 @@ size_t W32_CALL sock_rbsize (const sock_type *s)
   return (0);
 }
 
-size_t W32_CALL sock_rbused (const sock_type *s)
+size_t sock_rbused (const sock_type *s)
 {
   switch (_chk_socket(s))
   {
@@ -85,7 +85,7 @@ size_t W32_CALL sock_rbused (const sock_type *s)
   return (0);
 }
 
-size_t W32_CALL sock_rbleft (const sock_type *s)
+size_t sock_rbleft (const sock_type *s)
 {
   switch (_chk_socket(s))
   {
@@ -107,7 +107,7 @@ size_t W32_CALL sock_rbleft (const sock_type *s)
   return (0);
 }
 
-size_t W32_CALL sock_tbsize (const sock_type *s)
+size_t sock_tbsize (const sock_type *s)
 {
   switch (_chk_socket(s))
   {
@@ -122,7 +122,7 @@ size_t W32_CALL sock_tbsize (const sock_type *s)
   return (0);
 }
 
-size_t W32_CALL sock_tbleft (const sock_type *s)
+size_t sock_tbleft (const sock_type *s)
 {
   switch (_chk_socket(s))
   {
@@ -137,7 +137,7 @@ size_t W32_CALL sock_tbleft (const sock_type *s)
   return (0);
 }
 
-size_t W32_CALL sock_tbused (const sock_type *s)
+size_t sock_tbused (const sock_type *s)
 {
   if (_chk_socket(s) == VALID_TCP)
      return (s->tcp.tx_datalen);
@@ -149,7 +149,7 @@ size_t W32_CALL sock_tbused (const sock_type *s)
  * Set debug-marker in front and at end of buffer.
  * \note does not copy the old content over to new buffer.
  */
-size_t W32_CALL sock_setbuf (sock_type *s, BYTE *rx_buf, size_t rx_len)
+size_t sock_setbuf (sock_type *s, BYTE *rx_buf, size_t rx_len)
 {
   int type = _chk_socket (s);
 
@@ -170,7 +170,7 @@ size_t W32_CALL sock_setbuf (sock_type *s, BYTE *rx_buf, size_t rx_len)
     *(DWORD*)rx_buf         = SAFETY_TCP;
     *(DWORD*)(rx_buf+4+len) = SAFETY_TCP;
     s->tcp.rx_data     = rx_buf + 4;
-    s->tcp.max_rx_data = (UINT) (len - 1);
+    s->tcp.max_rx_data = len - 1;
   }
   return (s->tcp.max_rx_data);
 }
@@ -179,7 +179,7 @@ size_t W32_CALL sock_setbuf (sock_type *s, BYTE *rx_buf, size_t rx_len)
 /*
  * Check the Rx-buffer marker signatures of Rx/Tx-buffers.
  * Rx-buffer may have been allocated in above sock_setbuf().
- * Tx-buffer may have been allocated in tcp_set_window().
+ * Tx-buffer may have been allocated in tcp_SetWindow().
  * Only usable for TCP sockets.
  */
 void _sock_check_tcp_buffers (const _tcp_Socket *tcp)
@@ -196,8 +196,8 @@ void _sock_check_tcp_buffers (const _tcp_Socket *tcp)
   WATT_ASSERT (tcp->safetytcp == SAFETY_TCP);
 
 #if (DOSX)
-  WATT_ASSERT (valid_addr(rx, tcp->max_rx_data));
-  WATT_ASSERT (valid_addr(tx, tcp->max_tx_data));
+  WATT_ASSERT (valid_addr((DWORD)rx, tcp->max_rx_data));
+  WATT_ASSERT (valid_addr((DWORD)tx, tcp->max_tx_data));
 #endif
 
   if (rx != &tcp->rx_buf[0])
@@ -219,17 +219,17 @@ void _sock_check_udp_buffers (const _udp_Socket *udp)
 #endif
 
 
-int W32_CALL sock_preread (const sock_type *s, BYTE *buf, int len)
+size_t sock_preread (const sock_type *s, BYTE *buf, size_t len)
 {
-  int count;
-  int type = _chk_socket (s);
+  size_t count;
+  int    type = _chk_socket (s);
 
   /* Raw-sockets use fixed buffer
    */
   if (!type || type == VALID_IP4 || type == VALID_IP6)
      return (0);
 
-  count = s->tcp.rx_datalen;
+  count = (size_t) s->tcp.rx_datalen;
   if (count < 1)
      return (count);
 
@@ -243,7 +243,7 @@ int W32_CALL sock_preread (const sock_type *s, BYTE *buf, int len)
 /*
  * chk_socket - determine whether a real socket or not
  */
-int W32_CALL _chk_socket (const sock_type *s)
+int _chk_socket (const sock_type *s)
 {
   if (!s)
      return (0);
@@ -263,14 +263,14 @@ int W32_CALL _chk_socket (const sock_type *s)
   return (0);
 }
 
-const char *W32_CALL sockerr (const sock_type *s)
+const char *sockerr (const sock_type *s)
 {
   if (s && s->tcp.err_msg)
      return (s->tcp.err_msg);
   return (NULL);
 }
 
-void W32_CALL sockerr_clear (sock_type *s)
+void sockerr_clear (sock_type *s)
 {
   if (s)
   {
@@ -279,7 +279,7 @@ void W32_CALL sockerr_clear (sock_type *s)
   }
 }
 
-const char *W32_CALL sockstate (const sock_type *s)
+const char *sockstate (const sock_type *s)
 {
   switch (_chk_socket(s))
   {

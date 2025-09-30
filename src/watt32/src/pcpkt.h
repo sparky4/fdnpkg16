@@ -11,24 +11,17 @@
 #include "pcsed.h"
 #endif
 
-
-#if defined(WIN32)
-  #define PKTDRVR_STR "WinPcap"
-#else
-  #define PKTDRVR_STR "PKTDRVR"
-#endif
-
 /*
- * Common stuff for PKTDRVR and Windows interfaces
+ * Common stuff for PKTDRVR and WinPcap interfaces
  */
 #if defined(USE_DEBUG)
-  #define ASSERT_PKT_INF(rc) do {                                   \
-                               if (!_pkt_inf) {                     \
-                                  (*_printf) ("%s (%u): "           \
-                                              "_pkt_inf == NULL\n", \
-                                              __FILE__, __LINE__);  \
-                                  return (rc);                      \
-                               }                                    \
+  #define ASSERT_PKT_INF(rc) do {                                \
+                               if (!_pkt_inf) {                  \
+                                  fprintf (stderr, "%s (%u): "   \
+                                           "_pkt_inf == NULL\n", \
+                                           __FILE__, __LINE__);  \
+                                  return (rc);                   \
+                               }                                 \
                              } while (0)
 #else
   #define ASSERT_PKT_INF(rc) do {              \
@@ -37,23 +30,35 @@
                              } while (0)
 #endif
 
-W32_DATA WORD _pktdevclass;       /**< Driver class; \ref <tcp.h> for values */
+/*\struct PktStats
+ *
+ * Driver statistics.
+ */
+struct PktStats {
+       DWORD  in_packets;       /* # of packets received    */
+       DWORD  out_packets;      /* # of packets transmitted */
+       DWORD  in_bytes;         /* # of bytes received      */
+       DWORD  out_bytes;        /* # of bytes transmitted   */
+       DWORD  in_errors;        /* # of reception errors    */
+       DWORD  out_errors;       /* # of transmission errors */
+       DWORD  lost;             /* # of packets lost (RX)   */
+     };
+
+W32_FUNC const char *pkt_strerror (int code);
+W32_FUNC DWORD       pkt_dropped  (void);
+
+W32_DATA WORD _pktdevclass;       /**< PKTDRVR class */
 W32_DATA WORD _pkt_ip_ofs;        /**< Offset from MAC-header to IP-header */
 W32_DATA BOOL _pktserial;         /**< Driver is a serial (SLIP/PPP) driver */
 W32_DATA char _pktdrvrname[];     /**< Name of PKDRVR */
-W32_DATA int  _pkt_rxmode;        /**< Current PKTDRVR/WinPcap Rx-mode */
+W32_DATA int  _pkt_rxmode;        /**< Current PKTDRVR Rx-mode */
 W32_DATA int  _pkt_rxmode0;       /**< Startup receive mode */
 W32_DATA int  _pkt_forced_rxmode; /**< Forced Rx-mode via WATTCP.CFG */
 W32_DATA int  _pkt_errno;         /**< Last PKTDRVR error code */
 
-/**\todo Make a structure and an access-function returning all
- *   internal data to the apps. _pktdrvrname[], _pktdrvr_descr[], _pktclass etc.
- *
- */
-
 #if defined(WIN32)
 
-#include "winpkt.h"
+#include "winpcap.h"
 
 #else   /* rest of file */
 
@@ -105,6 +110,18 @@ W32_DATA int  _pkt_errno;         /**< Last PKTDRVR error code */
 #define PDERR_CANT_RESET     15
 #define PDERR_BASIC_DVR      16
 
+/* Packet-driver classes.
+ */
+#define PDCLASS_ETHER     1    /**< IEEE 802.2 */
+#define PDCLASS_TOKEN     3    /**< IEEE 802.5 */
+#define PDCLASS_SLIP      6    /**< Serial Line IP */
+#define PDCLASS_ARCNET    8    /**< ARC-net (2.5 MBit/s) */
+#define PDCLASS_AX25      9    /**< Amateur X.25 (packet radio) */
+#define PDCLASS_FDDI      12   /**< FDDI w/802.2 headers */
+#define PDCLASS_TOKEN_RIF 17   /**< IEEE 802.5 w/expanded RIFs */
+#define PDCLASS_PPP       18
+#define PDCLASS_UNKNOWN   0xFFFF
+
 enum ReceiveModes {
      RXMODE_OFF        = 1,    /**< turn off receiver              */
      RXMODE_DIRECT     = 2,    /**< receive only to this interface */
@@ -114,14 +131,52 @@ enum ReceiveModes {
      RXMODE_PROMISCOUS = 6     /**< receive all packets on network */
    };
 
-W32_DATA BYTE _pktdevlevel;      /**< Device level */
+extern BYTE _pktdevlevel;      /**< Device level */
+
+extern int   pkt_eth_init      (mac_address *eth);
+extern int   pkt_release       (void);
+extern int   pkt_release_handle(WORD);
+extern int   pkt_reset_handle  (WORD handle);
+extern int   pkt_send          (const void *tx, int length);
+extern int   pkt_buf_wipe      (void);
+extern void  pkt_free_pkt      (const void *pkt);
+extern int   pkt_waiting       (void);
+extern int   pkt_set_addr      (const void *eth);
+extern int   pkt_get_addr      (mac_address *eth);
+extern int   pkt_get_mtu       (void);
+extern int   pkt_get_drvr_ver  (DWORD *ver);
+extern int   pkt_get_api_ver   (DWORD *ver);
+extern int   pkt_get_vector    (void);
+extern int   pkt_set_rcv_mode  (int mode);
+extern int   pkt_get_rcv_mode  (void);
+extern DWORD pkt_dropped       (void);
 
 #if defined(USE_MULTICAST)
   extern int pkt_get_multicast_list (mac_address *listbuf, int *len);
   extern int pkt_set_multicast_list (const void *listbuf, int len);
 #endif
 
-#include <sys/pack_on.h>      /* cstate, slcompress etc. must be packed */
+#include <sys/packon.h>       /* cstate, slcompress etc. must be packed */
+
+/*\struct PktParameters
+ *
+ * PKTDRVR parameters.
+ */
+struct PktParameters {
+       BYTE  major_rev;       /* Revision of Packet Driver spec */
+       BYTE  minor_rev;       /*  this driver conforms to. */
+       BYTE  length;          /* Length of structure in bytes */
+       BYTE  addr_len;        /* Length of a MAC-layer address */
+       WORD  mtu;             /* MTU, including MAC headers */
+       WORD  multicast_avail; /* Buffer size for multicast addr */
+       WORD  rcv_bufs;        /* (# of back-to-back MTU rcvs) - 1 */
+       WORD  xmt_bufs;        /* (# of successive xmits) - 1 */
+       WORD  int_num;         /* interrupt for post-EOI processing */
+     };
+
+extern int pkt_get_params (struct PktParameters *params);
+extern int pkt_get_stats  (struct PktStats *stats, struct PktStats *total);
+
 
 /*\struct cstate
  *
@@ -222,7 +277,7 @@ struct pkt_info {
 
 extern struct pkt_info *_pkt_inf;
 
-#include <sys/pack_off.h>       /* restore default packing */
+#include <sys/packoff.h>       /* restore default packing */
 
 /*
  * sizeof(*_pkt_inf), __LARGE__
@@ -255,10 +310,12 @@ extern struct pkt_info *_pkt_inf;
 #define ROUND_UP32(sz)  (4 * (((sz) + 3) / 4))
 
 #if (DOSX & DJGPP)
-  extern void __dj_movedata (void); /* called by __movedata() */
-  extern void __movedata (unsigned src_sel, unsigned src_ofs,
-                          unsigned dst_sel, unsigned dst_ofs,
-                          size_t bytes);
+  #if !defined(WATT32_DOS_DLL)
+    extern void __dj_movedata (void); /* called by __movedata() */
+    extern void __movedata (unsigned src_sel, unsigned src_ofs,
+                            unsigned dst_sel, unsigned dst_ofs,
+                            size_t bytes);
+  #endif
 
   #define DOSMEMGET(ofs,len,buf)  __movedata (_pkt_inf->dos_ds,   \
                                               (unsigned)(ofs),    \

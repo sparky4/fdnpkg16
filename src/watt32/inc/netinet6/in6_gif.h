@@ -37,10 +37,6 @@
 #ifndef _NETINET6_IN6_GIF_H_
 #define _NETINET6_IN6_GIF_H_
 
-#ifndef __SYS_MBUF_H
-#include <sys/mbuf.h>
-#endif
-
 #define GIF_HLIM	30
 
 int in6_gif_input __P((struct mbuf **, int *, int));

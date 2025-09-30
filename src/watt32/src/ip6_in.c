@@ -3,7 +3,7 @@
  */
 
 /*
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -125,7 +125,7 @@ int _ip6_handler (const in6_Header *ip, BOOL broadcast)
              if ((ps->type >= TYPE_IP6_HOP && ps->type <= TYPE_IP6_DEST) &&
                  !broadcast)
              {
-               if (IN6_IS_ADDR_LINKLOCAL(&ip->destination))
+               if (IN6_IS_ADDR_LINKLOCAL(ip->destination))
                   icmp6_unreach (ip, 2);  /* protocol unreachable */
                STAT (ip6stats.ip6s_cantforward++);
              }
@@ -176,7 +176,7 @@ int _ip6_is_addr_loopback (const void *ip)
 #endif  /* NOT_USED */
 
 
-static void (W32_CALL *prev_hook) (const char*, const char*) = NULL;
+static void (*prev_hook) (const char*, const char*) = NULL;
 
 static void set_my_ip6 (const char *value)
 {
@@ -186,9 +186,10 @@ static void set_my_ip6 (const char *value)
      printf (_LANG("\"IP6.MY_IP\": Invalid IPv6 address \"%s\"\n"), value);
 }
 
-static void W32_CALL ip6_config (const char *name, const char *value)
+static void ip6_config (const char *name, const char *value)
 {
   static const struct config_table ip6_cfg[] = {
+            { "HOSTS",        ARG_FUNC,  (void*)ReadHosts6File      },
             { "MY_IP",        ARG_FUNC,  (void*)set_my_ip6          },
             { "6TO4_GATEWAY", ARG_ATOIP, (void*)&icmp6_6to4_gateway },
             { "DEF_TTL",      ARG_ATOI,  (void*)&_default6_ttl      },

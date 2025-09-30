@@ -99,9 +99,9 @@ char *res_cfg_aliases = NULL; /* hostaliases file */
  */
 struct __res_state _res;
 
-static void res_setoptions (const char *options, const char *source)
+static void res_setoptions (char *options, char *source)
 {
-  const char *cp = options;
+  char *cp = options;
 
   if (_res.options & RES_DEBUG)
      (*_printf) (";; res_setoptions(\"%s\", \"%s\")...\n", options, source);
@@ -146,7 +146,7 @@ static void res_setoptions (const char *options, const char *source)
   }
 }
 
-u_int16_t W32_CALL res_randomid (void)
+u_int16_t res_randomid (void)
 {
   return (0xFFFF & rand());
 }
@@ -173,14 +173,14 @@ u_int16_t W32_CALL res_randomid (void)
  *
  * Return 0 if completes successfully, -1 on error
  */
-int W32_CALL res_init (void)
+int res_init (void)
 {
   char *cp;
   char  dom[MAX_HOSTLEN];
   char  buf[BUFSIZ];
   int   nserv;
 
-  watt_sock_init (0, 0, 0);
+  watt_sock_init (0, 0);
 
   /*
    * These three fields used to be statically initialized.  This made
@@ -271,7 +271,7 @@ int W32_CALL res_init (void)
  * Configure hook routine for bind resolver. Must be called
  * before res_init() (via watt_sock_init).
  */
-static void (W32_CALL *prev_hook) (const char*, const char*);
+static void (*prev_hook) (const char*, const char*);
 
 static const struct config_table bind_cfg[] = {
           { "RES_OPTIONS", ARG_STRDUP, (void*)&res_cfg_options },
@@ -279,19 +279,19 @@ static const struct config_table bind_cfg[] = {
           { NULL,          0,          NULL                    }
         };
 
-static void W32_CALL resolver_init (const char *name, const char *value)
+static void resolver_init (const char *name, const char *value)
 {
   if (!parse_config_table(&bind_cfg[0], "BIND.", name, value) && prev_hook)
      (*prev_hook) (name, value);
 }
 
-static void W32_CALL res_exit (void)
+static void res_exit (void)
 {
   DO_FREE (res_cfg_options);
   DO_FREE (res_cfg_aliases);
 }
 
-void W32_CALL res_init0 (void)
+void res_init0 (void)
 {
   prev_hook = usr_init;
   usr_init  = resolver_init;

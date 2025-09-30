@@ -55,9 +55,7 @@
  */
 #define IPVERSION       4
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /*
  * Structure of an internet header, naked of options.
@@ -164,9 +162,7 @@ struct  ip_timestamp {
         } ipt_timestamp;
 };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 /* flag bits for ipt_flg */
 #define IPOPT_TS_TSONLY         0               /* timestamps only */

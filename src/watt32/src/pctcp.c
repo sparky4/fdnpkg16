@@ -20,7 +20,7 @@
 #include "chksum.h"
 #include "strings.h"
 #include "language.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "bsdname.h"
 #include "pcconfig.h"
 #include "pcqueue.h"
@@ -29,7 +29,7 @@
 #include "pcpkt.h"
 #include "pcicmp.h"
 #include "pcicmp6.h"
-#include "pcigmp.h"
+#include "pcmulti.h"
 #include "pcdbug.h"
 #include "pcdhcp.h"
 #include "pcarp.h"
@@ -39,7 +39,6 @@
 #include "ip4_in.h"
 #include "ip4_out.h"
 #include "misc.h"
-#include "run.h"
 #include "timer.h"
 #include "rs232.h"
 #include "split.h"
@@ -48,6 +47,14 @@
 
 #if defined(USE_BSD_API) || defined(USE_IPV6)
 #include "socket.h"
+#endif
+
+#if defined(USE_TCP_MD5)
+#include "tcp_md5.h"
+#endif
+
+#if !defined(USE_FORTIFY)
+#undef free
 #endif
 
 #ifndef __inline  /**< normally in <sys/cdefs.h> */
@@ -72,9 +79,7 @@ DWORD    sin_mask      = 0xFFFFFF00L; /**< our net-mask, 255.255.255.0 */
 
 _udp_Socket *_udp_allsocs = NULL;  /**< list of udp-sockets */
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 struct ip4_packet {
        in_Header  in;
@@ -98,9 +103,7 @@ struct tcp6_pkt {
        tcp_Header tcp;
      };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 #if defined(USE_BSD_API)
   /**
@@ -145,21 +148,24 @@ W32_CLANG_PACK_WARN_DEF()
   static _tcp_Socket *tcp_findseq (const in_Header *ip, const tcp_Header *tcp);
   static void         tcp_sockreset (_tcp_Socket *s, BOOL proxy);
 
-  static void tcp_no_arp   (_tcp_Socket *s);
-  static void tcp_rtt_win  (_tcp_Socket *s);
-  static void tcp_upd_win  (_tcp_Socket *s, unsigned line);
-  static BOOL tcp_checksum (const in_Header *ip, const tcp_Header *tcp, int len);
+  static void tcp_no_arp  (_tcp_Socket *s);
+  static void tcp_rtt_win (_tcp_Socket *s);
+  static void tcp_upd_win (_tcp_Socket *s, unsigned line);
+  static BOOL tcp_checksum(const in_Header *ip, const tcp_Header *tcp, int len);
 #endif
 
+static DWORD daemon_timer = 0UL;    /**< When to run "background" processes */
+
+static void run_daemons (void);
 static void udp_close (const _udp_Socket *s);
 
-static void (W32_CALL *system_yield)(void) = NULL;
+static void (*system_yield)(void) = NULL;
 
 /**
  * UDP passive open. Listen for a connection on a particular port.
  */
-int W32_CALL udp_listen (_udp_Socket *s, WORD lport, DWORD ip,
-                         WORD port, ProtoHandler handler)
+int udp_listen (_udp_Socket *s, WORD lport, DWORD ip,
+                WORD port, ProtoHandler handler)
 {
   SIO_TRACE (("udp_listen"));
 
@@ -193,8 +199,8 @@ int W32_CALL udp_listen (_udp_Socket *s, WORD lport, DWORD ip,
 /**
  * UDP active open. Open a connection on a particular port.
  */
-int W32_CALL udp_open (_udp_Socket *s, WORD lport, DWORD ip,
-                       WORD port, ProtoHandler handler)
+int udp_open (_udp_Socket *s, WORD lport, DWORD ip,
+              WORD port, ProtoHandler handler)
 {
   BOOL bcast;
 
@@ -290,10 +296,9 @@ static void udp_close (const _udp_Socket *udp)
 /**
  * Set the TTL on an outgoing UDP datagram.
  */
-int W32_CALL udp_SetTTL (_udp_Socket *s, BYTE ttl)
+void udp_SetTTL (_udp_Socket *s, BYTE ttl)
 {
   s->ttl = ttl;
-  return (0);
 }
 
 
@@ -309,8 +314,8 @@ int W32_CALL udp_SetTTL (_udp_Socket *s, BYTE ttl)
  *  \note 'lport' is local port to associate with the connection.
  *  \note 'rport' is remote port for same connection.
  */
-int W32_CALL tcp_open (_tcp_Socket *s, WORD lport, DWORD ip,
-                       WORD rport, ProtoHandler handler)
+int tcp_open (_tcp_Socket *s, WORD lport, DWORD ip,
+              WORD rport, ProtoHandler handler)
 {
   SIO_TRACE (("tcp_open"));
 
@@ -338,7 +343,7 @@ int W32_CALL tcp_open (_tcp_Socket *s, WORD lport, DWORD ip,
     return (0);
   }
 
-  if (!_arp_start_lookup(ip)) /* GvB 2002-09, now non-blocking */
+  if (!arp_start_lookup(ip)) /* GvB 2002-09, now non-blocking */
   {
     SOCK_ERRNO (EHOSTUNREACH);
     strcpy (s->err_buf, _LANG("Failed to start ARP lookup "));
@@ -390,8 +395,8 @@ int W32_CALL tcp_open (_tcp_Socket *s, WORD lport, DWORD ip,
  *
  * Listen for a connection on a particular port
  */
-int W32_CALL tcp_listen (_tcp_Socket *s, WORD lport, DWORD ip,
-                         WORD port, ProtoHandler handler, WORD timeout)
+int tcp_listen (_tcp_Socket *s, WORD lport, DWORD ip,
+                WORD port, ProtoHandler handler, WORD timeout)
 {
   SIO_TRACE (("tcp_listen"));
 
@@ -518,9 +523,8 @@ _tcp_Socket *_tcp_abort (_tcp_Socket *s, const char *file, unsigned line)
   SIO_TRACE (("_tcp_abort"));
 
   SET_ERR_MSG (s, _LANG("TCP Abort"));
-
-  TCP_TRACE_MSG (("_tcp_abort(%" ADDR_FMT ") called from %s (%u). State %s\n",
-                  ADDR_CAST(s), file, line, tcpStateName(s->state)));
+  TCP_TRACE_MSG (("_tcp_abort(%08lX) called from %s (%u). State %s\n",
+                  (DWORD)s, file, line, tcpStateName(s->state)));
 
   if (s->state >= tcp_StateSYNSENT &&
       s->state <= tcp_StateLASTACK)
@@ -556,7 +560,7 @@ _tcp_Socket *_tcp_abort (_tcp_Socket *s, const char *file, unsigned line)
  *           Relax retransmission period to \b tcp_OPEN_TO in
  *           \b SYNSENT state.
  */
-int _tcp_sendsoon (_tcp_Socket *s, const char *file, unsigned line)
+int _tcp_sendsoon (_tcp_Socket *s, char *file, unsigned line)
 {
   DWORD timeout;
 
@@ -595,7 +599,7 @@ int _tcp_sendsoon (_tcp_Socket *s, const char *file, unsigned line)
 
 /**
  * Unthread a socket from the tcp socket list, if it's there.
- * Free Tx-buffer if set in tcp_set_window().
+ * Free Tx-buffer if set in tcp_SetWindow().
  */
 _tcp_Socket *_tcp_unthread (_tcp_Socket *ds, BOOL free_tx)
 {
@@ -623,7 +627,7 @@ _tcp_Socket *_tcp_unthread (_tcp_Socket *ds, BOOL free_tx)
       ds->ip_type = 0;             /* fail further I/O */
   ds->state = tcp_StateCLOSED;     /* tcp_tick needs this */
 
-  if (free_tx && ds->tx_data != NULL && ds->tx_data != &ds->tx_buf[0] &&
+  if (free_tx && ds->tx_data && ds->tx_data != &ds->tx_buf[0] &&
       *(DWORD*)(ds->tx_data-4) == SAFETY_TCP)
   {
     free (ds->tx_data-4);
@@ -636,7 +640,7 @@ _tcp_Socket *_tcp_unthread (_tcp_Socket *ds, BOOL free_tx)
 /**
  * Returns 1 if TCP connection is established.
  */
-int W32_CALL tcp_established (const _tcp_Socket *s)
+int tcp_established (const _tcp_Socket *s)
 {
   return (s->state >= tcp_StateESTAB);
 }
@@ -822,7 +826,7 @@ _tcp_Socket *_tcp_handler (const in_Header *ip, BOOL broadcast)
       SEQ_GEQ(seq, s->recv_next) &&
       SEQ_LEQ(seq, s->recv_next+s->adv_win+1))
   {
-    TCP_TRACE_MSG (("_tcp_handler(): got RST, SEQ %lu\n", (u_long)seq));
+    TCP_TRACE_MSG (("_tcp_handler(): got RST, SEQ %lu\n", seq));
     tcp_sockreset (s, FALSE);
     return (NULL);
   }
@@ -889,15 +893,6 @@ static _udp_Socket *udp_demux (const in_Header *ip, BOOL ip_bcast,
   {
     memcpy (&ip6_dst, &ip6->destination, sizeof(ip6_dst));
     memcpy (&ip6_src, &ip6->source, sizeof(ip6_src));
-  }
-  else
-  {
-    /*
-     * To supress GCC 5.x warning:
-     *   pctcp.c:951:14: warning: 'ip6_dst' may be used uninitialized in this function [-Wmaybe-uninitialized]
-     *                memcpy (&s->my6addr, &ip6_dst, sizeof(s->my6addr));
-     */
-    memset (&ip6_dst, 0, sizeof(ip6_dst));
   }
 #endif
 
@@ -1242,7 +1237,7 @@ void tcp_Retransmitter (BOOL force)
      */
     if (s->state == tcp_StateRESOLVE)
     {
-      if (_arp_lookup(s->hisaddr, &s->his_ethaddr))   /* Success */
+      if (arp_lookup (s->hisaddr, &s->his_ethaddr))   /* Success */
       {
         UINT rtt, MTU;
 
@@ -1259,7 +1254,7 @@ void tcp_Retransmitter (BOOL force)
 
       /* If ARP no longer pending (timed out), hence we abort
        */
-      else if (!_arp_lookup_pending(s->hisaddr))    /* ARP timed out */
+      else if (!arp_lookup_pending(s->hisaddr))    /* ARP timed out */
       {
         tcp_no_arp (s);
         next = TCP_ABORT (s);
@@ -1399,16 +1394,16 @@ void tcp_Retransmitter (BOOL force)
  * \retval 0   if 's' is non-NULL and 's' closes.
  * \retval !0  if 's' is NULL or 's' is still open.
  */
-WORD W32_CALL tcp_tick (sock_type *s)
+WORD tcp_tick (sock_type *s)
 {
-  static int tick_active = 0;
+  static int active = 0;
 
-  if (tick_active > 0)
+  if (active > 0)
   {
     TCP_CONSOLE_MSG (1, ("tcp_tick() reentered\n"));
     return (s ? s->tcp.ip_type : 0);
   }
-  tick_active++;
+  active++;
 
   SIO_TRACE (("tcp_tick"));
 
@@ -1433,7 +1428,7 @@ WORD W32_CALL tcp_tick (sock_type *s)
    * packet twice (before we call _eth_free() on the 1st packet).
    * \todo Limit the time spent here (clamp # of loops)
    */
-  while (tick_active == 1)
+  while (active == 1)
   {
     WORD  eth_type = 0;
     BOOL  brdcast  = FALSE;
@@ -1487,9 +1482,13 @@ WORD W32_CALL tcp_tick (sock_type *s)
   tcp_Retransmitter (FALSE); /* check for our outstanding packets */
 #endif
 
-  daemon_run();    /* check and optionally run background processes */
+  if (daemon_timer == 0UL || chk_timeout(daemon_timer))
+  {
+    run_daemons();
+    daemon_timer = set_timeout (DAEMON_PERIOD);
+  }
 
-  --tick_active;
+  --active;
   return (s ? s->tcp.ip_type : 0);
 }
 
@@ -2127,7 +2126,7 @@ static void tcp_rtt_win (_tcp_Socket *s)
 
     TCP_CONSOLE_MSG (2, ("RTO %u  sa %lu  sd %lu  cwindow %u"
                      "  wwindow %u  unacked %ld\n",
-                     s->rto, (u_long)s->vj_sa, (u_long)s->vj_sd, s->cwindow,
+                     s->rto, s->vj_sa, s->vj_sd, s->cwindow,
                      s->wwindow, s->send_una));
   }
 
@@ -2349,7 +2348,7 @@ static __inline int tcp_options (_tcp_Socket *s, BYTE *opt, BOOL is_syn)
  * Format and send an outgoing TCP segment.
  * Several packets may be sent depending on peer's window.
  */
-int _tcp_send (_tcp_Socket *s, const char *file, unsigned line)
+int _tcp_send (_tcp_Socket *s, char *file, unsigned line)
 {
   struct tcp_pkt *pkt;
 
@@ -2434,7 +2433,7 @@ int _tcp_send (_tcp_Socket *s, const char *file, unsigned line)
     tcp->seqnum   = intel (s->send_next + start_data); /* unacked - no longer send_tot_len */
     tcp->acknum   = intel (s->recv_next);
 
-    s->adv_win    = s->max_rx_data - s->rx_datalen;    /* Our new advertised recv window */
+    s->adv_win    = s->max_rx_data - s->rx_datalen; /* advertised recv window */
     tcp->window   = intel16 ((WORD)s->adv_win);
     tcp->flags    = (BYTE) s->flags;
     tcp->unused   = 0;
@@ -2531,7 +2530,7 @@ int _tcp_send (_tcp_Socket *s, const char *file, unsigned line)
   TCP_CONSOLE_MSG (2, ("tcp_send (called from %s/%u): sent %u bytes in %u "
                    "packets with (%ld) unacked. SND.NXT %lu\n",
                    file, line, send_tot_len, pkt_num, s->send_una,
-                   (u_long)s->send_next));
+                   s->send_next));
 
   s->vj_last = 0UL;
   if (s->karn_count == 2)
@@ -2570,9 +2569,7 @@ int _tcp_send_reset (_tcp_Socket *s, const in_Header *his_ip,
 {
   tcp_PseudoHeader  ph;
 
-  W32_CLANG_PACK_WARN_OFF()
-
-  #include <sys/pack_on.h>
+  #include <sys/packon.h>
 
   struct ip4_packet {
          in_Header  ip;
@@ -2586,9 +2583,7 @@ int _tcp_send_reset (_tcp_Socket *s, const in_Header *his_ip,
        } *ip6_pkt = NULL;
 #endif
 
-  #include <sys/pack_off.h>
-
-  W32_CLANG_PACK_WARN_DEF()
+  #include <sys/packoff.h>
 
   BYTE         flags;
   tcp_Header  *tcp;
@@ -2747,7 +2742,7 @@ int _tcp_keepalive (_tcp_Socket *tcp)
   return (rc);
 }
 
-int W32_CALL sock_keepalive (sock_type *s)
+int sock_keepalive (sock_type *s)
 {
   return _tcp_keepalive (&s->tcp);
 }
@@ -2770,7 +2765,7 @@ int W32_CALL sock_keepalive (sock_type *s)
 #define TCP_H_SM_TCP_MODE_NONAGLE 0x20
 #define TCP_H_SM_MASK             0x3F
 
-WORD W32_CALL sock_mode (sock_type *s, WORD mode)
+WORD sock_mode (sock_type *s, WORD mode)
 {
   if (s->tcp.ip_type == TCP_PROTO || s->tcp.ip_type == UDP_PROTO)
   {
@@ -2817,19 +2812,19 @@ WORD W32_CALL sock_mode (sock_type *s, WORD mode)
  * Enable user defined yield function.
  * Return address of previous yield function.
  */
-VoidProc W32_CALL sock_yield (_tcp_Socket *s, VoidProc func)
+void (*sock_yield (_tcp_Socket *s, void (*fn)(void)))(void)
 {
-  VoidProc old;
+  void (*old)(void);
 
   if (s)
   {
     old = s->usr_yield;
-    s->usr_yield = func;
+    s->usr_yield = fn;
   }
   else
   {
     old = system_yield;
-    system_yield = func;
+    system_yield = fn;
   }
   return (old);
 }
@@ -2837,7 +2832,7 @@ VoidProc W32_CALL sock_yield (_tcp_Socket *s, VoidProc func)
 /**
  * Abort a UDP/TCP/Raw socket.
  */
-int W32_CALL sock_abort (sock_type *s)
+void sock_abort (sock_type *s)
 {
   SIO_TRACE (("sock_abort"));
 
@@ -2856,7 +2851,6 @@ int W32_CALL sock_abort (sock_type *s)
          s->raw.used    = 0;
          break;
   }
-  return (1);
 }
 
 #if defined(USE_BSD_API)
@@ -2889,7 +2883,7 @@ static int raw_read (_raw_Socket *raw, BYTE *buf, int maxlen)
  * \retval 0        socket is not open.
  * \retval <=maxlen socket has data to be read.
  */
-int W32_CALL sock_read (sock_type *s, BYTE *buf, size_t maxlen)
+int sock_read (sock_type *s, BYTE *buf, int maxlen)
 {
   int count = 0;
 
@@ -2930,12 +2924,8 @@ int W32_CALL sock_read (sock_type *s, BYTE *buf, size_t maxlen)
       buf    += len;
       maxlen -= len;
     }
-    if (maxlen > 0 && !raw)
-    {
-      if (s->tcp.usr_yield)       /* yield only when room */
-          (*s->tcp.usr_yield)();  /* 99.07.01 EE */
-      else WATT_YIELD();
-    }
+    if (maxlen > 0 && !raw && s->tcp.usr_yield) /* yield only when room */
+      (*s->tcp.usr_yield)();                    /* 99.07.01 EE */
   }
   while (maxlen);
   return (count);
@@ -2945,7 +2935,7 @@ int W32_CALL sock_read (sock_type *s, BYTE *buf, size_t maxlen)
  * Read a socket with maximum 'len' bytes.
  * \note does \b not busywait until buffer is full.
  */
-int W32_CALL sock_fastread (sock_type *s, BYTE *buf, int len)
+int sock_fastread (sock_type *s, BYTE *buf, int len)
 {
   SIO_TRACE (("sock_fastread"));
 
@@ -2974,7 +2964,7 @@ int W32_CALL sock_fastread (sock_type *s, BYTE *buf, int len)
  *  \retval 0     if some error in lower layer.
  *  \retval 'len' if all data sent okay.
  */
-int W32_CALL sock_write (sock_type *s, const BYTE *data, int len)
+int sock_write (sock_type *s, const BYTE *data, int len)
 {
   size_t chunk;
   size_t remain  = len;
@@ -3019,8 +3009,7 @@ int W32_CALL sock_write (sock_type *s, const BYTE *data, int len)
     remain -= written;
 
     if (s->udp.usr_yield)
-        (*s->udp.usr_yield)();
-    else WATT_YIELD();
+      (*s->udp.usr_yield)();
 
     if (!tcp_tick(s))
        return (0);  /* !! should be 'len - remain' ? */
@@ -3032,7 +3021,7 @@ int W32_CALL sock_write (sock_type *s, const BYTE *data, int len)
  * Simpler, non-blocking (non-looping) version of sock_write().
  * \note UDP writes may truncate; check the return value.
  */
-int W32_CALL sock_fastwrite (sock_type *s, const BYTE *data, int len)
+int sock_fastwrite (sock_type *s, const BYTE *data, int len)
 {
   SIO_TRACE (("sock_fastwrite"));
 
@@ -3058,7 +3047,7 @@ int W32_CALL sock_fastwrite (sock_type *s, const BYTE *data, int len)
  *
  * \note user \b must not touch 'data' while sock_tbused() returns > 0.
  */
-int W32_CALL sock_enqueue (sock_type *s, const BYTE *data, int len)
+int sock_enqueue (sock_type *s, const BYTE *data, int len)
 {
   SIO_TRACE (("sock_enqueue"));
 
@@ -3102,7 +3091,7 @@ int W32_CALL sock_enqueue (sock_type *s, const BYTE *data, int len)
 /**
  * Sets non-flush mode on next TCP write.
  */
-void W32_CALL sock_noflush (sock_type *s)
+void sock_noflush (sock_type *s)
 {
   SIO_TRACE (("sock_noflush"));
 
@@ -3117,7 +3106,7 @@ void W32_CALL sock_noflush (sock_type *s)
  * Send pending TCP data.
  * If there is Tx-data to be sent, set the PUSH bit.
  */
-void W32_CALL sock_flush (sock_type *s)
+void sock_flush (sock_type *s)
 {
   SIO_TRACE (("sock_flush"));
 
@@ -3138,7 +3127,7 @@ void W32_CALL sock_flush (sock_type *s)
 /**
  * Causes next transmission to have a flush (PUSH bit set).
  */
-void W32_CALL sock_flushnext (sock_type *s)
+void sock_flushnext (sock_type *s)
 {
   SIO_TRACE (("sock_flushnext"));
 
@@ -3153,7 +3142,7 @@ void W32_CALL sock_flushnext (sock_type *s)
 /**
  * Close a UDP/TCP socket.
  */
-int W32_CALL sock_close (sock_type *s)
+int sock_close (sock_type *s)
 {
   SIO_TRACE (("sock_close"));
 
@@ -3171,6 +3160,67 @@ int W32_CALL sock_close (sock_type *s)
 #endif
   }
   return (0);
+}
+
+/**
+ * List of background processes.
+ * \note there can be no more than MAX_DAEMONS background processes.
+ */
+static struct {
+       void (*func)(void);
+       BOOL   running;       /* to prevent reentry */
+     } daemon [MAX_DAEMONS];
+
+/**
+ * Waterloo "background" daemon processes.
+ * Called from tcp_tick() at each DAEMON_PERIOD interval.
+ */
+static void run_daemons (void)
+{
+  int i;
+
+  for (i = 0; i < DIM(daemon); i++)
+      if (daemon[i].func && !daemon[i].running)
+      {
+        TCP_CONSOLE_MSG (3, ("Running daemon %d (%p)\n", i, daemon[i].func));
+        daemon[i].running = TRUE;
+        (*daemon[i].func)();
+        daemon[i].running = FALSE;
+      }
+}
+
+/**
+ * Add a function to background daemon list.
+ */
+int addwattcpd (void (*func)(void))
+{
+  int i;
+
+  for (i = 0; i < DIM(daemon); i++)
+      if (!daemon[i].func)
+      {
+        daemon[i].func    = func;
+        daemon[i].running = FALSE;
+        return (1);
+      }
+  return (0);    /* didn't find a free slot */
+}
+
+/**
+ * Remove a function from background daemon list.
+ */
+int delwattcpd (void (*func)(void))
+{
+  int i;
+
+  for (i = 0; i < MAX_DAEMONS; i++)
+      if (func == daemon[i].func)
+      {
+        daemon[i].func    = NULL;
+        daemon[i].running = FALSE;
+        return (1);
+      }
+  return (0);    /* didn't find the daemon */
 }
 
 #if !defined(USE_UDP_ONLY)
@@ -3215,7 +3265,7 @@ void tcp_rtt_add (const _tcp_Socket *s, UINT rto, UINT MTU)
 
 BOOL tcp_rtt_get (const _tcp_Socket *s, UINT *rto, UINT *MTU)
 {
-  struct tcp_rtt *rtt = &rtt_cache [(s->hisaddr & 0xFFFF) % RTTCACHE];
+  struct tcp_rtt *rtt = &rtt_cache [(WORD)s->hisaddr % RTTCACHE];
 
   SIO_TRACE (("tcp_rtt_get"));
 
@@ -3240,7 +3290,7 @@ BOOL tcp_rtt_get (const _tcp_Socket *s, UINT *rto, UINT *MTU)
 
 void tcp_rtt_clr (const _tcp_Socket *s)
 {
-  struct tcp_rtt *rtt = &rtt_cache [(s->hisaddr & 0xFFFF) % RTTCACHE];
+  struct tcp_rtt *rtt = &rtt_cache [(WORD)s->hisaddr % RTTCACHE];
 
   if (s->hisaddr && rtt->ip == s->hisaddr)
   {

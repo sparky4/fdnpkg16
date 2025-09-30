@@ -70,7 +70,7 @@
 #define NFS_MAGIC   	(int)60012
 #define CHECKSUM	(int)84446
 
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 union u_spcl {
 	char dummy[TP_BSIZE];
@@ -97,7 +97,7 @@ union u_spcl {
 	} s_spcl;
 } u_spcl;
 
-#include <sys/pack_off.h>
+#include <sys/packoff.h>
 
 #define spcl u_spcl.s_spcl
 /*

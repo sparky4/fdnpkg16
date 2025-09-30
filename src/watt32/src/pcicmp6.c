@@ -2,7 +2,7 @@
  *
  *  ICMP routines for IPv6 (RFC-2461/2463).
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -37,7 +37,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <arpa/inet.h>
 
 #include "wattcp.h"
@@ -61,7 +60,7 @@
 #include "pcicmp6.h"
 
 /** \if USE_IPV6 */
-#if defined(USE_IPV6)  /* Rest of file */
+#if defined(USE_IPV6)
 
 struct prefix_table {
        size_t      len;
@@ -76,9 +75,7 @@ int         icmp6_prefix_len;
 ip6_address icmp6_prefix;
 DWORD       icmp6_6to4_gateway = 0;  /* host order */
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 struct _pkt {
        in6_Header  in;
@@ -86,10 +83,7 @@ struct _pkt {
        BYTE        options[1];
      };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
-
+#include <sys/packoff.h>
 
 #if 0
 static const char *icmp6_options_str [] = {
@@ -127,7 +121,7 @@ static const void *icmp6_mac_addr (const void *ip_addr)
   mac[5] = addr[15];
   return (&mac[0]);
 }
-
+                
 int icmp6_router_solicitation (void)
 {
   struct _pkt            *pkt;
@@ -160,7 +154,7 @@ BOOL icmp6_add_gateway4 (void)
   if (arp_ok)
   {
     memcpy (&ip, in6addr_mapped, sizeof(in6addr_mapped));
-    *(DWORD*) &ip[12] = intel (icmp6_6to4_gateway);
+    *(DWORD*) &ip [12] = intel (icmp6_6to4_gateway);
     ce = icmp6_ncache_insert_fix (&ip, eth);
   }
   TCP_CONSOLE_MSG (1, ("Adding %s as 6-to-4 gateway, ARP %s, Insert %s\n",
@@ -168,7 +162,7 @@ BOOL icmp6_add_gateway4 (void)
                    arp_ok ? "OK" : "failed",
                    ce     ? "OK" : "failed"));
   return (arp_ok && ce);
-}
+}           
 
 /*
  * Perform an "ICMPv6 Neighbor Solicitation" on 'addr' to resolve it's
@@ -183,18 +177,18 @@ int icmp6_neigh_solic (const void *addr, eth_address *eth)
   struct in6_addr      dest;
   BYTE  *options;
 
-  WATT_ASSERT (eth != NULL);
-
   if (_ip6_is_local_addr(addr))
   {
-    memcpy (eth, _eth_addr, sizeof(*eth));
+    if (eth)
+       memcpy (eth, _eth_addr, sizeof(*eth));
     return (1);
   }
 
   cache = icmp6_ncache_lookup (addr);
   if (cache)
   {
-    memcpy (eth, &cache->eth, sizeof(*eth));
+    if (eth)
+       memcpy (eth, &cache->eth, sizeof(*eth));
     return (1);
   }
 
@@ -334,7 +328,6 @@ void icmp6_handler (const in6_Header *ip)
     case ND_REDIRECT:
          break;
   }
-  ARGSUSED (code);
 }
 
 void icmp6_unreach (const in6_Header *ip, int code)

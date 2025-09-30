@@ -3,7 +3,7 @@
  *  Simple BSD-like network-entry functions.
  */
 
-/*  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+/*  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -40,7 +40,6 @@
 
 #include "wattcp.h"
 #include "misc.h"
-#include "run.h"
 #include "pcconfig.h"
 #include "language.h"
 #include "strings.h"
@@ -60,19 +59,14 @@ static __inline struct netent *fill_netent (const struct _netent *n)
   static char  *aliases [MAX_NETENT_ALIASES+1];
 
   memcpy (&aliases, n->n_aliases, sizeof(aliases));
-  ret.n_name     = _strlcpy (name, n->n_name, sizeof(name));
+  ret.n_name     = StrLcpy (name, n->n_name, sizeof(name));
   ret.n_aliases  = aliases;
   ret.n_net      = n->n_net;
   ret.n_addrtype = AF_INET;
   return (&ret);
 }
 
-static void W32_CALL _endnetent (void)
-{
-  endnetent();
-}
-
-void W32_CALL ReadNetworksFile (const char *fname)
+void ReadNetworksFile (const char *fname)
 {
   static BOOL been_here = FALSE;
 
@@ -82,7 +76,7 @@ void W32_CALL ReadNetworksFile (const char *fname)
   if (been_here)  /* loading multiple network files */
   {
     free (networkFname);
-    FCLOSE (networkFile);
+    fclose (networkFile);
     networkFile = NULL;
   }
 
@@ -105,10 +99,11 @@ void W32_CALL ReadNetworksFile (const char *fname)
     if (!n)
        break;
 
-    n2 = calloc (sizeof(*n2), 1);
+    n2 = (struct _netent*) calloc (sizeof(*n2), 1);
     if (!n2)
     {
-      (*_printf) (_LANG("%s too big!\n"), networkFname);
+      outs (networkFname);
+      outsnl (_LANG(" too big!"));
       break;
     }
 
@@ -123,7 +118,7 @@ void W32_CALL ReadNetworksFile (const char *fname)
     network0   = n2;
   }
   rewind (networkFile);
-  RUNDOWN_ADD (_endnetent, 251);
+  RUNDOWN_ADD (endnetent, 251);
 
 #if 0  /* test */
   {
@@ -148,7 +143,7 @@ void W32_CALL ReadNetworksFile (const char *fname)
 /*
  * Return name of networks file
  */
-const char * W32_CALL GetNetFile (void)
+const char *GetNetFile (void)
 {
   return (networkFname);
 }
@@ -157,13 +152,13 @@ const char * W32_CALL GetNetFile (void)
  * To prevent running out of file-handles, one should close the
  * 'networks' file before spawning a new shell.
  */
-void W32_CALL CloseNetworksFile (void)
+void CloseNetworksFile (void)
 {
-  FCLOSE (networkFile);
+  fclose (networkFile);
   networkFile = NULL;
 }
 
-void W32_CALL ReopenNetworksFile (void)
+void ReopenNetworksFile (void)
 {
   ReadNetworksFile (networkFname);
 }
@@ -180,7 +175,7 @@ void W32_CALL ReopenNetworksFile (void)
 struct netent * W32_CALL getnetent (void)
 {
   struct _netent n;
-  char  *name, *net, *alias, *tok_buf = NULL;
+  char  *name, *net, *alias;
   char   buf [2*MAX_NAMELEN], *tok;
   int    i;
 
@@ -196,8 +191,8 @@ struct netent * W32_CALL getnetent (void)
     if (*tok == '#' || *tok == ';' || *tok == '\n')
        continue;
 
-    name = strtok_r (tok, " \t", &tok_buf);
-    net  = strtok_r (NULL, "= \t\n", &tok_buf);
+    name = strtok (tok, " \t");
+    net  = strtok (NULL, "= \t\n");
     if (name && net)
        break;
   }
@@ -208,7 +203,7 @@ struct netent * W32_CALL getnetent (void)
   memset (&n, 0, sizeof(n));
   n.n_net  = inet_network (net);
   n.n_name = name;
-  alias    = strtok_r (NULL, " \t\n", &tok_buf);
+  alias    = strtok (NULL, " \t\n");
 
   for (i = 0; alias && i < MAX_NETENT_ALIASES; i++)
   {
@@ -217,8 +212,8 @@ struct netent * W32_CALL getnetent (void)
     if (*alias == '#' || *alias == ';')
        break;
 
-    n.n_aliases[i] = _strlcpy (aliases[i], alias, sizeof(aliases[i]));
-    alias = strtok_r (NULL, " \t\n", &tok_buf);
+    n.n_aliases[i] = StrLcpy (aliases[i], alias, sizeof(aliases[i]));
+    alias = strtok (NULL, " \t\n");
   }
   return fill_netent (&n);
 }
@@ -276,7 +271,7 @@ void W32_CALL setnetent (int stayopen)
      return;
 
   if (!networkFile)
-       FOPEN_TXT (networkFile, networkFname);
+       networkFile = fopen (networkFname, "rt");
   else rewind (networkFile);
 }
 
@@ -293,7 +288,7 @@ void W32_CALL endnetent (void)
   if (networkFname)
      free (networkFname);
   if (networkFile)
-     FCLOSE (networkFile);
+     fclose (networkFile);
   networkFname = NULL;
   networkFile  = NULL;
 

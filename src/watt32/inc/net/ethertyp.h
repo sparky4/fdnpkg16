@@ -6,7 +6,7 @@
 
 /*
  * Copyright (c) 1982, 1986, 1993
- *  The Regents of the University of California.  All rights reserved.
+ *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -18,8 +18,8 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *  This product includes software developed by the University of
- *  California, Berkeley and its contributors.
+ *	This product includes software developed by the University of
+ *	California, Berkeley and its contributors.
  * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
@@ -36,7 +36,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *  @(#)if_ether.h  8.1 (Berkeley) 6/10/93
+ *	@(#)if_ether.h	8.1 (Berkeley) 6/10/93
  */
 
 /*
@@ -52,17 +52,17 @@
 #ifndef __NET_ETHERTYPE_H
 #define __NET_ETHERTYPE_H
 
-#define ETHERTYPE_PUP       0x0200  /* PUP protocol */
-#define ETHERTYPE_IP        0x0800  /* IP protocol */
-#define ETHERTYPE_ARP       0x0806  /* address resolution protocol */
-#define ETHERTYPE_REVARP    0x8035  /* reverse addr resolution protocol */
+#define	ETHERTYPE_PUP		0x0200	/* PUP protocol */
+#define	ETHERTYPE_IP		0x0800	/* IP protocol */
+#define	ETHERTYPE_ARP		0x0806	/* address resolution protocol */
+#define	ETHERTYPE_REVARP	0x8035	/* reverse addr resolution protocol */
 
 /*
  * The ETHERTYPE_NTRAILER packet types starting at ETHERTYPE_TRAIL have
  * (type-ETHERTYPE_TRAIL)*512 bytes of data followed
  * by an ETHER type (as given above) and then the (variable-length) header.
  */
-#define ETHERTYPE_TRAIL     0x1000      /* Trailer packet */
-#define ETHERTYPE_NTRAILER  16
+#define	ETHERTYPE_TRAIL		0x1000		/* Trailer packet */
+#define	ETHERTYPE_NTRAILER	16
 
 #endif

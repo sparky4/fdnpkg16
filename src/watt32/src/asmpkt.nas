@@ -214,7 +214,7 @@ pkt_get_buffer:
 ;   if (asmpkt_inf->pkt_type_ofs == 0)
 ;      return (NOCARRY);
 ;
-;   typ = *(unsigned short*)rx_buf [asmpkt_inf->pkt_type_ofs];
+;   typ = *(unsigned short*)rx_buf[asmpkt_inf->pkt_type_ofs];
 ;   if (typ == IP4_TYPE || typ == IP6_TYPE || typ == ARP_TYPE ||
 ;       typ == RARP_TYPE || typ == PPPOE_DISC_TYPE || typ == PPPOE_SESS_TYPE)
 ;      return (NOCARRY);
@@ -291,5 +291,4 @@ align 16, db 0xCB
 ;
 ; asmpkt_inf gets allocated here at run time
 ;
-end:
-
+;end

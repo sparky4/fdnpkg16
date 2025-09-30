@@ -18,6 +18,8 @@ typedef enum TreeChild {
         RIGHT_CHILD
       } TreeChild;
 
+typedef int (*CmpFunc)(const void *, const void *);
+
 int       tree_insert (TreeNode **, const void *, size_t, CmpFunc);
 TreeNode *tree_find   (TreeNode *, const void *, CmpFunc);
 TreeNode *tree_delete (TreeNode *, TreeNode *);

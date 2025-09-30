@@ -23,8 +23,6 @@
 
 /* .file "chksum0.S" */
 
-#if defined(__i386__)  /* '__x86_64__' code below */
-
 .text
 
 #define LOOP_UNROLLING_BITS  5
@@ -266,15 +264,3 @@ loop_entries:
   .long  loop_entry_8
   .long  loop_entry_4
 
-#elif defined(__x86_64__)
-
-.text
-
- /* Probably no speed to gain from the above. Just jump to the C-version
-  *  of in_checksum().
-  */
-ENTRY (_w32_in_checksum_fast)
-ENTRY (_w32_in_chksum_fast)       /* old name */
-   jmp _w32_in_checksum
-
-#endif /* __i386__ */

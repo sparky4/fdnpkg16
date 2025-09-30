@@ -13,23 +13,17 @@
 #include "wattcp.h"
 #include "misc.h"
 
-#define CRC_BITS    32
-#define CRC_HIBIT   ((DWORD) (1L << (CRC_BITS-1)))
-#define CRC_SHIFTS  (CRC_BITS-8)
+#define CRCBITS    32
+#define CRCHIBIT   ((DWORD) (1L << (CRCBITS-1)))
+#define CRCSHIFTS  (CRCBITS-8)
+#define PRZCRC     0x864CFBL   /* PRZ's 24-bit CRC generator polynomial */
 
-/* Our PRZ's 24-bit CRC generator polynomial. Ref:
- *   http://en.wikipedia.org/wiki/Cyclic_redundancy_check
- *   Section "Commonly used and standardized CRCs"
- */
-#define CRC_PRZ     0x864CFBL
-
-DWORD *crc_table;    /* Pre-generated table for speeding up CRC calculations. */
+static DWORD *crctable;        /* Table for speeding up CRC's */
 
 /*
  * mk_crctbl() derives a CRC lookup table from the CRC polynomial.
- * The table is used later by crc_bytes() below.
+ * The table is used later by watt_crc_bytes() below.
  * mk_crctbl() only needs to be called once at the dawn of time.
- * I.e. in crc_init().
  *
  * The theory behind mk_crctbl() is that table[i] is initialized
  * with the CRC of i, and this is related to the CRC of `i >> 1',
@@ -48,7 +42,7 @@ static void mk_crctbl (DWORD poly, DWORD *tab)
   {
     DWORD t = *(++p);
 
-    if (t & CRC_HIBIT)
+    if (t & CRCHIBIT)
     {
       t <<= 1;
       *q++ = t ^ poly;
@@ -64,27 +58,27 @@ static void mk_crctbl (DWORD poly, DWORD *tab)
 }
 
 /*
- * Calculate 32-bit CRC on buffer 'buf' with length 'len'.
+ * Calculate 32-bit CRC on buffer buf with length len
  */
-DWORD crc_bytes (const char *buf, size_t len)
+DWORD crc_bytes (const char *buf, unsigned len)
 {
   DWORD accum;
 
-  for (accum = 0; crc_table && len > 0; len--)
-      accum = (accum << 8) ^ crc_table[(BYTE)(accum >> CRC_SHIFTS) ^ *buf++];
+  for (accum = 0; crctable && len > 0; len--)
+      accum = (accum << 8) ^ crctable[(BYTE)(accum >> CRCSHIFTS) ^ *buf++];
   return (accum);
 }
 
 BOOL crc_init (void)
 {
-  if (crc_table)
+  if (crctable)
      return (TRUE);
 
-  crc_table = calloc (sizeof(DWORD), 256);
-  if (!crc_table)
+  crctable = (DWORD*) calloc (sizeof(DWORD), 256);
+  if (!crctable)
      return (FALSE);
 
-  mk_crctbl (CRC_PRZ, crc_table);
+  mk_crctbl (PRZCRC, crctable);
   return (TRUE);
 }
 

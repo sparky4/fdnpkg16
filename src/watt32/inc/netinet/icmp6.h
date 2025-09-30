@@ -76,15 +76,9 @@
 #include <sys/wtypes.h>
 #endif
 
-#ifndef __SYS_MBUF_H
-#include <sys/mbuf.h>
-#endif
-
 #define ICMPV6_PLD_MAXLEN       1232    /* IPV6_MMTU - sizeof(struct ip6_hdr)
                                            - sizeof(struct icmp6_hdr) */
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 struct icmp6_hdr {
         u_int8_t        icmp6_type;     /* type field */
@@ -148,7 +142,7 @@ struct icmp6_hdr {
 
 #define ICMP6_HADISCOV_REQUEST          202     /* XXX To be defined */
 #define ICMP6_HADISCOV_REPLY            203     /* XXX To be defined */
-
+  
 #ifndef _KERNEL
 #define MLD6_MTRACE_RESP        MLD_MTRACE_RESP
 #define MLD6_MTRACE             MLD_MTRACE
@@ -509,9 +503,7 @@ struct rr_result {              /* router renumbering result message */
        struct  in6_addr rrr_prefix;
      };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 #if BYTE_ORDER == BIG_ENDIAN
 #define ICMP6_RR_RESULT_FLAGS_OOB               0x0002

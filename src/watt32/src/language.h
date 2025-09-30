@@ -3,7 +3,7 @@
 
 /*!\file language.h
  *
- * Include file for Watt-32 foreign language translation facility.
+ * Include file for WatTCP foreign language translation facility.
  *
  * Based on idea from PGP, but totally rewritten (using flex)
  *

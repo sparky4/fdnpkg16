@@ -18,11 +18,10 @@
 #include "strings.h"
 #include "language.h"
 #include "misc.h"
-#include "run.h"
 #include "pcconfig.h"
 #include "pcbuf.h"
 #include "pctcp.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "netaddr.h"
 #include "dynip.h"
 
@@ -31,25 +30,24 @@
 #if defined(SNPRINTF)
   #define BUF(buf)   buf, sizeof(buf)
   #define _SNPRINTF  SNPRINTF
-
 #else
   #define BUF(buf)   buf
   #define _SNPRINTF  sprintf
 #endif
 
 #if defined(USE_DEBUG)
-  #define TRACE(level,arg)                              \
-          do {                                          \
-            if (trace_level >= level && dynip_enable) { \
-               (*_printf) arg;                          \
-               fflush (stdout);                         \
-            }                                           \
+  #define TRACE(lvl,arg) \
+          do {           \
+            if (trace_level >= lvl && dynip_enable) { \
+               (*_printf) arg;  \
+               fflush (stdout); \
+            }                   \
           } while (0)
 #else
-  #define TRACE(level,arg)  ((void)0)
+  #define TRACE(lvl,arg)   ((void)0)
 #endif
 
-struct URL {
+struct URL  {
        char *host;
        char *get_req;
        WORD  port;
@@ -65,14 +63,14 @@ static int  dyndns_refresh = 3600;
 static int  trace_level    = 0;
 static char config_file [MAX_PATHLEN+1] = "$(TEMP)\\W32DYNIP.TMP";
 
-static struct URL dyndns = { (char*) "members.dyndns.com",
-                             (char*) "/nic/update?system=dyndns&hostname=%s",
+static struct URL dyndns = { "members.dyndns.org",
+                             "/nic/update?system=dyndns&hostname=%s",
                              80, FALSE
                            };
 static struct URL chkip  = { NULL, NULL, 0, FALSE };
 
 static char   resp_buf [2048];
-static void (W32_CALL *prev_hook) (const char*, const char*);
+static void (*prev_hook) (const char*, const char*);
 
 static int get_url (const char *host, int port, const char *path,
                     const char *user_pass);
@@ -90,7 +88,7 @@ static BOOL        url_parse (struct URL *res, const char *url);
  * Matches all "\c DYNIP.xx" values from WATTCP.CFG file and
  * make appropriate actions.
  */
-static void W32_CALL dynip_config (const char *name, const char *value)
+static void dynip_config (const char *name, const char *value)
 {
   static const struct config_table dynip_cfg[] = {
        { "ENABLE",       ARG_ATOI,   (void*) &dynip_enable   },
@@ -101,7 +99,7 @@ static void W32_CALL dynip_config (const char *name, const char *value)
        { "PASSWD",       ARG_STRCPY, (void*) &dyndns_passwd  },
        { "REFRESH",      ARG_ATOI,   (void*) &dyndns_refresh },
        { "TRACE",        ARG_ATOI,   (void*) &trace_level    },
-       { "CONFIG",       ARG_STRCPY, (void*) &config_file    }, /* \todo */
+       { "CONFIG",       ARG_STRCPY, (void*) &config_file    },
        { NULL,           0,          NULL                    }
      };
 
@@ -112,7 +110,7 @@ static void W32_CALL dynip_config (const char *name, const char *value)
 /**
  * Free allocated memory.
  */
-static void W32_CALL dynip_exit (void)
+static void dynip_exit (void)
 {
   if (_watt_fatal_error)
      return;
@@ -132,22 +130,23 @@ void dynip_init (void)
  * Do this at most once each hour:
  *
  * 1. Get our WAN ip (<wan-ip> below) by fetching:
- *    http://checkip.dyndns.com/  or  http://ipdetect.dnspark.com/
+ *    http://checkip.dyndns.org  or  http://ipdetect.dnspark.com
  *
- * 2. Send HTTP request to members.dyndns.com:
+ * 2. Send HTTP request to members.dyndns.org (63.208.196.94):
  *    GET /nic/update?system=dyndns&hostname=<host-name>&myip=<wan-ip> HTTP/1.1
- *    Host: members.dyndns.com
+ *    Host: members.dyndns.org
  *    Authorization: Basic <user-name>:<password>  base64 encoded
  *    Connection: close
  *
- * 3. Get result: "nohost"         means <host-name> isn't registered in DynDNS.
- *                "noauth"         means wrong <user-name> or <passord>.
- *                "notfqdn"        means invalid <host-name> etc.
+ * 3. Get result: "nohost" means <host-name> isn't registered in DynDNS.
+ *                "noauth" means wrong <user-name> or <passord>.
+ *                "nohost" means <host-name> not registeredd with DynDNS.
+ *                "notfqdn" means invalid <host-name> etc.
  *                "nochg <wan-ip>" means no update needed.
- *                "good <wan-ip>"  means the update was acccepted.
+ *                "good <wan-ip>" means the update was acccepted.
  *
- * \todo: this should be rewritten as a non-blocking Watt-32 daemon.
- *        Use daemon_add (dynip_exec).
+ * \todo: this should be rewritten as a non-blocking WatTCP daemon.
+ *        Use addwattcpd (dynip_exec).
  */
 int dynip_exec (void)
 {
@@ -171,7 +170,7 @@ int dynip_exec (void)
     TRACE (2, ("Got %d bytes HTML, Found myip: `%s'\r\n", rc, myip));
     if (!myip)
        return (0);
-    _strlcpy (dyn_myip, myip, sizeof(dyn_myip));
+    StrLcpy (dyn_myip, myip, sizeof(dyn_myip));
   }
 
   if (!dyn_myhostname[0] || !dyndns.get_req)
@@ -194,7 +193,6 @@ int dynip_exec (void)
      _SNPRINTF (BUF(auth_buf), "%s", dyndns_user);
 
   _SNPRINTF (BUF(request), dyndns.get_req, dyn_myhostname, dyn_myip);
-
   if (!dyn_myip[0])
   {
     p = strrchr (request, '&');  /* chop of "&myip.." */
@@ -248,13 +246,13 @@ static const char *parse_myip_address (const char *orig)
 
   /* Find an IP-address between 'p' and 'end'
    */
-  TRACE (2, ("p: `%s', len %d\n", p, (int)(end-p)));
+  TRACE (2, ("p: `%s', len %d\n", p, end-p));
   ret = NULL;
 
   for ( ; *p && p < end; p++)
-      if (isdigit((int)*p) && aton(p))
+      if (isdigit(*p) && aton(p))
       {
-        ret = _strlcpy (res, p, min(end-p+1,SIZEOF(res)));
+        ret = StrLcpy (res, p, min(end-p+1,SIZEOF(res)));
         break;
       }
   free (buf);
@@ -294,7 +292,7 @@ static int parse_dyndns_response (const char *buf)
 
 /**
  * Simple URL parser; accepts only "http://" prefixes (optional).
- * Extracts host, port and request parts ("/" if not present).
+ * Extracts host, port and request parts.
  */
 static BOOL url_parse (struct URL *res, const char *url)
 {
@@ -312,7 +310,7 @@ static BOOL url_parse (struct URL *res, const char *url)
   p = strstr (url, "://");
   if (p)
   {
-    _strlcpy (scheme, url, min(SIZEOF(scheme), p-url+1));
+    StrLcpy (scheme, url, min(SIZEOF(scheme), p-url+1));
     if (stricmp(scheme,"http"))
     {
       TRACE (1, ("Unsupported scheme `%s'\n", scheme));
@@ -338,7 +336,8 @@ static BOOL url_parse (struct URL *res, const char *url)
     res->host = strdup (buf);
     res->on_heap = TRUE;
     p = strchr (url, '/');
-    res->get_req = p ? strdup (p) : strdup ("/");
+    if (p)
+       res->get_req = strdup (p);
     TRACE (2, ("url_parse: host `%s', port %u, req `%s'\r\n",
                res->host, res->port, res->get_req));
     return (TRUE);
@@ -368,12 +367,8 @@ static void url_free (struct URL *url)
 static int chkip_method (const char *value)
 {
   if (isaddr(value))
-     _strlcpy (dyn_myip, value, sizeof(dyn_myip));
-  else
-  {
-    url_free (&chkip);
-    url_parse (&chkip, value);
-  }
+       StrLcpy (dyn_myip, value, sizeof(dyn_myip));
+  else url_parse (&chkip, value);
   return (1);
 }
 
@@ -383,7 +378,6 @@ static int chkip_method (const char *value)
  */
 static int dyndns_params (const char *value)
 {
-  url_free (&dyndns);
   url_parse (&dyndns, value);
   return (1);
 }
@@ -417,18 +411,14 @@ static int dyndns_params (const char *value)
 #define AUTHOR      "Copyright (C) 1996 Ken Yap (ken@syd.dit.csiro.au)"
 
 #define HTTPVER     "HTTP/1.0"   /* HTTP version to use */
-#define HTTPVER_10  "HTTP/1.0"
-#define HTTPVER_11  "HTTP/1.1"
-
-#if defined(__CYGWIN__)
-  #define STARTS_WITH(s, what)  (strncasecmp (s, what, sizeof(what)-1) == 0)
-#else
-  #define STARTS_WITH(s, what)  (strnicmp (s, what, sizeof(what)-1) == 0)
-#endif
+#define HTTPVER10   "HTTP/1.0"
+#define HTTPVER11   "HTTP/1.1"
+#define strn(s)     s, sizeof(s)-1
 
 static int base64encode (const char *in, char *out, size_t out_len)
 {
   int    c1, c2, c3;
+  size_t len = 0;
   static char basis_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"\
                            "abcdefghijklmnopqrstuvwxyz0123456789+/";
   while (*in)
@@ -449,20 +439,24 @@ static int base64encode (const char *in, char *out, size_t out_len)
 
     *out++ = basis_64 [c1 >> 2];
     *out++ = basis_64 [((c1 & 0x3) << 4) | ((c2 & 0xF0) >> 4)];
+    len += 2;
     if (c2 == 0 && c3 == 0)
     {
       *out++ = '=';
       *out++ = '=';
+      len += 2;
     }
     else if (c3 == 0)
     {
       *out++ = basis_64 [((c2 & 0xF) << 2) | ((c3 & 0xC0) >> 6)];
       *out++ = '=';
+      len += 2;
     }
     else
     {
       *out++ = basis_64 [((c2 & 0xF) << 2) | ((c3 & 0xC0) >> 6)];
       *out++ = basis_64 [c3 & 0x3F];
+      len += 2;
     }
   }
   *out = '\0';
@@ -476,11 +470,10 @@ static int base64encode (const char *in, char *out, size_t out_len)
  */
 static BOOL get_header (void *sock, long *cont_len_ptr)
 {
-  int    len, response;
-  long   content_length;
-  size_t i;
-  char   buf [512];
-  char  *s;
+  int   i, len, response;
+  long  content_length;
+  char  buf [512];
+  char *s;
 
   *cont_len_ptr = 0L;
 
@@ -492,16 +485,16 @@ static BOOL get_header (void *sock, long *cont_len_ptr)
   }
   TRACE (1, ("HTTP: `%.*s'\r\n", len, buf));
 
-  if (!STARTS_WITH(buf,HTTPVER_10) &&  /* no HTTP/1.[01]? */
-      !STARTS_WITH(buf,HTTPVER_11))
+  if (strncmp(buf,strn(HTTPVER10)) &&  /* no HTTP/1.[01]? */
+      strncmp(buf,strn(HTTPVER11)))
   {
     TRACE (1, ("Not a HTTP/1.[01] server\n"));
     return (FALSE);
   }
 
-  s = buf + sizeof(HTTPVER_10)-1;
+  s = buf + sizeof(HTTPVER10)-1;
   i = strspn (s, " \t");
-  if (i == 0)        /* no whitespace? */
+  if (i <= 0)        /* no whitespace? */
   {
     TRACE (1, ("Malformed HTTP/1.[01] line\n"));
     return (FALSE);
@@ -531,19 +524,19 @@ static BOOL get_header (void *sock, long *cont_len_ptr)
   {
     TRACE (1, ("HTTP: `%.*s'\r\n", len, buf));
     s = buf;
-    if (STARTS_WITH(s,"Content-Length:"))
+    if (!strnicmp(s,strn("Content-Length:")))
     {
       s += sizeof("Content-Length:") - 1;
       content_length = atol (s);
     }
 #if 0
-    else if (STARTS_WITH(s,"Transfer-encoding: chunked"))
+    else if (!strnicmp(s,strn("Transfer-encoding: chunked")))
     {
       TRACE (1, ("Chunked encoding not supported\n"));
       return (FALSE);
     }
 #endif
-    else if (STARTS_WITH(buf, "Location:"))
+    else if (!strnicmp(buf, strn("Location:")))
     {
       if (response == 301 || response == 302)
          TRACE (1, ("Location at %s\n", buf));
@@ -598,11 +591,7 @@ static int get_url (const char *host, int port, const char *path,
   length = 0;
 
   sock_wait_established (sock, 10, NULL, &status);
-  if (!tcp_tick(sock))   /* in case they sent reset */
-  {
-    status = -1;
-    goto sock_err;
-  }
+  sock_tick (sock, &status);   /* in case they sent reset */
 
   p = req_buf;
   p += _SNPRINTF (BUF(req_buf),
@@ -614,7 +603,7 @@ static int get_url (const char *host, int port, const char *path,
   {
     char encoded_auth [256];
 
-    if (base64encode(user_pass, encoded_auth, sizeof(encoded_auth)) < 0)
+    if (base64encode (user_pass, encoded_auth, sizeof(encoded_auth)) < 0)
        goto sock_err;
     p += sprintf (p, "Authorization: Basic %s\r\n", encoded_auth);
   }
@@ -623,7 +612,7 @@ static int get_url (const char *host, int port, const char *path,
 
   TRACE (2, ("Sent: %s\n", req_buf));
 
-  sock_write (sock, (BYTE*)req_buf, (int)(p - req_buf));
+  sock_write (sock, (BYTE*)req_buf, p - req_buf);
   sock_wait_input (sock, 10, NULL, &status);
 
   if (get_header (sock, &content_length))
@@ -650,7 +639,10 @@ static int get_url (const char *host, int port, const char *path,
   }
 
 sock_err:
-  sock_abort (sock);  /* Kill 'sock' from the '_tcp_allsocs' list. */
+
+  /* since 'sock' is on the stack, kill it from the '_tcp_allsocs' list.
+   */
+  sock_abort (sock);
 
   if (status == -1)
      TRACE (1, ("get_url(): %s, %s, ", host, sockerr(sock)));
@@ -658,5 +650,4 @@ sock_err:
   free (sock);
   return (length);
 }
-#endif  /* USE_DYNIP_CLI */
-
+#endif

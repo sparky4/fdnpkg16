@@ -1,9 +1,8 @@
 /*!\file wdpmi.c
- *
  *  DPMI interface for Watcom-type targets.
  *
  *  DOS-extender/DPMI interface for DOS4GW Pro, DOS4G, DOS32A,
- *  Pmode/W, CauseWay, EDOS, HXDOS, WDOSX and Borland's POWERPAK (32rtm).
+ *  Pmode/W, CauseWay, EDOS, WDOSX and Borland's POWERPAK (32rtm).
  *  Possibly usable with gcc and WDOSX also.
  *
  *  From udplib 1.111 by
@@ -13,7 +12,7 @@
  *  11 november, 1997
  *  Ref. http://igweb.vub.ac.be/knights/udplib.html
  *
- *  Heavily changed by G. Vanem <gvanem@yahoo.no>  August 1998
+ *  Heavily changed by G. Vanem <giva@bgnett.no>  August 1998
  */
 
 #include <stdio.h>
@@ -30,7 +29,7 @@
 #include "misc.h"
 #include "wdpmi.h"
 
-#if defined(__MSDOS__)  /* rest of file */
+#if !defined(WIN32)  /* rest of file */
 
 /* Don't put this in config.h, but define to 1 here when it works.
  */
@@ -111,10 +110,10 @@ BOOL dos32a_nullptr_chk = 0;  /* NULL-ptr traps active */
 #define WDOSX_SIGN   (('W'<<24) + ('D'<<16) + ('S'<<8) + ('X'<<0))
 
 #if (DOSX & DOS4GW) && defined(WATCOM386) && defined(USE_EXCEPT_HANDLER)
-  static struct FAULT_STRUC exc_struct;
-  static exceptionHook      user_exc_hook = NULL;
+static struct FAULT_STRUC exc_struct;
+static exceptionHook      user_exc_hook = NULL;
 
-  static void far __loadds exception_main (void);
+static void far __loadds exception_main (void);
 #endif
 
 /*
@@ -124,7 +123,6 @@ BOOL dos32a_nullptr_chk = 0;  /* NULL-ptr traps active */
 static BOOL is_wdosx_or_pmodew (DWORD sign)
 {
   union REGS reg;
-
 #ifdef __DJGPP__
   reg.x.eax = 0xEEFF;
   int86 (0x31, &reg, &reg);
@@ -148,7 +146,6 @@ BOOL dpmi_is_pmodew (void)
 BOOL dpmi_is_dos32a (void)
 {
   union REGS reg;
-
 #ifdef __DJGPP__
   reg.x.eax = 0xFF89;  /* Get configuation info */
   int86 (0x21, &reg);
@@ -168,8 +165,7 @@ BOOL dpmi_is_dos32a (void)
 BOOL dpmi_is_dos4gw (void)
 {
   union REGS reg;
-
-#ifdef __DJGPP__   /* I doubt DOS4GW and djgpp is possible */
+#ifdef __DJGPP__   /* doubt DOS4GW and djgpp is possible */
   reg.x.eax = 0xFF00;
   reg.x.edx = 0x78;
   int86 (0x21, &reg);
@@ -246,9 +242,6 @@ BOOL dpmi_is_hxdos (void)
   return !strncmp(buf+2,"HDPMI",5);
 }
 
-/*
- * Return true name of "DOS4GW-type" extenders.
- */
 const char *dos4gw_extender_name (void)
 {
   if (dpmi_is_causeway())
@@ -257,12 +250,12 @@ const char *dos4gw_extender_name (void)
      return ("WDOSX");
   if (dpmi_is_pmodew())
      return ("PMODEW");
-  if (dpmi_is_hxdos())
-     return ("HXDOS");
   if (dpmi_is_dos32a())
      return ("DOS32A");
   if (dpmi_is_dos4gw())
      return ("DOS4GW");
+  if (dpmi_is_hxdos())
+     return ("HXDOS");
   return ("DOS4GW");  /* assume the rest are DOS4GW compatible */
 }
 
@@ -493,7 +486,7 @@ static int real_interrupt (int intr, IREGS *reg)
       mov  edx, esp        /* save esp */
       mov  ebx, intr
       mov  eax, 300h       /* simulate real-int */
-      int  31h
+      int  31h         
       mov  esp, edx
       xor  eax, eax        /* assume ok */
       pop  edi
@@ -623,7 +616,6 @@ static void far __loadds exception_main (void)
 }
 #endif /* USE_EXCEPT_HANDLER */
 
-
 /*! \todo find the real application start
  */
 static DWORD exc_app_start = 4096UL;
@@ -712,7 +704,7 @@ BOOL dpmi_init (void)
     case DOSX_RATIONAL:
          if (_ExtenderSubtype & XS_RATIONAL_NONZEROBASE)
          {
-           outsnl (_LANG("\7Only zero-based DOS4GW applications supported."));
+           outsnl (_LANG("\7Only zero-based DOS4GW application supported."));
            return (FALSE);
          }
          break;  /* okay */
@@ -729,5 +721,4 @@ BOOL dpmi_init (void)
   return (TRUE);
 }
 #endif  /* WATCOM386 */
-#endif  /* __MSDOS__ */
-
+#endif  /* WIN32 */

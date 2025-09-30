@@ -44,11 +44,16 @@
  *   thing to do? What is the relationship with post-RFC2553 AI_ADDRCONFIG
  *   in ai_flags?
  *
- * Adapted for Watt-32 tcp/ip stack by G. Vanem <gvanem@yahoo.no>, Aug 2002.
+ * Adapted for Watt-32 tcp/ip stack by G. Vanem <giva@bgnett.no>, Aug 2002.
  */
 
+#if 0
+static const char rcsid[] = "@(#) $Header: /tcpdump/master/tcpdump/missing/"
+                            "getaddrinfo.c,v 1.10 2000/10/24 00:56:53 fenner Exp $";
+#endif
+
 #include "socket.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 
 #if defined(USE_BSD_API)
 
@@ -120,7 +125,7 @@ static int get_portmatch (const struct addrinfo *, const char *);
 static int get_port (struct addrinfo *, const char *, int);
 static const struct afd *find_afd (int);
 
-static const char *ai_errlist[] = {
+static char *ai_errlist[] = {
   "Success",
   "Address family for hostname not supported",    /* EAI_ADDRFAMILY */
   "Temporary failure in name resolution",         /* EAI_AGAIN      */
@@ -140,33 +145,33 @@ static const char *ai_errlist[] = {
 
 /* XXX macros that make external reference is BAD. */
 
-#define GET_AI(ai, afd, addr) do {                        \
-        /* external reference: pai, error and free_it */  \
-        (ai) = get_ai (pai, (afd), (const char*) (addr)); \
-        if ((ai) == NULL) {                               \
-           error = EAI_MEMORY;                            \
-           goto free_it;                                  \
-        }                                                 \
+#define GET_AI(ai, afd, addr) do {                       \
+        /* external reference: pai, error and free_it */ \
+        (ai) = get_ai (pai, (afd), (addr));              \
+        if ((ai) == NULL) {                              \
+           error = EAI_MEMORY;                           \
+           goto free_it;                                 \
+        }                                                \
       } while (0)
 
-#define GET_PORT(ai, serv) do {                           \
-        /* external reference: error and free_it */       \
-        error = get_port ((ai), (serv), 0);               \
-        if (error != 0)                                   \
-           goto free_it;                                  \
+#define GET_PORT(ai, serv) do {                          \
+        /* external reference: error and free_it */      \
+        error = get_port ((ai), (serv), 0);              \
+        if (error != 0)                                  \
+           goto free_it;                                 \
       } while (0)
 
-#define GET_CANONNAME(ai, str) do {                       \
-        /* external reference: pai, error and free_it */  \
-        error = get_canonname (pai, (ai), (str));         \
-        if (error != 0)                                   \
-           goto free_it;                                  \
+#define GET_CANONNAME(ai, str) do {                      \
+        /* external reference: pai, error and free_it */ \
+        error = get_canonname (pai, (ai), (str));        \
+        if (error != 0)                                  \
+           goto free_it;                                 \
       } while (0)
 
-#define ERR(err) do {                                     \
-        /* external reference: error, and label bad */    \
-        error = (err);                                    \
-        goto bad;                                         \
+#define ERR(err) do {                                    \
+        /* external reference: error, and label bad */   \
+        error = (err);                                   \
+        goto bad;                                        \
       } while (0)
 
 #define MATCH_FAMILY(x, y, w) \
@@ -179,7 +184,7 @@ char * W32_CALL gai_strerror (int ecode)
 {
   if (ecode < 0 || ecode > EAI_MAX)
      ecode = EAI_MAX;
-  return (char*) ai_errlist[ecode];
+  return (ai_errlist[ecode]);
 }
 
 /*
@@ -216,7 +221,7 @@ char * W32_CALL if_indextoname (int if_id, char *if_name)
 
 int __scope_ascii_to_id (const char *str)
 {
-  if (!isdigit((int)*str))
+  if (!isdigit(*str))
      return (0);
   return (*str - '0');
 }
@@ -244,7 +249,7 @@ static void free_addrinfo (struct addrinfo *ai)
 
 void W32_CALL freeaddrinfo (struct addrinfo *ai)
 {
-  SOCK_DEBUGF (("\nfreeaddrinfo: 0x%" ADDR_FMT, ADDR_CAST(ai)));
+  SOCK_DEBUGF (("\nfreeaddrinfo: %08lX", (DWORD)ai));
   free_addrinfo (ai);
 }
 
@@ -381,8 +386,8 @@ int W32_CALL getaddrinfo (const char *hostname, const char *servname,
    *      unspecified.
    *  (2) servname is disallowed for raw and other inet{,6} sockets.
    */
-  if (MATCH_FAMILY(pai->ai_family, AF_INET, 1) ||
-      MATCH_FAMILY(pai->ai_family, AF_INET6, 1))
+  if (MATCH_FAMILY (pai->ai_family, AF_INET, 1) ||
+      MATCH_FAMILY (pai->ai_family, AF_INET6, 1))
   {
     ai0 = *pai;
 
@@ -404,10 +409,8 @@ int W32_CALL getaddrinfo (const char *hostname, const char *servname,
 
     if (!MATCH_FAMILY(pai->ai_family, ex->e_af, WILD_AF(ex)))
        continue;
-
     if (!MATCH(pai->ai_socktype, ex->e_socktype, WILD_SOCKTYPE(ex)))
        continue;
-
     if (!MATCH(pai->ai_protocol, ex->e_protocol, WILD_PROTOCOL(ex)))
        continue;
 
@@ -442,7 +445,7 @@ int W32_CALL getaddrinfo (const char *hostname, const char *servname,
      ERR (EAI_NONAME);
 
   /* hostname as alphabetical name.
-   * We would like to prefer AF_INET6 than AF_INET, so we'll make a
+   * we would like to prefer AF_INET6 than AF_INET, so we'll make a
    * outer loop by AFs.
    */
   for (afd = afd_list; afd->a_af; afd++)
@@ -518,18 +521,18 @@ bad:
 static int explore_fqdn (const struct addrinfo *pai, const char *hostname,
                          const char *servname, struct addrinfo **res)
 {
-  static struct hostent  copy;
-  static struct in6_addr addr [MAX_ADDRESSES+1];
-  static char           *list [MAX_ADDRESSES+1], *ap;
-  struct hostent   *hp = NULL;
-  struct addrinfo   sentinel, *cur;
   const struct afd *afd;
-  int             af, i, error = 0;
+  struct hostent  copy, *hp;
+  struct addrinfo sentinel, *cur;
+  struct in6_addr addr [MAX_ADDRESSES+1];
+  char           *list [MAX_ADDRESSES+1], *ap;
+  int             af, i, error;
 
 #ifdef TEST_PROG
   SOCK_DEBUGF (("\nexplore_fqdn"));
 #endif
 
+  error = 0;
   *res = NULL;
   cur  = &sentinel;
   sentinel.ai_next = NULL;
@@ -541,7 +544,7 @@ static int explore_fqdn (const struct addrinfo *pai, const char *hostname,
 
   /* if the servname does not match socktype/protocol, ignore it.
    */
-  if (get_portmatch(pai, servname) != 0)
+  if (get_portmatch (pai, servname) != 0)
      return (0);
 
   afd = find_afd (pai->ai_family);
@@ -582,10 +585,10 @@ static int explore_fqdn (const struct addrinfo *pai, const char *hostname,
   if (!hp)
      goto free_it;
 
- /* Perform a shallow copy of 'hp'. Since 'hp' is returned from
-  * fill_hostent(), the contents will be destroyed in below
-  * get_name() otherwise.
-  */
+  /* Perform a shallow copy of 'hp'. Since 'hp' is returned from
+   * fill_hostent(), the contents will be destroyed in below
+   * get_name() otherwise.
+   */
   copy = *hp;
   memset (&addr, 0, sizeof(addr));
   memset (&list, 0, sizeof(list));
@@ -708,11 +711,8 @@ static int explore_numeric (const struct addrinfo *pai, const char *hostname,
 {
   const struct afd *afd;
   struct addrinfo  *cur, sentinel;
+  char   pton [PTON_MAX];
   int    error, flags;
-  union {
-    struct in_addr a4;
-    struct in6_addr a6;
-  } pton;
 
 #ifdef TEST_PROG
   SOCK_DEBUGF (("\nexplore_numeric"));
@@ -730,7 +730,7 @@ static int explore_numeric (const struct addrinfo *pai, const char *hostname,
   afd   = find_afd (pai->ai_family);
   flags = pai->ai_flags;
 
-  if (inet_pton (afd->a_af, hostname, &pton) == 1)
+  if (inet_pton (afd->a_af, hostname, pton) == 1)
   {
     DWORD v4a;
     BYTE  pfx;
@@ -738,7 +738,7 @@ static int explore_numeric (const struct addrinfo *pai, const char *hostname,
     switch (afd->a_af)
     {
       case AF_INET:
-           v4a = (DWORD) ntohl (pton.a4.s_addr);
+           v4a = (DWORD) ntohl (((struct in_addr*)pton)->s_addr);
            if (IN_MULTICAST (v4a) || IN_EXPERIMENTAL(v4a))
               flags &= ~AI_CANONNAME;
            v4a >>= IN_CLASSA_NSHIFT;
@@ -747,7 +747,7 @@ static int explore_numeric (const struct addrinfo *pai, const char *hostname,
            break;
 
       case AF_INET6:
-           pfx = pton.a6.s6_addr[0];
+           pfx = ((struct in6_addr*)pton)->s6_addr[0];
            if (pfx == 0 || pfx == 0xfe || pfx == 0xff)
               flags &= ~AI_CANONNAME;
            break;
@@ -757,7 +757,7 @@ static int explore_numeric (const struct addrinfo *pai, const char *hostname,
     {
       if (!(flags & AI_CANONNAME))
       {
-        GET_AI (cur->ai_next, afd, &pton);
+        GET_AI (cur->ai_next, afd, pton);
         GET_PORT (cur->ai_next, servname);
       }
       else
@@ -768,8 +768,7 @@ static int explore_numeric (const struct addrinfo *pai, const char *hostname,
          * XXX getaddrinfo() is a name to address translation function,
          * and it looks strange that we do addr to name translation here.
          */
-        get_name ((const char*)&pton, afd, &cur->ai_next,
-                  (char*)&pton, pai, servname);
+        get_name (pton, afd, &cur->ai_next, pton, pai, servname);
       }
       while (cur && cur->ai_next)
         cur = cur->ai_next;
@@ -819,7 +818,7 @@ static int explore_numeric_scope (const struct addrinfo *pai,
   /* Handle special case of <scoped_address>%<scope id>
    * 'scope id' is numeric "1..x".
    */
-  _strlcpy (hostname2, hostname, sizeof(hostname2));
+  StrLcpy (hostname2, hostname, sizeof(hostname2));
 
   /* terminate at the delimiter
    */
@@ -1027,35 +1026,26 @@ static void dump_addrinfo (const struct addrinfo *ai)
   }
 }
 
-static void test_getaddrinfo (const char *host, const char *serv)
+int main (void)
 {
   struct addrinfo hints, *res = NULL;
   int rc;
 
-  printf ("Calling: getaddrinfo (\"%s\", \"%s\",...);", host, serv);
+  dbug_init();
+  sock_init();
   memset (&hints, 0, sizeof(hints));
   hints.ai_family   = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags    = AI_CANONNAME;
 
-  rc = getaddrinfo (host, serv, &hints, &res);
-  puts ("");
+  rc = getaddrinfo ("ubr3-ca3-0-sec.landg1.lb.home.nl", "http",
+                    &hints, &res);
   if (res)
        dump_addrinfo (res);
   else printf ("fail; %s\n", gai_strerror(rc));
 
   if (res)
      freeaddrinfo (res);
-}
-
-int main (void)
-{
-  dbug_init();
-  sock_init();
-
-  test_getaddrinfo ("www.kame.net", "http");
-  test_getaddrinfo ("www.watt-32.net", "http");
-
   return (0);
 }
 #endif /* TEST_PROG */

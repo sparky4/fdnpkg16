@@ -4,10 +4,10 @@
 #include <assert.h>
 #include <math.h>
 
-#include "wattcp.h"
-#include "timer.h"
-#include "misc.h"
-#include "cpumodel.h"
+#include "../wattcp.h"
+#include "../timer.h"
+#include "../misc.h"
+#include "../cpumodel.h"
 
 static int num_samples = 3;
 static int wait_ticks  = 2;
@@ -17,23 +17,6 @@ static struct {
        double   sqSum;
        unsigned samples;
      } stats = { 0.0, 0.0, 0 };
-
-#if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-/*
- * Wait for timer-ticks to change 'num' times.
- */
-static void WaitN (int num)
-{
-  DWORD tim;
-
-  while (num--)
-  {
-    tim = GetTickCount() + 55;
-    while (GetTickCount() < tim)
-          Sleep (0);
-  }
-}
-#else  /* __MSDOS__ */
 
 /*
  * Wait for BIOS timer-tick to change 'num' times.
@@ -49,7 +32,6 @@ static void WaitN (int num)
     }
   }
 }
-#endif
 
 static uint64 _get_cpu_speed (void)
 {
@@ -112,11 +94,11 @@ int main (int argc, char **argv)
 
 #if defined(__DJGPP__) && 0
   printf ("My-DS %04X readable:  %d\n", _my_ds(), SelReadable(_my_ds()));
-  printf ("My-DS %04X writable: %d\n",  _my_ds(), SelWriteable(_my_ds()));
+  printf ("My-DS %04X writeable: %d\n", _my_ds(), SelWriteable(_my_ds()));
   printf ("My-CS %04X readable:  %d\n", _my_cs(), SelReadable(_my_cs()));
-  printf ("My-CS %04X writable: %d\n",  _my_cs(), SelWriteable(_my_cs()));
+  printf ("My-CS %04X writeable: %d\n", _my_cs(), SelWriteable(_my_cs()));
   printf ("0 selector readable:  %d\n", SelReadable(0));
-  printf ("0 selector writable: %d\n",  SelWriteable(0));
+  printf ("0 selector writeable: %d\n", SelWriteable(0));
 #endif
 
   if (argc != 3)

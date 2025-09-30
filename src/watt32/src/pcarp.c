@@ -4,8 +4,8 @@
  *
  * 2002-09 Gundolf von Bachhaus:
  *   90% rewrite - Optional non-blocking ARP lookup & redirect handling
- *   Gateway / Route / ARP data stored & accessed separately
- *   Module encapsulated - no global variables.
+ *   Gateway / Route / ARP data stored & accessed sererately
+ *   Module encapsulated - no global variables
  */
 
 #include <stdio.h>
@@ -18,7 +18,6 @@
 #include "language.h"
 #include "netaddr.h"
 #include "misc.h"
-#include "run.h"
 #include "timer.h"
 #include "rs232.h"
 #include "ip4_in.h"
@@ -30,77 +29,76 @@
 #include "pcsed.h"
 #include "pcconfig.h"
 #include "pcqueue.h"
-#include "pcstat.h"
 #include "pcicmp.h"
 #include "pcdhcp.h"
 #include "pcpkt.h"
 #include "pcarp.h"
 
-#define DO_SORT_GATEWAYS 1
-
-#if defined(USE_DEBUG)
-  #define TRACE(args)   do {                                               \
-                          if (arp_trace_level > 0) {                       \
-                            if (arp_trace_level > 1)                       \
-                              (*_printf) ("%s (%u): ", __FILE__,__LINE__); \
-                            (*_printf) ("  ");                             \
-                            (*_printf) args;                               \
-                          }                                                \
-                        } while (0)
-
-  static const char *get_ARP_flags (WORD flg);
-  static const char *get_route_flags (WORD flg);
-#else
-  #define TRACE(args)   ((void)0)
+#ifndef __inline
+#define __inline
 #endif
 
-#define INET_NTOA(ip) _inet_ntoa (NULL, ip)
-
-/**
- * Check if two address are on the same network.
- */
-#define ON_SAME_NETWORK(addr1, addr2, mask) ((addr1 & mask) == (addr2 & mask))
-
+#if defined(USE_SECURE_ARP)
+  /*
+   * Allocated here so we don't link in OpenSSL libs by default.
+   * Application must call sarp_init() before sock_init() to enable.
+   */
+  int (*_sarp_recv_hook) (const struct sarp_Packet*) = NULL;
+  int (*_sarp_xmit_hook) (struct sarp_Packet*)       = NULL;
+#endif
 
 /* Local parameters.
  */
-static int  arp_trace_level = 2;      /* trace level for this code (>1 include file/line) */
-static int  arp_timeout     = 2;      /* 2 seconds ARP timeout    */
-static int  arp_alive       = 300;    /* 5 min ARP cache lifespan */
-static int  arp_rexmit_to   = 250;    /* 250 milliseconds per try */
-static BOOL dead_gw_detect  = FALSE;  /* Enable Dead Gateway detection */
-static BOOL arp_gratiotous  = FALSE;
+static int  arp_timeout    = 2;      /* 2 seconds ARP timeout    */
+static int  arp_alive      = 300;    /* 5 min ARP cache lifespan */
+static int  arp_rexmit_to  = 250;    /* 250 milliseconds per try */
+static int  arp_num_cache  = 64;     /* # of entries in ARP cache (not yet) */
+static BOOL dead_gw_detect = FALSE;  /* Enable Dead Gateway detection */
+static BOOL arp_gratiotous = FALSE;
 
 static BOOL LAN_lookup (DWORD ip, eth_address *eth);
 static BOOL is_on_LAN  (DWORD ip);
-
-static BOOL          arp_check_common (DWORD ip, eth_address *eth);
-static void W32_CALL arp_daemon (void);
+static void arp_daemon (void);
 
 /**
  * GATEWAY HANDLING.
  */
 #define DEAD_GW_TIMEOUT    10000   /* 10 sec */
-#define GATE_TOP_OF_CACHE  8
+#define gate_top_of_cache  8
 
-static int gate_top = 0;     /* index into gate_list */
+static int gate_top = 0;
 
-static struct gate_entry gate_list [GATE_TOP_OF_CACHE];
+static struct gate_entry gate_list [gate_top_of_cache];
 
+
+#if defined(USE_DEBUG)
 /**
- * Return start of gate_list[].
+ * Return list of currently defined gateways.
  *
- * \note Only 'gate_top' gateways are valid in result.
+ * \note Max 'num' gateways is returned in 'gw[]' buffer.
  */
-int W32_CALL _arp_gateways_get (const struct gate_entry **rc)
+int _arp_list_gateways (struct gate_entry *gw, int max)
 {
-  *rc = gate_list;
-  return (gate_top);
+  int i;
+
+  for (i = 0; i < gate_top && i < max; i++, gw++)
+  {
+    memset (gw, 0, sizeof(*gw));
+    gw->gate_ip = gate_list[i].gate_ip;
+    gw->subnet  = gate_list[i].subnet;
+    gw->mask    = gate_list[i].mask;
+#if defined(USE_DEAD_GWD)
+    gw->echo_pending = gate_list[i].echo_pending;
+    gw->is_dead      = gate_list[i].is_dead;
+#endif
+  }
+  return (i);
 }
+#endif
 
 #if defined(USE_DEAD_GWD)
 /**
- * Send a ping (with TTL=1) to a gateway.
+ * Send a ping (with ttl=1) to a gateway.
  * Ref. RFC-1122.
  */
 static WORD icmp_id  = 0;
@@ -109,7 +107,7 @@ static WORD icmp_seq = 0;
 static int ping_gateway (DWORD host, void *eth)
 {
   struct ping_pkt  *pkt;
-  struct ICMP_echo *icmp;
+  struct icmp_echo *icmp;
   struct in_Header *ip;
   int    len;
 
@@ -118,8 +116,6 @@ static int ping_gateway (DWORD host, void *eth)
   icmp = &pkt->icmp;
   len  = sizeof (*icmp);
   icmp_id = (WORD) set_timeout (0);  /* "random" id */
-
-  TRACE (("ping_gateway (%s)\n", INET_NTOA(host)));
 
   icmp->type       = ICMP_ECHO;
   icmp->code       = 0;
@@ -134,10 +130,11 @@ static int ping_gateway (DWORD host, void *eth)
 }
 
 /*
- * This function is called once each second.
+ * This functiom is called once each second.
  */
 static void check_dead_gw (void)
 {
+  char   buf[20];
   static int i = 0;
 
   if (i >= gate_top)
@@ -145,19 +142,14 @@ static void check_dead_gw (void)
 
   for ( ; i < gate_top; i++)
   {
-    struct gate_entry *gw = gate_list + i;
+    struct gate_entry *gw = &gate_list [i];
     eth_address        eth;
-
-    TRACE (("check_dead_gw (1), i %d\n", i));
 
     if (!is_on_LAN(gw->gate_ip))
        continue;
 
     if (!LAN_lookup(gw->gate_ip,&eth))
-    {
-      TRACE (("check_dead_gw (2), IP %s\n", INET_NTOA(gw->gate_ip)));
-      continue;
-    }
+       continue;
 
     if (gw->chk_timer == 0UL || !chk_timeout(gw->chk_timer))
     {
@@ -168,99 +160,49 @@ static void check_dead_gw (void)
     if (gw->echo_pending &&
         _chk_ping(gw->gate_ip,NULL) == (DWORD)-1)
     {
-      TRACE (("check_dead_gw (3), i %d\n", i));
-
       gw->is_dead      = TRUE;
       gw->echo_pending = FALSE;
-      TRACE (("Dead default GW %s (%d) detected\n",
-              INET_NTOA(gw->gate_ip), i));
+      TCP_CONSOLE_MSG (1, ("Dead default GW %s (%d) detected\n",
+                       _inet_ntoa(NULL,gw->gate_ip), i));
     }
 
-    if (ping_gateway(gw->gate_ip, eth))
+    if (ping_gateway (gw->gate_ip, eth))
        gw->echo_pending = TRUE;
 
     gw->chk_timer = set_timeout (DEAD_GW_TIMEOUT);
     return;  /* only one ping per interval */
   }
 }
-#endif   /* USE_DEAD_GWD */
-
-/*
- * Check if a mask is legal for specified address.
- */
-static BOOL legal_mask (DWORD mask, DWORD addr)
-{
-#if 1
-  ARGSUSED (addr);
-  return check_mask (mask);
-#else
-  if (addr & ~mask)      /* E.g. '10.0.0.5' AND '0.0.0.255' */
-    return (FALSE);
-  mask = intel (~mask);
-  if (mask & (mask+1))
-    return (FALSE);
-  return (TRUE);
 #endif
-}
 
-#if DO_SORT_GATEWAYS
-/**
- * Compare two entries in gateway-list.
- * Sort such that entries with the longest netmasks (32-mask_len())
- * are put first. Thus the default route (mask 0.0.0.0) is matched
- * last in _route_destin().
- *
- * From http://www.linuxfoundation.org/collaborate/workgroups/networking/networkoverview:
- *   LPM (Longest Prefix Match) is the lookup algorithm.
- *   The route with the longest netmask is the one chosen.
- *   Netmask 0, which is the shortest netmask, is for the default gateway.
- */
-static int MS_CDECL compare (const struct gate_entry *a,
-                             const struct gate_entry *b)
-{
-  return (int)(a->mask - b->mask);
-}
-#endif
 
 /**
  * Add a gateway to the routing table.
  *
  * The format of 'config_string' is:
- *   gateway [,subnet], mask]]
+ *   IP-address [, subnet] , mask]]
  *
  * If 'config_string' is NULL, simply add 'ip' with zero
  * mask and subnet.
- *
- * eg. "gateway = 129.97.176.1"  -> becomes the default route
- * eg. "gateway = 129.97.176.2, 129.97.0.0, 255.255.0.0"
- *
- * The  first  example  shows  how a  default  gateway  is
- * created.  A default gateway is used if no other choices
- * exist.
- *
- * The second example shows how to specify a gateway for a
- * particular subnet.  In this example, whenever the 'top'
- * 16 bits of the destination are 129.97.*.*, that gateway
- * will be used.
- *
- * \todo Move to route.c and rename to route_add().
  */
-BOOL W32_CALL _arp_add_gateway (const char *config_string, DWORD ip)
+BOOL _arp_add_gateway (const char *config_string, DWORD ip)
 {
   struct gate_entry *gw;
   DWORD  subnet = 0UL;
   DWORD  mask   = 0UL;
   int    i;
 
+  SIO_TRACE (("_arp_add_gateway"));
+
   if (config_string)
   {
-    const char *subnetp, *maskp;
+    const char* subnetp, *maskp;
 
-    /* Get gateway IP address from string
+    /* Get gateways IP address from string
      */
     ip = aton (config_string);
     if (ip == 0)
-       return (FALSE);   /* invalid */
+       return (FALSE); /* invalid */
 
     /* Check if optional subnet was supplied
      */
@@ -277,24 +219,22 @@ BOOL W32_CALL _arp_add_gateway (const char *config_string, DWORD ip)
        */
       maskp = strchr (subnetp, ',');
       if (maskp)
-      {
-        mask = aton (++maskp);
-      }
+         mask = aton (++maskp);
       else /* No mask was supplied, we derive it from the supplied subnet */
       {
         switch (subnet >> 30)
         {
-          case 0:
-          case 1:
-               mask = CLASS_A_ADDR;
-               break;
-          case 2:
-               mask = CLASS_B_ADDR;
-               break;
-          case 3:
+          case  0:
+          case  1:
+                mask = 0xFF000000UL;
+                break;
+          case  2:
+                mask = 0xFFFFFE00UL;   /* minimal class B */
+                break;
+          case  3:
           default:
-               mask = CLASS_C_ADDR;
-               break;
+                mask = 0xFFFFFF00UL;
+                break;
         }
       }
     }
@@ -304,20 +244,8 @@ BOOL W32_CALL _arp_add_gateway (const char *config_string, DWORD ip)
     if (ip == 0UL)
     {
       outsnl ("_arp_add_gateway(): Illegal router");
-      return (FALSE);   /* args invalid */
+      return (FALSE); /* args invalid */
     }
-  }
-
-  TRACE (("_arp_add_gateway (%s)\n"
-          "   ip: %s, mask: %s, subnet: %s\n",
-          config_string ? config_string : "<none>",
-          INET_NTOA(ip), INET_NTOA(mask), INET_NTOA(subnet)));
-
-  if (!legal_mask(mask,subnet))
-  {
-    outs ("Illegal mask "); outs (INET_NTOA(mask));
-    outs (" for subnet ");  outsnl (INET_NTOA(subnet));
-    return (FALSE);
   }
 
   /* Figure out where to put our new gateway
@@ -329,7 +257,7 @@ BOOL W32_CALL _arp_add_gateway (const char *config_string, DWORD ip)
   for (i = 0; i < gate_top; i++)
       if (gate_list[i].gate_ip == ip)
       {
-        gw = gate_list + i;
+        gw = &gate_list[i];
         break;
       }
 
@@ -344,50 +272,43 @@ BOOL W32_CALL _arp_add_gateway (const char *config_string, DWORD ip)
    */
   if (gw == NULL)
   {
-    if (gate_top == DIM(gate_list)-1)
+    if (gate_top+1 >= DIM(gate_list))
     {
       outsnl (_LANG("Gateway table full"));
       return (FALSE);  /* no more room */
     }
-    gw = gate_list + gate_top;
-    gate_top++;
+    gw = &gate_list [gate_top++];
   }
 
-  /* Fill in new (or reused) entry
+  /* Fill in new entry
    */
   memset (gw, 0, sizeof(*gw));
   gw->gate_ip = ip;
   gw->mask    = mask;
   gw->subnet  = subnet;
-
-#if DO_SORT_GATEWAYS
-  qsort ((void*)&gate_list, gate_top, sizeof(gate_list[0]),
-         (CmpFunc)compare);
-#endif
-
   return (TRUE);
 }
 
 /**
  * Delete all gateways.
  */
-void W32_CALL _arp_kill_gateways (void)
+void _arp_kill_gateways (void)
 {
-  TRACE (("gate_top=%d, _arp_kill_gateways(), gate_top=0\n", gate_top));
+  SIO_TRACE (("_arp_kill_gateways"));
   gate_top = 0;
 }
 
 /**
  * Check if we have at least one default gateway.
  */
-BOOL W32_CALL _arp_have_default_gw (void)
+BOOL _arp_have_default_gw (void)
 {
   int i, num = 0;
 
+  SIO_TRACE (("_arp_have_default_gw"));
   for (i = 0; i < gate_top; i++)
       if (gate_list[i].subnet == 0UL)
          num++;
-  TRACE (("_arp_have_default_gw(), num: %d\n", num));
   return (num > 0);
 }
 
@@ -396,8 +317,7 @@ BOOL W32_CALL _arp_have_default_gw (void)
  * ARP HANDLING.
  */
 
-/**
- * ARP cache table internal structure:
+/* ARP cache table internal structure:
  * \verbatim
  *
  * Index pointers       ARP cache table
@@ -435,29 +355,37 @@ BOOL W32_CALL _arp_have_default_gw (void)
  *    (below).
  */
 
-#define ARP_TOP_OF_CACHE    64 /**< would need to be a variable if ARP
+#define arp_top_of_cache    64 /**< would need to be made a variable if ARP
                                 *   table were auto-resizing
                                 */
-#define ARP_TOP_PENDING     ARP_TOP_OF_CACHE
-#define ARP_TOP_FREE        arp_first_pending
-#define ARP_TOP_DYNAMIC     arp_first_free
-#define ARP_TOP_FIXED       arp_first_dynamic
-#define ARP_FIRST_FIXED     0
+#define arp_top_pending     arp_top_of_cache
+#define arp_top_free        arp_first_pending
+#define arp_top_dynamic     arp_first_free
+#define arp_top_fixed       arp_first_dynamic
+#define arp_first_fixed     0
 
-static int arp_first_pending = ARP_TOP_PENDING;
+static int arp_first_pending = arp_top_pending;
 static int arp_first_free    = 0;
 static int arp_first_dynamic = 0;
 
-static struct arp_entry arp_list [ARP_TOP_OF_CACHE];
+static struct arp_entry arp_list [arp_top_of_cache];
 
 /**
  * Low-level ARP send function.
  */
-static BOOL arp_send (const arp_Header *arp, unsigned line)
+static __inline BOOL arp_send (const arp_Header *arp, unsigned line)
 {
-  TRACE (("_arp_send()\n"));
+  WORD len = sizeof(*arp);
+
+  SIO_TRACE (("_arp_send"));
+
+#if defined(USE_SECURE_ARP)
+  if (_sarp_xmit_hook)  /* put the auth header in */
+     len = (*_sarp_xmit_hook) ((struct sarp_Packet*)arp);
+#else
   ARGSUSED (arp);
-  return _eth_send (sizeof(*arp), NULL, __FILE__, line);
+#endif
+  return _eth_send (len, NULL, __FILE__, line);
 }
 
 
@@ -468,7 +396,7 @@ static BOOL arp_send_request (DWORD ip)
 {
   arp_Header *arp = (arp_Header*) _eth_formatpacket (&_eth_brdcast[0], ARP_TYPE);
 
-  TRACE (("_arp_send_request (%s)\n", INET_NTOA(ip)));
+  SIO_TRACE (("_arp_send_request"));
 
   arp->hwType       = intel16 (_eth_get_hwtype(NULL,NULL));
   arp->protType     = IP4_TYPE;
@@ -485,52 +413,38 @@ static BOOL arp_send_request (DWORD ip)
 
 /**
  * Send unicast/broadcast ARP reply.
- * 'src_ip' and 'dst_ip' on host order.
+ * 'src_ip' and 'dst_ip' on network order.
  */
-BOOL W32_CALL _arp_reply (const void *e_dst, DWORD src_ip, DWORD dst_ip)
+BOOL _arp_reply (const void *mac_dst, DWORD src_ip, DWORD dst_ip)
 {
   arp_Header *arp;
 
-  if (!e_dst)
-     e_dst = &_eth_brdcast;
+  SIO_TRACE (("_arp_reply"));
 
-  TRACE (("Sending ARP reply (%s [%s] -> %s [%s])\n",
-          INET_NTOA(src_ip), MAC_address(&_eth_addr),
-          INET_NTOA(dst_ip), MAC_address(e_dst)));
+  if (!mac_dst)
+     mac_dst = &_eth_brdcast;
 
-  arp = (arp_Header*) _eth_formatpacket (e_dst, ARP_TYPE);
+  arp = (arp_Header*) _eth_formatpacket (mac_dst, ARP_TYPE);
   arp->hwType       = intel16 (_eth_get_hwtype(NULL,NULL));
   arp->protType     = IP4_TYPE;
   arp->hwAddrLen    = sizeof (mac_address);
   arp->protoAddrLen = sizeof (dst_ip);
   arp->opcode       = ARP_REPLY;
-  arp->srcIPAddr    = intel (src_ip);
-  arp->dstIPAddr    = intel (dst_ip);
+  arp->dstIPAddr    = src_ip;
+  arp->srcIPAddr    = dst_ip;
 
-  memcpy (arp->srcEthAddr, _eth_addr, sizeof(mac_address));
-  memcpy (arp->dstEthAddr, e_dst, sizeof(mac_address));
+  memcpy (arp->srcEthAddr, _eth_addr,sizeof(mac_address));
+  memcpy (arp->dstEthAddr, mac_dst,  sizeof(mac_address));
   return arp_send (arp, __LINE__);
 }
 
 /**
  * Move an ARP entry from \b from_index to \b to_index.
  */
-static void arp_move_entry (int to_index, int from_index)
+static __inline void arp_move_entry (int to_index, int from_index)
 {
   memcpy (&arp_list[to_index], &arp_list[from_index], sizeof(struct arp_entry));
 }
-
-/**
- * Return start of arp_list[].
- *
- * \note Called need to inspect the '*rc->flags' for validity.
- */
-int W32_CALL _arp_cache_get (const struct arp_entry **rc)
-{
-  *rc = arp_list;
-  return DIM(arp_list);
-}
-
 
 /**
  * Start a host lookup on the LAN.
@@ -543,62 +457,50 @@ static BOOL LAN_start_lookup (DWORD ip)
   struct arp_entry *ae;
   int    i;
 
-  TRACE (("LAN_start_lookup (%s)\n", INET_NTOA(ip)));
+  SIO_TRACE (("LAN_start_lookup"));
 
   /* Ignore if IP is already in any list section (pending, fixed, dynamic)
    */
-  for (i = arp_first_pending; i < ARP_TOP_PENDING; i++)
+  for (i = arp_first_pending; i < arp_top_pending; i++)
       if (arp_list[i].ip == ip)
           return (TRUE);
 
-  for (i = arp_first_dynamic; i < ARP_TOP_DYNAMIC; i++)
+  for (i = arp_first_dynamic; i < arp_top_dynamic; i++)
       if (arp_list[i].ip == ip)
-      {
-        STAT (cache_stats.num_arp_hits++);
-        return (TRUE);
-      }
+         return (TRUE);
 
-  for (i = ARP_FIRST_FIXED; i < ARP_TOP_FIXED; i++)
+  for (i = arp_first_fixed; i < arp_top_fixed; i++)
       if (arp_list[i].ip == ip)
-      {
-        STAT (cache_stats.num_arp_hits++);
-        return (TRUE);
-      }
+         return (TRUE);
 
   /* Figure out where to put the new guy
    */
-  if (arp_first_free < ARP_TOP_FREE) /* Do we have any free slots? */
+  if (arp_first_free < arp_top_free) /* Do we have any free slots? */
   {
     /* yes, ok! */
   }
-  else if (arp_first_dynamic < ARP_TOP_DYNAMIC) /* any dynamic entries? */
+  else if (arp_first_dynamic < arp_top_dynamic) /* any dynamic entries? */
   {
     /* This new request is probably more important than an existing
      * dynamic entry, so we sacrifice the top dynamic entry. It might be
      * neater to kill the oldest entry, but all this shouldn't happen anyway.
      * NB: Table size reallocation would go here.
      */
-    --ARP_TOP_DYNAMIC; /* nuke top entry */
-    STAT (cache_stats.num_arp_overflow++);
+    --arp_top_dynamic; /* nuke top entry */
     outsnl (_LANG("ARP table overflow"));
   }
   else /* No more room - table is full with pending + fixed entries. */
   {
     outsnl (_LANG("ARP table full"));
-    STAT (cache_stats.num_arp_overflow++);
     return (FALSE);       /* failed, nothing we can do right now. */
   }
 
   /* Fill new slot, send out ARP request
    */
-  --arp_first_pending;
-  ae = arp_list + arp_first_pending;
+  ae = &arp_list [--arp_first_pending];
   ae->ip     = ip;
   ae->expiry = set_timeout (1000UL * arp_timeout);
-  ae->flags  = (ARP_FLG_INUSE | ARP_FLG_PENDING);
-  ae->retransmit_to = set_timeout (arp_rexmit_to);
-
-  STAT (cache_stats.num_arp_misses++);
+  ae->flags  = (ARP_INUSE | ARP_PENDING);
 
   /* If request fails, we try again a little sooner
    */
@@ -614,23 +516,21 @@ static BOOL LAN_start_lookup (DWORD ip)
  */
 static BOOL LAN_lookup (DWORD ip, eth_address *eth)
 {
-  int  i;
-  BOOL rc = FALSE;
+  int i;
+
+  SIO_TRACE (("LAN_lookup"));
 
   /* Check in dynamic + fixed list section
    */
-  for (i = ARP_FIRST_FIXED; i < ARP_TOP_DYNAMIC; i++)
+  for (i = arp_first_fixed; i < arp_top_dynamic; i++)
   {
     if (arp_list[i].ip != ip)
        continue;
     if (eth)
        memcpy (eth, arp_list[i].hardware, sizeof(*eth));
-    rc = TRUE;
-    break;
+    return (TRUE);
   }
-  TRACE (("LAN_lookup (%s), i: %d, flg: %s, rc: %d\n",
-          INET_NTOA(ip), i, rc ? get_ARP_flags(arp_list[i].flags) : "<n/a>", rc));
-  return (rc);
+  return (FALSE);
 }
 
 /**
@@ -638,22 +538,16 @@ static BOOL LAN_lookup (DWORD ip, eth_address *eth)
  */
 static BOOL LAN_lookup_pending (DWORD ip)
 {
-  BOOL rc = FALSE;
-  int  i;
+  int i;
+
+  SIO_TRACE (("LAN_lookup_pending"));
 
   /* Scan pending list section
    */
-  for (i = arp_first_pending; i < ARP_TOP_PENDING; i++)
+  for (i = arp_first_pending; i < arp_top_pending; i++)
       if (arp_list[i].ip == ip)
-      {
-        rc = TRUE;
-        break;
-      }
-
-  TRACE (("LAN_lookup_pending (%s), i: %d, flg: %s, rc: %d\n",
-          INET_NTOA(ip), i, rc ? get_ARP_flags(arp_list[i].flags) : "<n/a>",
-          rc));
-  return (rc);
+         return (TRUE);
+  return (FALSE);
 }
 
 /**
@@ -666,25 +560,25 @@ static BOOL LAN_lookup_pending (DWORD ip)
 static void arp_check_timeouts (BOOL check_dynamic_entries)
 {
   struct arp_entry *ae;
-  int    i, num = 0;
+  int    i;
+
+  SIO_TRACE (("arp_check_timeouts"));
 
   /* Check pending entries for retansmit & expiry
    */
-  for (i = arp_first_pending; i < ARP_TOP_PENDING; i++)
+  for (i = arp_first_pending; i < arp_top_pending; i++)
   {
-    ae = arp_list + i;
+    ae = &arp_list[i];
 
     /* If entry has expired (without being resolved): kill it
      */
     if (chk_timeout(ae->expiry))
     {
-      num++;
       if (i > arp_first_pending)
       {
-        ae->flags &= ~ARP_FLG_INUSE;
-        arp_move_entry (i--, arp_first_pending);  /* fill hole */
-        arp_first_pending++;
-        continue;   /* backed 'i' up a step, now re-check 'new' current entry */
+        ae->flags &= ~ARP_INUSE;
+        arp_move_entry (i--, arp_first_pending++); /* fill hole */
+        continue; /* backed 'i' up a step, now re-check 'new' current entry */
       }
       ++arp_first_pending;
     }
@@ -702,26 +596,22 @@ static void arp_check_timeouts (BOOL check_dynamic_entries)
   /* Check dynamic entries for expiry
    */
   if (!check_dynamic_entries)
-     goto quit;
+     return;
 
-  for (i = arp_first_dynamic; i < ARP_TOP_DYNAMIC; i++)
+  for (i = arp_first_dynamic; i < arp_top_dynamic; i++)
   {
-    ae = arp_list + i;
+    ae = &arp_list[i];
 
     if (chk_timeout(ae->expiry))  /* entry has expired: kill it */
     {
-      if (i < --ARP_TOP_DYNAMIC)
+      if (i < --arp_top_dynamic)
       {
-        ae->flags &= ~ARP_FLG_INUSE;
-        num++;
-        arp_move_entry (i--, ARP_TOP_DYNAMIC);  /* fill hole */
+        ae->flags &= ~ARP_INUSE;
+        arp_move_entry (i--, arp_top_dynamic); /* fill hole */
         /* backed 'i' up a step, now re-check 'new' current entry */
       }
     }
   }
-
-quit:
-  TRACE (("arp_check_timeouts (%d), num expired/rechecked: %d\n", check_dynamic_entries, num));
 }
 
 
@@ -729,7 +619,7 @@ quit:
  * ROUTE (& REDIRECT) HANDLING.
  */
 
-/* Routing table internal structure:
+/* Route table internal structure:
  * \verbatim
  *
  * Index pointers       Route cache table
@@ -758,31 +648,35 @@ quit:
  *  - "Top" means last entry + 1.
  *  - The entries inside each section are not ordered in any way.
  *  - The route cache only holds entries of hosts that are OUTSIDE of our LAN.
- *  - The entries time-out when the gateways ARP cache entry times out.
- *
- * \note
- *  Although we don't support multiple physical interfaces, we support
- *  multiple gateways connected to our interface.
+ *  - The entries time out when the gateways ARP cache entry times out.
  */
 
-#define ROUTE_TOP_OF_CACHE    32
-#define ROUTE_TOP_PENDING     ROUTE_TOP_OF_CACHE
+/*!\struct route_entry
+ * Route table.
+ */
+struct route_entry  {
+       DWORD  host_ip; /* when connection to this host ... */
+       DWORD  gate_ip; /* ... we use this gateway */
+     };
+
+#define route_top_of_cache    32
+#define route_top_pending     route_top_of_cache
 #define route_top_free        route_first_pending
 #define route_top_dynamic     route_first_free
-#define ROUTE_FIRST_DYNAMIC   0
+#define route_first_dynamic   0
 
-static int route_first_pending = ROUTE_TOP_PENDING;
+static int route_first_pending = route_top_pending;
 static int route_first_free    = 0;
 
-static struct route_entry route_list [ROUTE_TOP_OF_CACHE];
+static struct route_entry route_list [route_top_of_cache];
 
-static void route_move_entry (int to_index, int from_index)
+static __inline void route_move_entry (int to_index, int from_index)
 {
-  memcpy (&route_list[to_index], &route_list[from_index],  /* never overlapping mem-area */
-          sizeof(route_list[0]));
+  memcpy (&route_list[to_index], &route_list[from_index],
+          sizeof(struct route_entry));
 }
 
-static BOOL route_make_new_slot (DWORD host_ip, DWORD gate_ip, DWORD mask)
+static BOOL route_makeNewSlot (DWORD host_ip, DWORD gate_ip)
 {
   struct route_entry *re;
 
@@ -793,12 +687,12 @@ static BOOL route_make_new_slot (DWORD host_ip, DWORD gate_ip, DWORD mask)
   {
     /* Ok, free slots available */
   }
-  else if (ROUTE_FIRST_DYNAMIC < route_top_dynamic)
+  else if (route_first_dynamic < route_top_dynamic)
   {
     /* Slaughter first dynamic entry, as new entry probably is more important
      */
-    if (ROUTE_FIRST_DYNAMIC < --route_top_dynamic)
-       route_move_entry (ROUTE_FIRST_DYNAMIC, route_top_dynamic);
+    if (route_first_dynamic < --route_top_dynamic)
+       route_move_entry (route_first_dynamic, route_top_dynamic);
     outsnl (_LANG("Route table overflow"));
   }
   else
@@ -809,29 +703,18 @@ static BOOL route_make_new_slot (DWORD host_ip, DWORD gate_ip, DWORD mask)
 
   /* Put the new entry in
    */
-  --route_first_pending;
-  re = route_list + route_first_pending;
-  re->host_ip = host_ip;    /* when connection to this host ... */
-  re->gate_ip = gate_ip;    /* ... use this gateway */
-  re->mask    = mask;       /* remember the mask */
-  re->flags   = (ROUTE_FLG_USED | ROUTE_FLG_PENDING);
-
-  TRACE (("route_make_new_slot(): added host %s, GW %s, mask %s at index %d\n",
-          INET_NTOA(host_ip), INET_NTOA(gate_ip), INET_NTOA(mask), route_first_pending));
+  re = &route_list [--route_first_pending];
+  re->host_ip = host_ip; /* when connection to this host ... */
+  re->gate_ip = gate_ip; /* ... use this gateway */
   return (TRUE);
 }
 
 /**
- * This should probably go into route.c
+ * This should probably go in pcconfig.c
  */
 static BOOL is_on_LAN (DWORD ip)
 {
-#if 1
   return (((ip ^ my_ip_addr) & sin_mask) == 0);
-#else
-  return (ip && sin_mask && ((ip ^ my_ip_addr) & sin_mask) == 0);
-#endif
-
 }
 
 /**
@@ -841,25 +724,23 @@ static BOOL is_on_LAN (DWORD ip)
  * different gateway is better suited to connect to the specified
  * host than the one we were using.
  */
-BOOL W32_CALL _arp_register (DWORD use_this_gateway_ip, DWORD for_this_host_ip)
+BOOL _arp_register (DWORD use_this_gateway_ip, DWORD for_this_host_ip)
 {
   int i;
 
-  TRACE (("_arp_register (%s, %s)\n",
-          INET_NTOA(use_this_gateway_ip),
-          INET_NTOA(for_this_host_ip)));
+  SIO_TRACE (("_arp_register"));
 
   /* Only makes sense if ("old") host is outside of our LAN,
    * and ("new") gateway is on LAN.
    */
-  if (!is_on_LAN(use_this_gateway_ip) || is_on_LAN(for_this_host_ip))
+  if (!is_on_LAN (use_this_gateway_ip) || is_on_LAN (for_this_host_ip))
      return (FALSE);
 
   /* See if this guy is in our dynamic table
    */
-  for (i = ROUTE_FIRST_DYNAMIC; i < route_top_dynamic; i++)
+  for (i = route_first_dynamic; i < route_top_dynamic; i++)
   {
-    struct route_entry *re = route_list + i;
+    struct route_entry *re = &route_list[i];
 
     if (re->host_ip != for_this_host_ip)
        continue;
@@ -867,13 +748,13 @@ BOOL W32_CALL _arp_register (DWORD use_this_gateway_ip, DWORD for_this_host_ip)
     if (re->gate_ip == use_this_gateway_ip)
        return (TRUE); /* Already done */
 
-    if (LAN_lookup(use_this_gateway_ip, NULL))
+    if (LAN_lookup (use_this_gateway_ip, NULL))
     {
       re->gate_ip = use_this_gateway_ip;
       return (TRUE);  /* New gateway is already in ARP cache, done */
     }
 
-    if (!LAN_start_lookup(use_this_gateway_ip))
+    if (!LAN_start_lookup (use_this_gateway_ip))
     {
       outsnl (_LANG ("Unable to add redirect to ARP cache"));
       return (FALSE); /* ARP table full */
@@ -887,7 +768,7 @@ BOOL W32_CALL _arp_register (DWORD use_this_gateway_ip, DWORD for_this_host_ip)
     /* Add new request, the new dynamic slot will be created when the
      * gateway ARP reply comes
      */
-    return route_make_new_slot (use_this_gateway_ip, for_this_host_ip, sin_mask);
+    return route_makeNewSlot (use_this_gateway_ip, for_this_host_ip);
   }
 
   /* Note: We do not check the pending section, as the gateway sending
@@ -901,85 +782,65 @@ BOOL W32_CALL _arp_register (DWORD use_this_gateway_ip, DWORD for_this_host_ip)
 /**
  * Gets MAC of gateway needed to reach the given host.
  */
-static BOOL route_lookup (DWORD ip, eth_address *eth)
+static BOOL route_lookup (DWORD host_ip, eth_address *eth)
 {
-  BOOL rc = FALSE;
-  int  i;
+  int i;
 
-  TRACE (("route_lookup (%s), ROUTE_FIRST_DYNAMIC: %d, route_top_dynamic: %d\n",
-          INET_NTOA(ip), ROUTE_FIRST_DYNAMIC, route_top_dynamic));
+  SIO_TRACE (("route_lookup"));
 
   /* 1st, we need to find the gateway entry for the specified host
    * in our route table
    */
-  for (i = ROUTE_FIRST_DYNAMIC; i < route_top_dynamic; i++)
+  for (i = route_first_dynamic; i < route_top_dynamic; i++)
   {
-    struct route_entry *re = route_list + i;
-    BOOL   same_net = ON_SAME_NETWORK (ip, re->host_ip, re->mask);
-
-    TRACE (("  route_list[%d]: gate_ip %s, host_ip: %s, ON_SAME_NETWORK: %d\n",
-            i, INET_NTOA(re->gate_ip), INET_NTOA(re->host_ip), same_net));
-
-    if (re->host_ip != ip && !same_net)   // !!
+    if (route_list[i].host_ip != host_ip)
        continue;
 
     /* 2nd, the gateway needs to be in the ARP table
      */
-    re->flags |= ROUTE_FLG_PENDING;
-    rc = LAN_lookup (re->gate_ip, eth);
-    if (rc)
-       re->flags &= ~ROUTE_FLG_PENDING;
-    break;
+    return LAN_lookup (route_list[i].gate_ip, eth);
   }
-  TRACE (("  rc: %d\n", rc));
-  return (rc);
+  return (FALSE); /* host not here */
 }
 
 /**
  * Returns TRUE if the lookup of the gateway (assigned to the
- * supplied ip) is still pending.
+ * supplied host) is still pending.
  */
-static BOOL route_lookup_pending (DWORD ip)
+static BOOL route_lookup_pending (DWORD host_ip)
 {
-  const struct route_entry *re = NULL;
-  BOOL  rc = FALSE;
-  int   i = 0;
+  int i;
 
-  /* Scan our pending list for the supplied IP
+  SIO_TRACE (("route_lookup_pending"));
+
+  /* Scan our pending list for the supplied host ip
    */
-  for (i = route_first_pending; i < ROUTE_TOP_PENDING; i++)
+  for (i = route_first_pending; i < route_top_pending; i++)
   {
-    re = route_list + i;
-    if (re->host_ip == ip)
-    {
-      rc = TRUE;
-      break;
-    }
+    if (route_list [i].host_ip == host_ip)
+       return (TRUE);
   }
-  TRACE (("route_lookup_pending (%s), idx: %d, rc: %d, re->flags: %s\n",
-          INET_NTOA(ip), i, rc, rc ? get_route_flags(re->flags) : "<n/a>"));
-  return (rc);
+  return (FALSE); /* host not here */
 }
 
 /**
  * Start a route lookup.
  */
-static BOOL route_start_lookup (DWORD ip)
+static BOOL route_start_lookup (DWORD host_ip)
 {
   DWORD first_gate_ip;
-  DWORD first_gate_mask;
   int   i;
 
-  TRACE (("route_start_lookup (%s), gate_top: %d\n", INET_NTOA(ip), gate_top));
+  SIO_TRACE (("route_start_lookup"));
 
   /* Check if we already have an entry anywhere for this host
    */
-  for (i = route_first_pending; i < ROUTE_TOP_PENDING; i++)
-      if (route_list[i].host_ip == ip)
+  for (i = route_first_pending; i < route_top_pending; i++)
+      if (route_list [i].host_ip == host_ip)
          return (TRUE);   /* Already here */
 
-  for (i = ROUTE_FIRST_DYNAMIC; i < route_top_dynamic; i++)
-      if (route_list[i].host_ip == ip)
+  for (i = route_first_dynamic; i < route_top_dynamic; i++)
+      if (route_list [i].host_ip == host_ip)
          return (TRUE);   /* Already here */
 
   /* Abort if we don't have any gateways
@@ -992,33 +853,27 @@ static BOOL route_start_lookup (DWORD ip)
 
   /* Find the first 'fitting' gateway
    */
-  first_gate_ip = 0;    /* we remember the first gateway IP that fits */
-  first_gate_mask = 0;
+  first_gate_ip = 0; /* we remember the first gateway IP that fits */
 
   for (i = 0; i < gate_top; i++)
   {
-    const struct gate_entry *gw = gate_list + i;
+    struct gate_entry *gw = &gate_list [i];
 
-    TRACE (("  i %d, gw->gate_ip %s, gw->subnet %s, gw->mask %s, gw->is_dead %d\n", i,
-            INET_NTOA(gw->gate_ip), INET_NTOA(gw->subnet),
-            INET_NTOA(gw->mask), gw->is_dead));
-
-    if (/* sin_mask != IP_BCAST_ADDR && */ !is_on_LAN(gw->gate_ip))
+    if (/* !! sin_mask != 0xFFFFFFFFUL && */ !is_on_LAN(gw->gate_ip))
        continue;
 
-    if ((gw->mask & ip) != gw->subnet)   /* IP not on same subnet as gw->gate_ip */
+    if ((gw->mask & host_ip) != gw->subnet)
        continue;
 
     if (gw->is_dead)
        continue;
 
-    if (!LAN_start_lookup(gw->gate_ip))
+    if (!LAN_start_lookup (gw->gate_ip))
     {
       outsnl (_LANG ("Unable to add gateway to ARP cache"));
       return (FALSE); /* ARP table full, no point in going on right now */
     }
-    first_gate_ip   = gw->gate_ip;   /* We start with this guy */
-    first_gate_mask = gw->mask;
+    first_gate_ip = gw->gate_ip; /* We start with this guy */
     break;
   }
 
@@ -1032,7 +887,7 @@ static BOOL route_start_lookup (DWORD ip)
 
   /* Create a new route cache slot with our guy
    */
-  route_make_new_slot (ip, first_gate_ip, first_gate_mask);
+  route_makeNewSlot (host_ip, first_gate_ip);
   return (TRUE);
 }
 
@@ -1042,38 +897,37 @@ static BOOL route_start_lookup (DWORD ip)
  * Run through all pending entries and check if an attempt to
  * reach a gateway was successfull, or has timed-out.
  * If the attempt timed-out, we try the next fitting gateway.
- * If there are no more fitting gateways to try, the connection has failed.
+ * If there are no more fitting gateways to try, the connect has failed
  */
 static void route_check_timeouts (BOOL check_dynamic_entries)
 {
-  struct route_entry *re, temp;
-  int    i, j;
+  int i, j;
 
   /* Check our pending entries
    */
-  for (i = route_first_pending; i < ROUTE_TOP_PENDING; i++)
+  for (i = route_first_pending; i < route_top_pending; i++)
   {
-    re = route_list + i;
+    struct route_entry *re = &route_list [i];
 
     /* Was the ARP lookup able to resolve the gateway IP?
      */
-    if (LAN_lookup(re->gate_ip, NULL))
+    if (LAN_lookup (re->gate_ip, NULL))
     {
       /* Success - move route entry from pending to dynamic list
        */
-      temp = *re;    /* Make a copy so we can safely delete the pending entry */
+      struct route_entry temp = *re; /* Make a copy so we can safely delete
+                                      * the pending entry
+                                      */
       if (i > route_first_pending)
          route_move_entry (i--, route_first_pending);    /* fill hole */
          /* (i-- to "re"check new current entry) */
 
-      temp.flags &= ~ROUTE_FLG_PENDING;
-      ++route_first_pending;                 /* remove from pending list */
-      route_list [route_top_dynamic] = temp; /* add to dynamic list */
-      ++route_top_dynamic;
+      ++route_first_pending;              /* remove from pending list */
+      route_list [route_top_dynamic++] = temp; /* add to dynamic list */
     }
     /* Is the ARP lookup still pending? -> Keep waiting
      */
-    else if (LAN_lookup_pending(re->gate_ip))
+    else if (LAN_lookup_pending (re->gate_ip))
     {
       /* Do nothing */
     }
@@ -1083,43 +937,43 @@ static void route_check_timeouts (BOOL check_dynamic_entries)
     {
       /* Find the gateway that was tried last (the one that just timed out)
        */
-      BOOL found_last_gw = FALSE;
-      BOOL found_next_gw = FALSE;
+      BOOL foundLastGateway = FALSE;
+      BOOL foundNextGateway = FALSE;
 
       for (j = 0; j < gate_top; j++)
       {
         if (gate_list[j].gate_ip != re->gate_ip)
            continue;
-        found_last_gw = TRUE;
+        foundLastGateway = TRUE;
         break;
       }
 
-      if (!found_last_gw)
+      if (!foundLastGateway)
          j = -1; /* If search failed, we try the first gateway "again". */
 
       /* Now we look for the next gateway that could be used
        */
       while (++j < gate_top)
       {
-        const struct gate_entry *gw = gate_list + j;
+        struct gate_entry *gw = &gate_list [j];
 
-        if (/* sin_mask != IP_BCAST_ADDR && */ !is_on_LAN(gw->gate_ip))
+        if (/* !! sin_mask != 0xFFFFFFFFUL && */ !is_on_LAN(gw->gate_ip))
            continue;
 
         if ((gw->mask & re->host_ip) != gw->subnet)
            continue;
 
-        if (!LAN_start_lookup(gw->gate_ip))
+        if (!LAN_start_lookup (gw->gate_ip))
            break;                  /* No room in ARP table, fail */
 
         re->gate_ip = gw->gate_ip; /* Ok, now we try this gateway */
-        found_next_gw = TRUE;
+        foundNextGateway = TRUE;
         break;
       }
 
       /* No more gateways to try, hence lookup failed, kill entry
        */
-      if (!found_next_gw)
+      if (!foundNextGateway)
       {
         if (i > route_first_pending)
            route_move_entry (i--, route_first_pending); /* fill hole */
@@ -1128,25 +982,22 @@ static void route_check_timeouts (BOOL check_dynamic_entries)
     }
   }
 
-  if (!check_dynamic_entries)
-     return;
-
   /* Check our dynamic list for expired entries
    */
-  for (i = ROUTE_FIRST_DYNAMIC; i < route_top_dynamic; i++)
+  if (check_dynamic_entries)
   {
-    re = route_list + i;
-    if (LAN_lookup(re->gate_ip, NULL))
-       continue;   /* Still in ARP cache - ok */
-
-    /* ARP entry expired. Remove from list.
-     */
-    if (i < --route_top_dynamic)
+    for (i = route_first_dynamic; i < route_top_dynamic; i++)
     {
-      route_move_entry (i--, route_top_dynamic); /* fill hole */
-      /* (i backed up a step so 'new' slot is rechecked) */
-      re = route_list + i;
-      re->flags &= ~ROUTE_FLG_USED;
+      if (LAN_lookup (route_list [i].gate_ip, NULL))
+         continue; /* Still in ARP cache - ok */
+
+      /* This guy has expired, kill from list
+       */
+      if (i < --route_top_dynamic)
+      {
+        route_move_entry (i--, route_top_dynamic); /* fill hole */
+        /* (i backed up a step so 'new' slot is rechecked) */
+      }
     }
   }
 }
@@ -1167,11 +1018,11 @@ static void route_check_timeouts (BOOL check_dynamic_entries)
  * This is called by 'higher' routines to start an ARP request.
  * This function is non-blocking, i.e. returns 'immediately'.
  */
-BOOL W32_CALL _arp_start_lookup (DWORD ip)
+BOOL arp_start_lookup (DWORD ip)
 {
-  TRACE (("_arp_start_lookup (%s)\n", INET_NTOA(ip)));
+  SIO_TRACE (("arp_start_lookup"));
 
-  if (arp_check_common(ip,NULL))
+  if (_pktserial)     /* Skip if using serial driver */
      return (TRUE);
 
   if (is_on_LAN(ip))
@@ -1184,13 +1035,25 @@ BOOL W32_CALL _arp_start_lookup (DWORD ip)
  * Lookup MAC-address of 'ip'.
  * \retval TRUE MAC for 'ip' is known.
  */
-BOOL W32_CALL _arp_lookup (DWORD ip, eth_address *eth)
+BOOL arp_lookup (DWORD ip, eth_address *eth)
 {
-  TRACE (("_arp_lookup (%s), is_on_LAN(): %d\n",
-          INET_NTOA(ip), is_on_LAN(ip)));
+  SIO_TRACE (("arp_lookup"));
 
-  if (arp_check_common(ip,eth))
-     return (TRUE);
+  /* Check if serial driver, return null MAC
+   */
+  if (_pktserial)
+  {
+    if (eth)
+       memset (eth, 0, sizeof(*eth));
+    return (TRUE);
+  }
+
+  if (_ip4_is_local_addr(ip))
+  {
+    if (eth)
+       memcpy (eth, _eth_addr, sizeof(*eth));
+    return (TRUE);
+  }
 
   if (is_on_LAN(ip))
      return LAN_lookup (ip, eth);
@@ -1201,12 +1064,12 @@ BOOL W32_CALL _arp_lookup (DWORD ip, eth_address *eth)
 /**
  * An ARP-lookup timeout check.
  * \retval TRUE  The lookup is currently underway ("pending").
- * \retval FALSE The IP has either been resolved (_arp_lookup() == TRUE),
+ * \retval FALSE The IP has either been resolved (arp_lookup() == TRUE),
  *         or the lookup has timed out, i.e. the host is unreachable.
  */
-BOOL W32_CALL _arp_lookup_pending (DWORD ip)
+BOOL arp_lookup_pending (DWORD ip)
 {
-  TRACE (("_arp_lookup_pending (%s)\n", INET_NTOA(ip)));
+  SIO_TRACE (("arp_lookup_pending"));
 
   if (is_on_LAN(ip))
      return LAN_lookup_pending (ip);
@@ -1217,21 +1080,25 @@ BOOL W32_CALL _arp_lookup_pending (DWORD ip)
  * Lookup fixed MAC-address of 'ip'.
  * \retval TRUE Supplied 'ip' has a fixed MAC entry.
  */
-BOOL W32_CALL _arp_lookup_fixed (DWORD ip, eth_address *eth)
+BOOL arp_lookup_fixed (DWORD ip, eth_address *eth)
 {
   int i;
 
-  TRACE (("_arp_lookup_fixed (%s)\n", INET_NTOA(ip)));
+  SIO_TRACE (("arp_lookup_fixed"));
 
-  if (arp_check_common(ip,eth))
-     return (TRUE);
+  if (_pktserial)
+  {
+    if (eth)
+       memset (eth, 0, sizeof(*eth));
+    return (TRUE);
+  }
 
   if (!is_on_LAN(ip))  /* We only have/need a LAN version */
      return (FALSE);
 
   /* Scan fixed table section
    */
-  for (i = ARP_FIRST_FIXED; i < ARP_TOP_FIXED; i++)
+  for (i = arp_first_fixed; i < arp_top_fixed; i++)
   {
     if (arp_list[i].ip != ip)
        continue;
@@ -1243,54 +1110,39 @@ BOOL W32_CALL _arp_lookup_fixed (DWORD ip, eth_address *eth)
 }
 #endif  /* USE_UDP_ONLY */
 
+
 /**
- * Common stuff for _arp_resolve() and _arp_lookup()
+ * The blocking lookup function visible to higher functions.
  */
-static BOOL arp_check_common (DWORD ip, eth_address *eth)
+BOOL _arp_resolve (DWORD ip, eth_address *eth)
 {
-#if defined(USE_DEBUG)
-  if (arp_trace_level >= 4)
-  {
-    _arp_cache_dump();
-    _arp_gateways_dump();
-    _arp_routes_dump();
-  }
-#endif
+  WORD   brk_mode;
+  BOOL (*lookup) (DWORD, eth_address*);
+  BOOL (*start_lookup) (DWORD);
+  BOOL (*pending_lookup) (DWORD);
+  BOOL   rc = FALSE;
 
-  STAT (cache_stats.num_arp_search++);
+  SIO_TRACE (("_arp_resolve"));
 
-  if (_pktserial) /* A serial driver uses a null MAC */
+  /* Check if serial driver, return null MAC
+   */
+  if (_pktserial)
   {
     if (eth)
        memset (eth, 0, sizeof(*eth));
     return (TRUE);
   }
-  if (_ip4_is_local_addr(ip)) /* A local address uses own MAC */
+
+  /* Check if ip is local address, return own MAC address
+   */
+  if (_ip4_is_local_addr(ip))
   {
     if (eth)
        memcpy (eth, _eth_addr, sizeof(*eth));
     return (TRUE);
   }
-  return (FALSE);
-}
 
-/**
- * The blocking lookup function visible to higher functions.
- */
-BOOL W32_CALL _arp_resolve (DWORD ip, eth_address *eth)
-{
-  BOOL (*lookup) (DWORD ip, eth_address *eth);
-  BOOL (*start_lookup) (DWORD ip);
-  BOOL (*pending_lookup) (DWORD ip);
-  BOOL   rc = FALSE;
-  WORD   brk_mode;
-
-  TRACE (("_arp_resolve (%s)\n", INET_NTOA(ip)));
-
-  if (arp_check_common(ip,eth))
-     return (TRUE);
-
-  /* Quick check if we have this guy in our cache.
+  /* Quick-check if we have this guy in our cache.
    */
   if (is_on_LAN(ip))
   {
@@ -1312,8 +1164,9 @@ BOOL W32_CALL _arp_resolve (DWORD ip, eth_address *eth)
    */
   if (!(*start_lookup)(ip))
   {
-    TRACE (("%s() failed\n", (start_lookup == LAN_start_lookup) ?
-            "LAN_start_lookup" : "route_start_lookup"));
+    TCP_CONSOLE_MSG (2, ("%s (%d): %s() failed\n",
+                     __FILE__, __LINE__, (start_lookup == LAN_start_lookup) ?
+                     "LAN_start_lookup" : "route_start_lookup"));
     return (FALSE);  /* Request failed, resolve doomed */
   }
 
@@ -1350,11 +1203,11 @@ BOOL W32_CALL _arp_resolve (DWORD ip, eth_address *eth)
  * Add given IP/Ether address to ARP-cache.
  * \note 'ip' is on host order.
  */
-BOOL W32_CALL _arp_cache_add (DWORD ip, const void *eth, BOOL expires)
+BOOL _arp_add_cache (DWORD ip, const void *eth, BOOL expires)
 {
   struct arp_entry *ae;
 
-  TRACE (("_arp_cache_add (%s), expires: %d\n", INET_NTOA(ip), expires));
+  SIO_TRACE (("_arp_add_cache"));
 
   if (!my_ip_addr && !expires)
   {
@@ -1365,134 +1218,118 @@ BOOL W32_CALL _arp_cache_add (DWORD ip, const void *eth, BOOL expires)
   else if (!is_on_LAN (ip))  /* Only makes sense if on our LAN. */
      return (FALSE);
 
-  _arp_cache_del (ip);       /* Kill it if already here somewhere */
+  _arp_delete_cache (ip);   /* Kill it if already here somewhere */
 
   /* Now add to correct list
    */
   if (expires) /* dynamic list */
   {
-    if (arp_first_free >= ARP_TOP_FREE)  /* No free dynamic slots */
+    if (arp_first_free >= arp_top_free)  /* No free dynamic slots */
        return (FALSE);
 
     /* Fill new slot data
      */
-    ae = arp_list + ARP_TOP_DYNAMIC;
-    ARP_TOP_DYNAMIC++;
+    ae = &arp_list [arp_top_dynamic++];
     ae->ip = ip;
     memcpy (&ae->hardware, eth, sizeof(ae->hardware));
     ae->expiry = set_timeout (1000UL * arp_alive);
-    ae->flags  = (ARP_FLG_INUSE | ARP_FLG_DYNAMIC);
+    ae->flags  = (ARP_INUSE | ARP_DYNAMIC);
   }
   else   /* fixed list */
   {
     /* Check if we have any free slots; make room if possible
      */
-    if (arp_first_free >= ARP_TOP_FREE) /* No more fixed slots? */
+    if (arp_first_free >= arp_top_free) /* No more fixed slots? */
     {
-      if (arp_first_dynamic >= ARP_TOP_DYNAMIC)
+      if (arp_first_dynamic >= arp_top_dynamic)
          return (FALSE);   /* No free AND no dynamic slots! */
-      --ARP_TOP_DYNAMIC;   /* Kill the top dynamic slot to make room */
+      --arp_top_dynamic;   /* Kill the top dynamic slot to make room */
     }
 
     /* Roll dynamic entires up one slot to make room for the new fixed entry
      */
-    if (arp_first_dynamic < ARP_TOP_DYNAMIC)
-       arp_move_entry (ARP_TOP_DYNAMIC, arp_first_dynamic);
-    ++ARP_TOP_DYNAMIC;
+    if (arp_first_dynamic < arp_top_dynamic)
+       arp_move_entry (arp_top_dynamic, arp_first_dynamic);
+    ++arp_top_dynamic;
 
     /* Fill new slot data
      */
-    ae = arp_list + ARP_TOP_FIXED;    /* implies ++arp_first_dynamic! */
-    ARP_TOP_FIXED++;
+    ae = &arp_list [arp_top_fixed++]; /* implies ++arp_first_dynamic! */
     ae->ip    = ip;
-    ae->flags = (ARP_FLG_INUSE | ARP_FLG_FIXED);
+    ae->flags = (ARP_INUSE | ARP_FIXED);
     memcpy (&ae->hardware, eth, sizeof(ae->hardware));
-
-    CONSOLE_MSG (4, ("_arp_cache_add(): ip: %s, eth: %s, ARP_TOP_FIXED: %d, flags: %02X\n",
-                    _inet_ntoa(NULL,ip), MAC_address(eth), ARP_TOP_FIXED-1, ae->flags));
   }
   return (TRUE);
 }
 
 
 /**
- * Delete given 'ip' address from ARP-cache (dynamic, fixed or pending).
+ * Delete given 'ip' address from ARP-cache (dynamic or fixed).
  * \note 'ip' is on host order.
  */
-BOOL W32_CALL _arp_cache_del (DWORD ip)
+BOOL _arp_delete_cache (DWORD ip)
 {
-  struct arp_entry *ae;
-  BOOL   rc = FALSE;
-  int    i;
+  int i;
+
+  SIO_TRACE (("_arp_delete_cache"));
 
   /* Remove from dynamic list if present
    */
-  for (i = arp_first_dynamic; i < ARP_TOP_DYNAMIC; i++)
+  for (i = arp_first_dynamic; i < arp_top_dynamic; i++)
   {
-    ae = arp_list + i;
-    if (ae->ip != ip)
+    if (arp_list[i].ip != ip)
        continue;
 
-    if (i < --ARP_TOP_DYNAMIC)
-       arp_move_entry (i, ARP_TOP_DYNAMIC);   /* fill hole */
-    ae->flags &= ~ARP_FLG_INUSE;
-    rc = TRUE;
-    goto quit;
+    if (i < --arp_top_dynamic)
+       arp_move_entry (i, arp_top_dynamic); /* fill hole */
+    arp_list[i].flags &= ~ARP_INUSE;
+    return (TRUE);
   }
 
   /* Remove from fixed list if present
    */
-  for (i = ARP_FIRST_FIXED; i < ARP_TOP_FIXED; i++)
+  for (i = arp_first_fixed; i < arp_top_fixed; i++)
   {
-    ae = arp_list + i;
-    if (ae->ip != ip)
+    if (arp_list[i].ip != ip)
        continue;
 
-    if (i < --ARP_TOP_FIXED)
-       arp_move_entry (i, ARP_TOP_FIXED);   /* fill hole */
+    if (i < --arp_top_fixed)
+       arp_move_entry (i, arp_top_fixed); /* fill hole */
 
     /* Do we have any dynamic entries we need to roll down one slot?
-     * arp_first_dynamic same as ARP_TOP_FIXED, already implicity
+     * arp_first_dynamic same as arp_top_fixed, already implicity
      * decremented above!
      */
-    if (arp_first_dynamic < --ARP_TOP_DYNAMIC)
-       arp_move_entry (arp_first_dynamic, ARP_TOP_DYNAMIC);
-    ae->flags &= ~ARP_FLG_INUSE;
-    rc = TRUE;
-    goto quit;
+    if (arp_first_dynamic < --arp_top_dynamic)
+       arp_move_entry (arp_first_dynamic, arp_top_dynamic);
+    arp_list[i].flags &= ~ARP_INUSE;
+    return (TRUE);
   }
 
   /* Remove from pending list if present
    */
-  for (i = arp_first_pending; i < ARP_TOP_PENDING; i++)
+  for (i = arp_first_pending; i < arp_top_pending; i++)
   {
-    ae = arp_list + i;
-    if (ae->ip != ip)
+    if (arp_list[i].ip != ip)
        continue;
 
     if (i > arp_first_pending)
-       arp_move_entry (i, arp_first_pending);   /* fill hole */
+       arp_move_entry (i, arp_first_pending); /* fill hole */
     ++arp_first_pending;
-    ae->flags &= ~ARP_FLG_INUSE;
-    rc = TRUE;
-    goto quit;
+    arp_list[i].flags &= ~ARP_INUSE;
+    return (TRUE);
   }
-
-  /* Didn't have it in cache */
-
-quit:
-  TRACE (("_arp_cache_del (%s). i: %d, rc: %d\n", INET_NTOA(ip), i, rc));
-  return (rc);
+  return (FALSE); /* Didn't have it in cache */
 }
 
 /**
- * ARP background daemon.
+ * ARP "background" daemon.
  * Calls timeout-checks / retransmitters.
  *
  * We don't check the dynamic entries for a timeout on every call,
  * once a second is plenty enough.
  */
-static void W32_CALL arp_daemon (void)
+static void arp_daemon (void)
 {
   static BOOL  check_dynamic       = TRUE;
   static DWORD check_dynamic_timer = 0UL;
@@ -1505,13 +1342,13 @@ static void W32_CALL arp_daemon (void)
 #if defined(USE_DEAD_GWD) /* check dead gateways if we have >1 default GW */
     if (dead_gw_detect)
     {
-      if (_arp_check_gateways() <= 1)
+      if (_arp_have_default_gw() <= 1)
            dead_gw_detect = FALSE;
       else check_dead_gw();
     }
 #endif
 
-    /* Preset check_dynamic for next call (1 sec)
+    /* Preset check_dynamic for next call
      */
     check_dynamic_timer = set_timeout (1000UL);
     check_dynamic = FALSE;
@@ -1525,115 +1362,131 @@ static void W32_CALL arp_daemon (void)
 /**
  * Parser for "\c ARP.xx" keywords in "\c WATTCP.CFG".
  */
-static void (W32_CALL *prev_cfg_hook) (const char*, const char*);
+static void (*prev_cfg_hook) (const char*, const char*);
 
-static void W32_CALL arp_parse (const char *name, const char *value)
+static void arp_parse (const char *name, const char *value)
 {
   static const struct config_table arp_cfg[] = {
-         { "ALIVE",         ARG_ATOI, (void*)&arp_alive       },
-         { "DEAD_GW_DETECT",ARG_ATOI, (void*)&dead_gw_detect  },
-         { "GRATIOTOUS",    ARG_ATOI, (void*)&arp_gratiotous  },
-         { "RETRANS_TO",    ARG_ATOI, (void*)&arp_rexmit_to   },
-         { "TIMEOUT",       ARG_ATOI, (void*)&arp_timeout     },
-         { "TRACE",         ARG_ATOI, (void*)&arp_trace_level },
-         { NULL,            0,        NULL                    }
+         { "TIMEOUT",       ARG_ATOI, (void*)&arp_timeout    },
+         { "RETRANS_TO",    ARG_ATOI, (void*)&arp_rexmit_to  },
+         { "ALIVE",         ARG_ATOI, (void*)&arp_alive      },
+         { "NUM_CACHE",     ARG_ATOI, (void*)&arp_num_cache  },
+         { "DEAD_GW_DETECT",ARG_ATOI, (void*)&dead_gw_detect },
+         { "GRATIOTOUS",    ARG_ATOI, (void*)&arp_gratiotous },
+         { NULL,            0,        NULL                   }
        };
   if (!parse_config_table(&arp_cfg[0], "ARP.", name, value) && prev_cfg_hook)
      (*prev_cfg_hook) (name, value);
 }
 
+#ifdef NOT_YET
+static void (*prev_post_hook) (void);
+
+static void arp_alloc (void)
+{
+  if (arp_num_cache < 10)
+      arp_num_cache = 10;
+  arp_list = calloc (sizeof(struct arp_entry), arp_num_cache);
+  if (!arp_list)
+  {
+    outsnl (_LANG("Fatal: failed to allocate ARP-cache"));
+    exit (-1);
+  }
+  if (prev_post_hook)
+    (*prev_post_hook)();
+}
+#endif
+
 /**
  * Setup config-table parse function and add background ARP deamon.
  */
-void W32_CALL _arp_init (void)
+void _arp_init (void)
 {
-  DAEMON_ADD (arp_daemon);
+  SIO_TRACE (("_arp_init"));
+  addwattcpd (arp_daemon);
 
-  memset (&arp_list, 0, sizeof(arp_list));
-  prev_cfg_hook = usr_init;
-  usr_init      = arp_parse;
+#ifdef NOT_YET
+  prev_post_hook  = _watt_post_hook;
+  _watt_post_hook = arp_alloc;
+#endif
+  prev_cfg_hook   = usr_init;
+  usr_init        = arp_parse;
 }
 
-#if defined(WIN32)
-  #define BROADCAST_MODE() (_pkt_rxmode & RXMODE_BROADCAST)
-#else
-  #define BROADCAST_MODE() (_pkt_rxmode <= RXMODE_BROADCAST)
-#endif
 
 /**
  * Receive ARP handler.
  * This processes incoming 'raw' ARP packets supplied by tcp_tick().
  */
-BOOL W32_CALL _arp_handler (const arp_Header *ah, BOOL brdcast)
+BOOL _arp_handler (const arp_Header *ah, BOOL brdcast)
 {
-  struct arp_entry  *ae;
-  const eth_address *e_src, *e_dst;   /* src/dest eth-addresses */
-  DWORD src, dst;                     /* src/dest IP-addresses */
+  const eth_address *eth;
   WORD  hw_needed = intel16 (_eth_get_hwtype(NULL,NULL));
-  BOOL  to_us, do_reply = FALSE;
+  DWORD src, dst;
+  BOOL  do_reply = FALSE;
   int   i;
+
+  SIO_TRACE (("_arp_handler"));
 
   DEBUG_RX (NULL, ah);
 
   if (ah->hwType   != hw_needed ||  /* wrong hardware type, */
       ah->protType != IP4_TYPE)     /* or not IPv4-protocol */
-  {
-    TRACE (("Bogus ARP-header; hwType: %04X, protoType: %04X.\n",
-            ah->hwAddrLen, ah->protoAddrLen));
-    return (FALSE);
-  }
+     return (FALSE);
 
+#if 0
   if (ah->hwAddrLen    != sizeof(mac_address) ||
-      ah->protoAddrLen != sizeof(src))
-  {
-    TRACE (("Bogus ARP-header; hwAddrLen: %d, protoAddrLen: %d.\n",
-            ah->hwAddrLen, ah->protoAddrLen));
-    return (FALSE);
-  }
+      ah->protoAddrLen != sizeof(ip))
+     return (FALSE);
+#endif
 
-  src = intel (ah->srcIPAddr);
-  dst = intel (ah->dstIPAddr);
-
-  e_src = &ah->srcEthAddr;
-  e_dst = &ah->dstEthAddr;
-
-  to_us = !memcmp(&_eth_addr,MAC_DST(ah),_eth_mac_len) ||
-          !memcmp(&_eth_addr,e_dst,_eth_mac_len);
+#if defined(USE_SECURE_ARP)
+  if (_sarp_recv_hook)
+     return (*_sarp_recv_hook) ((const struct sarp_Packet*)ah);
+#endif
 
   /* Does someone else want our Ethernet address?
    */
   if (ah->opcode == ARP_REQUEST)
   {
+    src = intel (ah->srcIPAddr);
+    dst = intel (ah->dstIPAddr);
+
     if (_ip4_is_local_addr(dst) &&
         !_ip4_is_multicast(dst) &&
         !_ip4_is_loopback_addr(dst))
        do_reply = TRUE;
 
-    if (!to_us && !BROADCAST_MODE())
+    if (src == my_ip_addr && _pkt_rxmode <= RXMODE_BROADCAST &&
+        memcmp(&_eth_addr,&ah->srcEthAddr,_eth_mac_len))
     {
-      if (src == my_ip_addr)
-         TRACE (("Address conflict from %s [%s]\n",
-                 INET_NTOA(src), MAC_address(e_src)));
-
-      /* Prevent anti-sniffers detecting us if we're not in normal rx-mode
-       */
-      if (memcmp(MAC_DST(ah),_eth_brdcast,sizeof(_eth_brdcast)))  /* not bcast */
-         do_reply = FALSE;
+      TCP_CONSOLE_MSG (1, ("Address conflict from %s (%s)\n)",
+                       _inet_ntoa(NULL,src),
+                       MAC_address(&ah->srcEthAddr)));
     }
 
+    /* Prevent anti-sniffers detecting us if we're not in normal rx-mode
+     */
+    if (_pkt_rxmode > RXMODE_BROADCAST &&
+        memcmp(MAC_DST(ah),_eth_brdcast,sizeof(_eth_brdcast))) /* not bcast */
+       do_reply = FALSE;
+
     if (do_reply)
-       _arp_reply (e_src, dst, src);
+       _arp_reply (&ah->srcEthAddr, ah->srcIPAddr, ah->dstIPAddr);
   }
 
   /* See if the senders IP & MAC is anything we can use
    */
+  src = intel (ah->srcIPAddr);
+  eth = &ah->srcEthAddr;
 
   /* Is this the awaited reply to a pending entry?
    */
-  for (i = arp_first_pending; i < ARP_TOP_PENDING; i++)
+  for (i = arp_first_pending; i < arp_top_pending; i++)
   {
-    ae = arp_list + i;
-    if (ah->opcode != ARP_REPLY || ae->ip != src)
+    struct arp_entry *ae;
+
+    if (ah->opcode != ARP_REPLY || arp_list[i].ip != src)
        continue;
 
     /* Remove from pending list
@@ -1641,41 +1494,30 @@ BOOL W32_CALL _arp_handler (const arp_Header *ah, BOOL brdcast)
     if (i > arp_first_pending)
        arp_move_entry (i, arp_first_pending); /* fill 'hole' */
     ++arp_first_pending;
-
-    ae->flags &= ~(ARP_FLG_INUSE | ARP_FLG_PENDING);
+    arp_list[i].flags &= ~ARP_PENDING;
+    arp_list[i].flags &= ~ARP_INUSE;
 
     /* fill new dynamic entry
      * (at least one slot is free because we just freed a pending slot)
      */
-#if 1
-    _arp_cache_add (src, e_src, TRUE);
-#else
-    ae = arp_list + ARP_TOP_DYNAMIC;
-    ARP_TOP_DYNAMIC++;
+    ae = &arp_list [arp_top_dynamic++];
     ae->ip    = src;
-    ae->flags = (ARP_FLG_INUSE | ARP_FLG_DYNAMIC);
-    memcpy (&ae->hardware, e_src, sizeof(*e_src));
-    ae->expiry = set_timeout (1000UL * arp_alive);
-#endif
+    ae->flags = (ARP_INUSE | ARP_DYNAMIC);
 
-    TRACE (("Got ARP-reply from %s [%s]. No longer pending.\n",
-            INET_NTOA(src), MAC_address(e_src)));
-    return (TRUE);
+    memcpy (&ae->hardware, eth, sizeof(*eth));
+    ae->expiry = set_timeout (1000UL * arp_alive);
+    return (TRUE);          /* ARP reply was useful */
   }
 
   /* Or is this a 'refresher' of a dynamic entry?
    * We'll use both ARP_REQUEST and ARP_REPLY to refresh.
    */
-  if (ah->opcode != ARP_REQUEST && ah->opcode != ARP_REPLY)
-     goto quit;
-
-  for (i = arp_first_dynamic; i < ARP_TOP_DYNAMIC; i++)
+  for (i = arp_first_dynamic; i < arp_top_dynamic; i++)
   {
     BOOL  equal;
     DWORD timeout;
 
-    ae = arp_list + i;
-    if (ae->ip != src)
+    if (arp_list[i].ip != src)
        continue;
 
     /* This could also be an 'ARP poisoning attack', where an attacker is
@@ -1684,23 +1526,20 @@ BOOL W32_CALL _arp_handler (const arp_Header *ah, BOOL brdcast)
      * prematurely expire the entry. We will re-request it when we need it.
      * If the MAC address is 'still' the same, we just restart the timeout.
      */
-    equal = (memcmp(&ae->hardware, e_src, sizeof(*e_src)) == 0);
+    equal = (memcmp(&arp_list[i].hardware, eth, sizeof(*eth)) == 0);
 
     /* if poisoned, we give the 'real guy' 500 ms grace to reclaim his MAC ;)
      */
     timeout = (equal ? (1000UL * arp_alive) : 500UL);
-    ae->expiry = set_timeout (timeout);
-    TRACE (("Got refreshed (%sequal) entry for %s [%s].\n",
-            equal ? "" : "not ", INET_NTOA(src), MAC_address(e_src)));
-    return (TRUE);
+    arp_list[i].expiry = set_timeout (timeout);
+    return (TRUE);    /* ARP reply was useful */
   }
 
   /* Add to cache if we replied.
    */
   if (do_reply)
   {
-    _arp_cache_add (src, e_src, TRUE);
-    TRACE (("Added entry for %s [%s]\n", INET_NTOA(src), MAC_address(e_src)));
+    _arp_add_cache (src, &ah->srcEthAddr, TRUE);
     return (TRUE);
   }
 
@@ -1710,13 +1549,8 @@ BOOL W32_CALL _arp_handler (const arp_Header *ah, BOOL brdcast)
    * heavily populated LANs; plus it makes us vulnerable to ARP-flooding
    * attacks ... so it's probably wiser to just ignore them.
    */
-
-quit:
-  if (src != my_ip_addr)
-     TRACE (("ARP-packet from %s [%s] not handled.\n",
-             INET_NTOA(src), MAC_address(e_src)));
   ARGSUSED (brdcast);
-  return (FALSE);
+  return (FALSE);  /* i.e. not handled */
 }
 
 
@@ -1727,12 +1561,12 @@ quit:
  * else is replying. Return non-zero if someone replied.
  * \note Blocks waiting for reply or timeout.
  */
-BOOL W32_CALL _arp_check_own_ip (eth_address *other_guy)
+BOOL _arp_check_own_ip (eth_address *other_guy)
 {
   DWORD save = my_ip_addr;
   BOOL  rc;
 
-  TRACE (("_arp_check_own_ip()\n"));
+  SIO_TRACE (("_arp_check_own_ip"));
 
   my_ip_addr = 0;
   memset (other_guy, 0, sizeof(*other_guy));
@@ -1743,161 +1577,60 @@ BOOL W32_CALL _arp_check_own_ip (eth_address *other_guy)
      return (FALSE);
   return (TRUE);
 }
-#else
-/* \todo: Add an empty stub */
 #endif
 
+
+#if defined(USE_DEBUG)
 /**
- * Return number of default gateways.
+ * Return contents of ARP cache.
+ *
+ * 'max' entries are returned in 'arp[]' buffers. Only entries in-use
+ * are returned.
  */
-int W32_CALL _arp_check_gateways (void)
+int _arp_list_cache (struct arp_entry *arp, int max)
+{
+  int i, num;
+
+  for (i = num = 0; i < DIM(arp_list) && i < max; i++)
+  {
+    if (!(arp_list[i].flags & ARP_INUSE))
+       continue;
+
+    arp->ip     = arp_list[i].ip;
+    arp->expiry = arp_list[i].expiry;
+    arp->flags  = arp_list[i].flags;
+    memcpy (arp->hardware, arp_list[i].hardware, sizeof(eth_address));
+    arp++;
+    num++;
+  }
+  return (num);
+}
+
+/**
+ * Check for multiple default gateways.
+ *
+ * Return FALSE if we have none or more than 1.
+ */
+BOOL _arp_check_gateways (void)
 {
   int i, num = 0;
 
-  TRACE (("_arp_check_gateways()\n"));
+  SIO_TRACE (("_arp_check_gateways"));
 
   /* Send a gratiotous ARP. Don't if already done DHCP_arp_check().
    */
 #if defined(USE_DHCP)
-  if (DHCP_did_gratuitous_arp)
+  if (dhcp_did_gratuitous_arp)
      arp_gratiotous = FALSE;
 #endif
 
   if (arp_gratiotous)
-     _arp_reply (NULL, my_ip_addr, IP_BCAST_ADDR);
+     _arp_reply (NULL, intel(IP_BCAST_ADDR), intel(my_ip_addr));
 
   for (i = 0; i < gate_top; i++)
       if (gate_list[i].subnet == 0UL)
          num++;
-  return (num);
-}
-
-#if defined(USE_DEBUG)
-void W32_CALL _arp_cache_dump (void)
-{
-  const struct arp_entry *ae;
-  DWORD  now = set_timeout (0);
-  int    i, num = 0, max = _arp_cache_get (&ae);
-
-  (*_printf) ("\nARP-cache:\n");
-
-  for (i = 0; i < max; i++, ae++)
-  {
-    const char *remain;
-
-    if (!(ae->flags & ARP_FLG_INUSE))
-       continue;
-
-    num++;
-    if (ae->expiry)
-    {
-      if (ae->expiry > now)
-      {
-        char buf[30];
-        sprintf (buf, "expires in %ss", time_str(ae->expiry-now));
-        remain = buf;
-      }
-      else
-        remain = "timed out";
-    }
-    else
-      remain = "no expiry";
-
-    (*_printf) ("      IP: %-15s -> %s, %s %s\n",
-                INET_NTOA(ae->ip), MAC_address(&ae->hardware),
-                (ae->flags & ARP_FLG_FIXED)   ? "Fixed,  " :
-                (ae->flags & ARP_FLG_DYNAMIC) ? "Dynamic," :
-                (ae->flags & ARP_FLG_PENDING) ? "Pending," : "??,     ",
-                remain);
-  }
-  if (num == 0)
-     (*_printf) ("      <Empty>\n");
-}
-
-void W32_CALL _arp_routes_dump (void)
-{
-  const struct route_entry *re = route_list;
-  int   i;
-
-  (*_printf) ("\nRoutes:\n"
-              "   # GATEWAY         HOST            MASK            FLAGS\n");
-
-  for (i = 0; i < DIM(route_list); i++, re++)
-  {
-    if (!(re->flags & ROUTE_FLG_USED))
-       continue;
-    (*_printf) ("  %2d %-15s %-15s %-15s %s\n",
-                i, INET_NTOA(re->gate_ip), INET_NTOA(re->host_ip),
-                INET_NTOA(re->mask), get_route_flags(re->flags));
-  }
-}
-
-void W32_CALL _arp_gateways_dump (void)
-{
-  const struct gate_entry *gw = gate_list;
-  int   i;
-
-  (*_printf) ("\nGateways:\n");
-  if (gate_top <= 0)
-  {
-    (*_printf) ("NONE\n");
-    return;
-  }
-
-#if 1
-  (*_printf) ("     GATEWAY'S IP     SUBNET           SUBNET MASK\n");
-
-  for (i = 0 ; i < gate_top; i++, gw++)
-  {
-    char gate[20], subnet[20], mask[20];
-
-    strcpy (gate, INET_NTOA(gw->gate_ip));
-
-    if (gw->subnet)
-         strcpy (subnet, INET_NTOA(gw->subnet));
-    else strcpy (subnet, "0.0.0.0 (def)");
-
-    if (gw->mask)
-         strcpy (mask, INET_NTOA(gw->mask));
-    else strcpy (mask, INET_NTOA(sin_mask)), strcat (mask," (def)");
-
-    (*_printf) ("     %-15s  %-15s  %-15s\n", gate, subnet, mask);
-  }
-#else
-/*
-   Print it like "nmap --iflist" does:
-
-    **************************ROUTES**************************
-    DST/MASK           DEV  GATEWAY
-    255.255.255.255/32 eth1 10.0.0.6      my_ip
-    10.0.0.6/32        lo0  127.0.0.1     loopback network
-    10.255.255.255/32  eth1 10.0.0.6      all 1 broadcast
-    255.255.255.255/32 eth1 10.0.0.6      directed broadcast
-    10.0.0.0/24        eth1 10.0.0.6
-    127.0.0.0/8        lo0  127.0.0.1
-    224.0.0.0/4        eth1 10.0.0.6
-    0.0.0.0/0          eth1 10.0.0.1
- */
-  (*_printf) ("     DEST/MASK        DEV   GATEWAY         (MASK)\n");
-
-  for (i = 0 ; i < gate_top; i++, gw++)
-  {
-    extern void __get_ifname (char *if_name);
-    DWORD mask = gw->mask; // ? gw->mask : sin_mask;
-    char *subnet = INET_NTOA(gw->subnet);
-    char  ifname[10];
-    int   padding, mlen = mask_len(mask);
-
-    __get_ifname (ifname);
-    padding = 14 - strlen(subnet);
-    if (mlen > 9)
-       padding--;
-
-    (*_printf) ("     %s/%d%*s %s  %-15s (%s)\n",
-                subnet, mlen, padding, "", ifname,
-                INET_NTOA(gw->gate_ip), INET_NTOA(mask));
-  }
-#endif
+  return (num == 1);
 }
 
 /**
@@ -1905,13 +1638,9 @@ void W32_CALL _arp_gateways_dump (void)
  * Redone + moved here from pcdbug.c for encapsulation reasons
  * GvB 2002-09
  */
-void W32_CALL _arp_debug_dump (void)
+void _arp_debug_dump (void)
 {
-  const struct arp_entry   *ae;
-  const struct gate_entry  *gw;
-  const struct route_entry *re;
   DWORD now = set_timeout (0UL);
-  DWORD mask;
   int   i;
 
   /* Gateways
@@ -1925,11 +1654,12 @@ void W32_CALL _arp_debug_dump (void)
   }
   else for (i = 0; i < gate_top; i++)
   {
-    gw = gate_list + i;
-    mask = gw->mask ? gw->mask : sin_mask;
-    dbug_printf ("  #%03d: %-15s ", i, INET_NTOA(gw->gate_ip));
-    dbug_printf ("(network: %-15s ", INET_NTOA(gw->subnet));
-    dbug_printf ("mask: %s)\n"   , INET_NTOA(mask));
+    const struct gate_entry *gw = &gate_list[i];
+    DWORD mask = gw->mask ? gw->mask : sin_mask;
+
+    dbug_printf ("  #%03d: %-15s ", i, _inet_ntoa(NULL, gw->gate_ip));
+    dbug_printf ("(network: %-15s ", _inet_ntoa(NULL, gw->subnet));
+    dbug_printf ("mask: %s)\n"   , _inet_ntoa(NULL, mask));
   }
 
   /* Route table
@@ -1937,21 +1667,23 @@ void W32_CALL _arp_debug_dump (void)
   dbug_printf ("\nRouting cache:\n"
                "------- top of cache -----------------------------------------------\n"
                "  (%03d) top of pending slots ---------------------------------------\n",
-               ROUTE_TOP_PENDING);
+               route_top_pending);
 
-  if (route_first_pending == ROUTE_TOP_PENDING)
+  if (route_first_pending == route_top_pending)
   {
     dbug_printf ("        --none--\n");
   }
-  else if (route_first_pending > ROUTE_TOP_PENDING)
+  else if (route_first_pending > route_top_pending)
   {
     dbug_printf ("  INDEX ERROR!\n");
   }
-  else for (i = ROUTE_TOP_PENDING-1; i >= route_first_pending; i--)
+  else for (i = route_top_pending-1; i >= route_first_pending; i--)
   {
-    re = route_list + i;
+    const struct route_entry *re = &route_list [i];
+
     dbug_printf ("  #%03d: IP: %-15s -> gateway IP %-15s\n",
-                 i, INET_NTOA(re->host_ip), INET_NTOA(re->gate_ip));
+                 i, _inet_ntoa(NULL,re->host_ip),
+                 _inet_ntoa(NULL,re->gate_ip));
   }
 
   dbug_printf ("- (%03d) top of free slots ------------------------------------------\n",
@@ -1979,19 +1711,21 @@ void W32_CALL _arp_debug_dump (void)
 
   dbug_printf ("- (%03d) top of dynamic slots ---------------------------------------\n",
                route_top_dynamic);
-  if (ROUTE_FIRST_DYNAMIC == route_top_dynamic)
+  if (route_first_dynamic == route_top_dynamic)
   {
     dbug_printf ("        --none--\n");
   }
-  else if (ROUTE_FIRST_DYNAMIC > route_top_dynamic)
+  else if (route_first_dynamic > route_top_dynamic)
   {
     dbug_printf ("  INDEX ERROR!\n");
   }
-  else for (i = route_top_dynamic-1; i >= ROUTE_FIRST_DYNAMIC; i--)
+  else for (i = route_top_dynamic-1; i >= route_first_dynamic; i--)
   {
-    re = route_list + i;
+    const struct route_entry *re = &route_list [i];
+
     dbug_printf ("  #%03d: IP: %-15s -> gateway IP %-15s\n",
-                 i, INET_NTOA(re->host_ip), INET_NTOA(re->gate_ip));
+                 i, _inet_ntoa(NULL,re->host_ip),
+                 _inet_ntoa(NULL,re->gate_ip));
   }
   dbug_printf ("------- bottom of cache --------------------------------------------\n");
 
@@ -2000,326 +1734,82 @@ void W32_CALL _arp_debug_dump (void)
   dbug_printf ("\nARP cache:\n"
                "------- top of cache -----------------------------------------------\n"
                "  (%03d) top of pending slots ---------------------------------------\n",
-               ARP_TOP_PENDING);
+               arp_top_pending);
 
-  if (arp_first_pending == ARP_TOP_PENDING)
+  if (arp_first_pending == arp_top_pending)
   {
     dbug_printf ("        --none--\n");
   }
-  else if (arp_first_pending > ARP_TOP_PENDING)
+  else if (arp_first_pending > arp_top_pending)
   {
     dbug_printf ("  INDEX ERROR!\n");
   }
-  else for (i = ARP_TOP_PENDING-1; i >= arp_first_pending; i--)
+  else for (i = arp_top_pending-1; i >= arp_first_pending; i--)
   {
-    ae = arp_list + i;
+    const struct arp_entry *ae = &arp_list [i];
+
     dbug_printf ("  #%03d: IP: %-15s -> ??:??:??:??:??:??  expires in %ss\n",
-                 i, INET_NTOA(ae->ip), time_str(ae->expiry - now));
+                 i, _inet_ntoa(NULL, ae->ip), time_str(ae->expiry - now));
   }
 
   dbug_printf ("- (%03d) top of free slots ------------------------------------------\n",
-               ARP_TOP_FREE);
-  if (arp_first_free == ARP_TOP_FREE)
+               arp_top_free);
+  if (arp_first_free == arp_top_free)
   {
     dbug_printf ("  --none--\n");
   }
-  else if (arp_first_free > ARP_TOP_FREE)
+  else if (arp_first_free > arp_top_free)
   {
     dbug_printf ("  INDEX ERROR!\n");
   }
-  else if (ARP_TOP_FREE - arp_first_free <= 3)
+  else if (arp_top_free - arp_first_free <= 3)
   {
-    for (i = ARP_TOP_FREE-1; i >= arp_first_free; i--)
+    for (i = arp_top_free-1; i >= arp_first_free; i--)
         dbug_printf ("  #%03d: (free)\n", i);
   }
   else
   {
-    dbug_printf ("  #%03d: (free)\n", ARP_TOP_FREE-1);
+    dbug_printf ("  #%03d: (free)\n", arp_top_free-1);
     dbug_printf ("   ...  (free)\n");
     dbug_printf ("  #%03d: (free)\n", arp_first_free);
   }
 
   dbug_printf ("- (%03d) top of dynamic slots ---------------------------------------\n",
-               ARP_TOP_DYNAMIC);
-  if (arp_first_dynamic == ARP_TOP_DYNAMIC)
+               arp_top_dynamic);
+  if (arp_first_dynamic == arp_top_dynamic)
   {
     dbug_printf ("        --none--\n");
   }
-  else if (arp_first_dynamic > ARP_TOP_DYNAMIC)
+  else if (arp_first_dynamic > arp_top_dynamic)
   {
     dbug_printf ("  INDEX ERROR!\n");
   }
-  else for (i = ARP_TOP_DYNAMIC-1; i >= arp_first_dynamic; i--)
+  else for (i = arp_top_dynamic-1; i >= arp_first_dynamic; i--)
   {
-    ae = arp_list + i;
+    const struct arp_entry *ae = &arp_list [i];
+
     dbug_printf ("  #%03d: IP: %-15s -> %s  expires in %ss\n",
-                 i, INET_NTOA(ae->ip), MAC_address(&ae->hardware),
+                 i, _inet_ntoa(NULL,ae->ip), MAC_address(&ae->hardware),
                  time_str(ae->expiry - now));
   }
 
   dbug_printf ("- (%03d) top of fixed slots -----------------------------------------\n",
-               ARP_TOP_FIXED);
-  if (ARP_FIRST_FIXED == ARP_TOP_FIXED)
+               arp_top_fixed);
+  if (arp_first_fixed == arp_top_fixed)
   {
     dbug_printf ("        --none--\n");
   }
-  else if (ARP_FIRST_FIXED > ARP_TOP_FIXED)
+  else if (arp_first_fixed > arp_top_fixed)
   {
     dbug_printf ("  INDEX ERROR!\n");
   }
-  else for (i = ARP_TOP_FIXED-1; i >= ARP_FIRST_FIXED; i--)
+  else for (i = arp_top_fixed-1; i >= arp_first_fixed; i--)
   {
-    ae = arp_list + i;
+    const struct arp_entry *ae = &arp_list [i];
+
     dbug_printf ("  #%03d: IP: %-15s -> %s\n",
-                 i, INET_NTOA(ae->ip), MAC_address(&ae->hardware));
+                 i, _inet_ntoa(NULL,ae->ip), MAC_address(&ae->hardware));
   }
   dbug_printf ("------- bottom of cache --------------------------------------------\n");
 }
-
-static const char *get_ARP_flags (WORD flg)
-{
-  static char buf[50];
-  char  *p;
-
-  buf[0] = '\0';
-  if (flg & ARP_FLG_INUSE)
-     strcat (buf, "INUSE,");
-  if (flg & ARP_FLG_PENDING)
-     strcat (buf, "PEND,");
-  if (flg & ARP_FLG_DYNAMIC)
-     strcat (buf, "DYN,");
-  if (flg & ARP_FLG_FIXED)
-     strcat (buf, "FIXED,");
-  p = strrchr (buf,',');
-  if (p)
-     *p = '\0';
-  return (buf);
-}
-
-static const char *get_route_flags (WORD flg)
-{
-  static char buf[50];
-  char  *p;
-
-  buf[0] = '\0';
-  if (flg & ROUTE_FLG_USED)
-     strcat (buf, "INUSE, ");
-  if (flg & ROUTE_FLG_PENDING)
-     strcat (buf, "PEND, ");
-  if (flg & ROUTE_FLG_DYNAMIC)
-     strcat (buf, "DYN, ");
-  if (flg & ROUTE_FLG_FIXED)
-     strcat (buf, "FIXED,");
-  p = strrchr (buf,',');
-  if (p)
-     *p = '\0';
-  return (buf);
-}
-
-#else
-  W32_CALL void W32_CALL _arp_cache_dump (void) {}
-  W32_CALL void W32_CALL _arp_gateways_dump (void) {}
-  W32_CALL void W32_CALL _arp_routes_dump (void) {}
-  W32_CALL void W32_CALL _arp_debug_dump (void) {}
 #endif  /* USE_DEBUG */
-
-
-/*
- * Find the best 'fitting' gateway for destination IP.
- * Return INADDR_ANY if 'ip' is directly reachable.
- */
-DWORD _route_destin (DWORD ip)
-{
-  DWORD rc = 0;
-  int   i;
-
-  TRACE (("_route_destin (%s)\n", INET_NTOA(ip)));
-
-  for (i = 0; i < gate_top; i++)
-  {
-    const struct gate_entry *gw = gate_list + i;
-
-    TRACE (("  i %d, gw->gate_ip %s, gw->subnet %s, gw->mask %s\n"
-            "       ON_SAME_NETWORK: %d\n", i,
-            INET_NTOA(gw->gate_ip), INET_NTOA(gw->subnet),
-            INET_NTOA(gw->mask), ON_SAME_NETWORK(gw->subnet,ip,gw->mask)));
-#if 0
-    if (sin_mask != IP_BCAST_ADDR && !is_on_LAN(gw->gate_ip))
-       continue;
-    if (!ON_SAME_NETWORK(gw->subnet,ip,gw->mask))
-       continue;
-#else
-    if (((ip ^ gw->subnet) & gw->mask) == 0)  /* IP on same subnet as gw->gate_ip */
-       return (gw->gate_ip);
-#endif
-  }
-//  if (rc)
-     return (rc);
-//  return (is_on_LAN(ip) ? INADDR_ANY : INADDR_NONE);
-}
-
-
-#if defined(TEST_PROG)
-
-#include "pcdns.h"
-#include "pcbuf.h"
-
-static int num_okay = 0;
-static int num_fail = 0;
-
-#define TEST(func, args, expect) do {                                   \
-                                   HIGH_TEXT();                         \
-                                   (*_printf) ("%s() ", #func);         \
-                                   NORM_TEXT();                         \
-                                   if (func args == expect) {           \
-                                     num_okay++;                        \
-                                     YELLOW_TEXT();                     \
-                                     (*_printf) ("OK\n");               \
-                                   } else {                             \
-                                     num_fail++;                        \
-                                     RED_TEXT();                        \
-                                     (*_printf) ("FAIL\n");             \
-                                   }                                    \
-                                   NORM_TEXT();                         \
-                                 } while (0)
-
-#define TEST_EQUAL(func, args, expect) do {                             \
-                                   int rc;                              \
-                                   HIGH_TEXT();                         \
-                                   (*_printf) ("%s() ", #func);         \
-                                   NORM_TEXT();                         \
-                                   rc = func args;                      \
-                                   if (rc == expect) {                  \
-                                     num_okay++;                        \
-                                     (*_printf) ("OK\n");               \
-                                   } else {                             \
-                                     num_fail++;                        \
-                                    (*_printf) ("FAIL. Got %d\n", rc);  \
-                                   }                                    \
-                                 } while (0)
-
-#define TEST_ROUTE(dest) do {                                       \
-                           DWORD ip = _route_destin (aton(dest));   \
-                           HIGH_TEXT();                             \
-                           (*_printf) ("Best route for %s is %s\n", \
-                                       dest, INET_NTOA(ip));        \
-                           NORM_TEXT();                             \
-                         } while (0)
-
-static void callback (void)
-{
-  static char fan[] = "\\|/-";
-  static int  idx = 0;
-
-  if (_watt_cbroke)
-  {
-    RED_TEXT(); (*_printf) ("^C/^Break detected\n");
-    NORM_TEXT();
-    exit (-1);
-  }
-  (*_outch) (fan[idx++]);
-  (*_outch) ('\b');
-  idx &= 3;
-}
-
-int main (int argc, char **argv)
-{
-  sock_type   sock;
-  const char *host = "www.google.com";
-  int         status = 0;
-  DWORD       ip;
-  char        buf[1000];
-  int         len;
-  mac_address eth1, eth2, eth3;
-
-  debug_on = 0;
-  dbug_init();
-  sock_init();
-
-#if 0
-// arp_trace_level = 0;
-  _arp_kill_gateways();
-
-  /*                        Gateway    Subnet     Mask     */
-  TEST (_arp_add_gateway, ("127.0.0.1, 127.0.0.0, 255.0.0.0",           0UL), TRUE);
-  TEST (_arp_add_gateway, ("10.0.0.10,  10.0.0.2, 255.255.255.255",     0UL), TRUE);   /* special LAN rule */
-  TEST (_arp_add_gateway, ("10.0.0.1",                                  0UL), TRUE);   /* default route (Class A-mask) */
-  TEST (_arp_add_gateway, ("10.0.0.4,  162.100.102.0, 255.255.255.248", 0UL), TRUE);   /* special route */
-
-  arp_gateways_dump();
-
-  TEST (legal_mask, (aton("255.255.255.0"), aton("127.0.0.0")), FALSE /*TRUE*/);
-  TEST (legal_mask, (aton("128.255.255.0"), aton("127.0.0.0")), FALSE);
-
-  TEST (check_mask2, ("255.255.255.128"), 1);
-  TEST (check_mask2, ("255.255.255.127"), 0);
-  TEST (check_mask2, ("0.0.0.1"),         0);
-  TEST (check_mask2, ("255.255.255.2"),   0);
-  TEST (check_mask2, ("255.255.255.254"), 1);
-  TEST (check_mask2, ("127.255.255.255"), 0);
-
-  TEST_EQUAL (mask_len, (aton("255.255.255.0")), 8);
-  TEST_EQUAL (mask_len, (aton("255.255.0.0")),  16);
-  TEST_EQUAL (mask_len, (aton("255.0.0.0")),    24);
-  TEST_EQUAL (mask_len, (aton("0.0.0.0")),      32);
-
-  TEST_ROUTE ("10.0.0.1");
-  TEST_ROUTE ("10.0.0.2");
-  TEST_ROUTE ("10.0.0.3");
-  TEST_ROUTE ("11.0.0.1");
-  TEST_ROUTE ("100.101.102.103");
-  TEST_ROUTE ("162.100.102.1");
-  TEST_ROUTE ("127.22.0.5");
-
-//arp_trace_level = 4;
-  TEST (_arp_resolve, (aton("10.0.0.1"), &eth1), TRUE);
-  (*_printf) (" -> %s\n", MAC_address(&eth1));
-
-  TEST (_arp_resolve, (def_nameservers[0], &eth2), TRUE);
-  (*_printf) (" -> %s\n", MAC_address(&eth2));
-
-  TEST (_arp_resolve, (aton("55.44.33.22"), &eth3), TRUE);
-  (*_printf) (" -> %s\n", MAC_address(&eth3));
-
-  TEST (memcmp, (&eth1, &eth2, sizeof(eth1)), 0);
-  TEST (memcmp, (&eth1, &eth3, sizeof(eth1)), 0);
-
-  (*_printf) ("\nTEST RESULT: %d okay, %d fail\n", num_okay, num_fail);
-
-  _arp_cache_dump();
-
-#else
-  ip = lookup_host (host, NULL);
-  if (!ip)
-  {
-    printf (dom_strerror(dom_errno));
-    return (1);
-  }
-  if (tcp_open(&sock.tcp, 0, ip, 80, NULL))
-  {
-    sock_yield (&sock.tcp, callback);
-    sock_wait_established (&sock, sock_delay, NULL, &status);
-    printf ("Connected. Awaiting response...");
-    fflush (stdout);
-    sock_puts (&sock, (const BYTE*)
-                      "GET /index.html HTTP/1.0\r\n"
-                      "User-Agent: pcarp test\r\n\r\n");
-
-    while ((len = sock_read(&sock,(BYTE*)buf,sizeof(buf))) > 0)
-         fwrite (buf, len, 1, stdout);
-  }
-sock_err:
-  if (status == -1)
-    printf ("Cannot connect to %s: %s\n", host, sockerr(&sock));
-
-  ARGSUSED (eth1);
-  ARGSUSED (eth2);
-  ARGSUSED (eth3);
-#endif
-
-  ARGSUSED (argc);
-  ARGSUSED (argv);
-
-  return (status);
-}
-#endif /* TEST_PROG */

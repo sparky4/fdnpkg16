@@ -4,7 +4,7 @@
  *  Simple syslog handler for Watt-32 & DOS.
  *  This module contain data and config-parser only.
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -49,14 +49,14 @@
 
 #if defined(USE_BSD_API)
 
-static void (W32_CALL *prev_hook) (const char*, const char*) = NULL;
+static void (*prev_hook) (const char*, const char*) = NULL;
 
-char syslog_file_name [MAX_NAMELEN] = "";  /* name of logfile */
-char syslog_host_name [MAX_HOSTLEN] = "";  /* name of loghost */
+char syslog_fileName [MAX_NAMELEN] = "";   /* name of logfile */
+char syslog_hostName [MAX_HOSTLEN] = "";   /* name of loghost */
 WORD syslog_port = 514;                    /* udp port to use */
 int  syslog_mask = LOG_UPTO(-1);           /* log everything */
 
-static int get_log_mask (const char *value)
+static int getlogmask (const char *value)
 {
   int mask = 0;
 
@@ -78,19 +78,19 @@ static void set_syslog_mask (const char *value)
 {
   char val[100];
 
-  _strlcpy (val, value, sizeof(val));
+  StrLcpy (val, value, sizeof(val));
   strlwr (val);
-  syslog_mask = get_log_mask (val);
+  syslog_mask = getlogmask (val);
 }
 
-static void W32_CALL syslog2_init (const char *name, const char *value)
+static void ourinit (const char *name, const char *value)
 {
   static const struct config_table syslog_cfg[] = {
-            { "FILE",  ARG_STRCPY, (void*)&syslog_file_name },
-            { "HOST",  ARG_STRCPY, (void*)&syslog_host_name },
-            { "PORT",  ARG_ATOI,   (void*)&syslog_port      },
-            { "LEVEL", ARG_FUNC,   (void*)set_syslog_mask   },
-            { NULL,    0,          NULL                     }
+            { "FILE",  ARG_STRCPY, (void*)&syslog_fileName },
+            { "HOST",  ARG_STRCPY, (void*)&syslog_hostName },
+            { "PORT",  ARG_ATOI,   (void*)&syslog_port     },
+            { "LEVEL", ARG_FUNC,   (void*)set_syslog_mask  },
+            { NULL,    0,          NULL                    }
           };
   if (!parse_config_table(&syslog_cfg[0], "SYSLOG.", name, value) && prev_hook)
      (*prev_hook) (name, value);
@@ -99,6 +99,6 @@ static void W32_CALL syslog2_init (const char *name, const char *value)
 void syslog_init (void)
 {
   prev_hook = usr_init;
-  usr_init  = syslog2_init;
+  usr_init  = ourinit;
 }
 #endif /* USE_BSD_API */

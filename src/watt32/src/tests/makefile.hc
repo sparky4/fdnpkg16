@@ -1,18 +1,16 @@
 #
-#  Makefile for _some_ Watt-32 tcp/ip test programs.
+#  Makefile for _some_ Waterloo tcp/ip test programs.
 #  High-C / Pharlap version only
 #
 
 CC     = hc386
 CFLAGS = -g -I.. -I..\..\inc -DTEST_PROG -DWATT32 -DBUGGY_FARPTR=1 \
          -Hnocopyr -Hpragma=Offwarn(572)
-
-LINK = 386link
+LINK   = 386link
 
 all: cpu.exp cpuspeed.exp chksum.exp ttime.exp gettod.exp geteth.exp \
      getserv.exp ip4_frag.exp tftp.exp fingerd.exp ioctl.exp \
-     gethost.exp gethost6.exp misc.exe idna.exp select.exp \
-     language.exp
+     gethost.exp gethost6.exp misc.exe idna.exp
 
 cpu.exp: hc386.arg 386link.arg cpu.c
     $(CC) -c @hc386.arg $*.c
@@ -78,18 +76,9 @@ idna.exp: hc386.arg 386link.arg ..\idna.c
     $(CC) -c @hc386.arg ..\idna.c
     $(LINK) @386link.arg $*.obj -exe $*.exp
 
-language.exp: hc386.arg 386link.arg ..\language.c
-    $(CC) -c @hc386.arg ..\language.c
-    $(LINK) @386link.arg $*.obj -exe $*.exp
-
-select.exp: hc386.arg 386link.arg ..\select.c
-    $(CC) -c @hc386.arg ..\select.c
-    $(LINK) @386link.arg $*.obj -exe $*.exp
-
 386link.arg: Makefile.hc
       copy &&|
-        -lib ..\..\lib\wattcphf     # Watt-32 TCP/IP for MetaWare/PharLap
-        -libpath $(LIBPATH)         # Path to below libs
+        -lib ..\..\lib\wattcphf     # Waterloo TCP/IP for MetaWare/PharLap
         -lib hc386,hc387,hcna       # MetaWare HighC libraries
         -lib dosx32                 # PharLap DOSX API library
         -lib exc_hc.lib             # Exception handler library
@@ -115,9 +104,9 @@ hc386.arg: Makefile.hc
 | $<
 
 clean:
-    - del *.obj
-    - del *.map
-    - del *.exp
-    - del hc386.arg
-    - del 386link.arg
+    del *.obj
+    del *.map
+    del *.exp
+    del hc386.arg
+    del 386link.arg
 

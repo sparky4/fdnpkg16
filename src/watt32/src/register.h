@@ -58,27 +58,15 @@
 #define CR0_PAGE_LEVEL_CACHE_DISABLE    0x40000000
 #define CR0_PAGING                      0x80000000
 
-#if defined(IN_ASM_FILE)  /* Only set in .S-files ued by GCC */
+#if defined(IN_ASM_FILE)
   #if defined(__DJGPP__)
     #include <machine/asm.h>
-
     /* Use only after ".data" */
-    #define DATA(x,type)  .align 2; .globl _##x; _##x: type
-
-  #elif defined(__CYGWIN__) && defined(__x86_64__)
-    #define ENTRY(f)      .globl f; f:
-    #define DATA(x,type)  .globl x; x: type
-    #define _C_LABEL(x)   x
-
-  #elif defined(__x86_64__)
-    #define ENTRY(f)      .text; .p2align 8,,15; .globl f; f:
-    #define DATA(x,type)  .align 8; .globl x; x: type
-    #define _C_LABEL(x)   x
-
-  #else   /* 32-bit GNU assembler */
-    #define ENTRY(f)      .text; .p2align 4,,15; .globl _##f; _##f:
-    #define DATA(x,type)  .align 4; .globl _##x; _##x: type
-    #define _C_LABEL(x)   _##x
+    #define DATA(x,type) .align 2; .globl _##x; _##x: type
+  #else
+    #define ENTRY(f)     .text; .p2align 4,,15; .globl _##f; _##f:
+    #define DATA(x,type) .align 4; .globl _##x; _##x: type
+    #define _C_LABEL(x)  _##x
   #endif
 
 #else
@@ -142,7 +130,7 @@ typedef struct {
   unsigned int monitor_coproc           : 1;
   unsigned int coproc_soft_emul         : 1;
   unsigned int floating_instr_except    : 1;
-
+  
   unsigned int extension_type           : 1;
   unsigned int numeric_error            : 1;
   unsigned int                          : 2;

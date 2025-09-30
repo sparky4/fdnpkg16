@@ -11,7 +11,7 @@
 #include "pcdbug.h"
 #include "pcbuf.h"
 
-void W32_CALL sock_debugdump (const sock_type *s)
+void sock_debugdump (const sock_type *s)
 {
 #if defined(USE_DEBUG)
   const _tcp_Socket *tcp = &s->tcp;
@@ -19,19 +19,19 @@ void W32_CALL sock_debugdump (const sock_type *s)
   if (s->raw.ip_type == IP4_TYPE)
      return;
 
-#if defined(__SMALL__) && !defined(__SMALL32__)
+#if defined(__SMALL16__)
   (*_printf) ("next       %04X\n",      s->tcp.next);
 #elif defined(__LARGE__)
   (*_printf) ("next       %04X:%04X\n", FP_SEG(s->tcp.next), FP_OFF(s->tcp.next));
 #else
-  (*_printf) ("next       %" ADDR_FMT "\n", ADDR_CAST(s->tcp.next));
+  (*_printf) ("next       %08lX\n",     (DWORD)s->tcp.next);
 #endif
 
   (*_printf) ("type       %d\n", s->tcp.ip_type);
 
   (*_printf) ("stat/error %s\n", s->tcp.err_msg ? s->tcp.err_msg : "(none)");
   (*_printf) ("usr-timer  %08lX (%sexpired)\n",
-              (u_long)s->tcp.usertimer, chk_timeout(s->tcp.usertimer) ? "" : "not ");
+              s->tcp.usertimer, chk_timeout(s->tcp.usertimer) ? "" : "not ");
 
   switch (s->tcp.ip_type)
   {

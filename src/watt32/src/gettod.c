@@ -4,7 +4,7 @@
  *  gettimeofday2() for higher accuracy timing.
  */
 
-/*  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+/*  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -47,15 +47,10 @@
 #include "x32vm.h"
 #include "cpumodel.h"
 #include "strings.h"
-#include "win_dll.h"
 #include "gettod.h"
 
-#define STEVES_PATCHES 1
-
 #if defined(WIN32)
-  #include <sys/timeb.h>
-#else
-  static long utc_offset = 0;  /* UTC to local offset in seconds */
+#include <sys/timeb.h>
 #endif
 
 /*
@@ -79,91 +74,22 @@
 #define __inline
 #endif
 
+static long utc_offset = 0;  /* UTC to local offset in seconds */
+
 static void get_zone (struct timezone *tz, time_t now)
 {
-  struct tm  res;
-  struct tm *tm = localtime_r (&now, &res);
+  const struct tm *tm = localtime (&now);
 
   if (tm && tz)
   {
 #ifdef __DJGPP__
-    tz->tz_minuteswest = - res.__tm_gmtoff / 60;
+    tz->tz_minuteswest = -tm->__tm_gmtoff / 60;
 #else
-    tz->tz_minuteswest = - (int)_timezone;
+    tz->tz_minuteswest = -60 * (int)_timezone;
 #endif
-    tz->tz_dsttime = res.tm_isdst;
+    tz->tz_dsttime = tm->tm_isdst;
   }
 }
-
-#if defined(WIN32)
-/*
- * Stolen and modified from APR (Apache Portable Runtime):
- * Number of micro-seconds between the beginning of the Windows epoch
- * (Jan. 1, 1601) and the Unix epoch (Jan. 1, 1970).
- *
- * This assumes all Win32 compilers have 64-bit support.
- */
-#define DELTA_EPOCH_IN_USEC  U64_SUFFIX (11644473600000000)
-
-uint64 FILETIME_to_unix_epoch (const FILETIME *ft)
-{
-  uint64 res = (uint64) ft->dwHighDateTime << 32;
-
-  res |= ft->dwLowDateTime;
-  res /= 10;                   /* from 100 nano-sec periods to usec */
-  res -= DELTA_EPOCH_IN_USEC;  /* from Win epoch to Unix epoch */
-  return (res);
-}
-
-const char *ULONGLONG_to_ctime (ULONGLONG ts)
-{
-  LARGE_INTEGER ft;
-  time_t        t;
-  const struct  tm *tm;
-  static char   buf[30];
-  static        BOOL tz_set = FALSE;
-
-  if (!tz_set)
-     tzset();
-  tz_set = TRUE;
-
-  ft.QuadPart = ts;
-  t = FILETIME_to_unix_epoch ((const FILETIME*)&ft) / U64_SUFFIX(1000000);
-  tm = localtime (&t);
-  if (tm)
-       strftime (buf, sizeof(buf), "%Y-%m-%d/%H:%M:%S", tm);
-  else snprintf (buf, sizeof(buf), "%lu/%" U64_FMT, (u_long)t, ts);
-  return (buf);
-}
-
-W32_FUNC int W32_CALL W32_NAMESPACE (gettimeofday) (
-         struct timeval  *tv,
-         struct timezone *tz)
-{
-  if (!tv && !tz)
-  {
-    SOCK_ERRNO (EINVAL);
-    return (-1);
-  }
-
-  if (tv)
-  {
-    FILETIME ft;
-    uint64   tim;
-
-    if (p_GetSystemTimePreciseAsFileTime)
-         (*p_GetSystemTimePreciseAsFileTime) (&ft);
-    else GetSystemTimeAsFileTime (&ft);
-
-    tim = FILETIME_to_unix_epoch (&ft);
-    tv->tv_sec  = (long) (tim / 1000000L);
-    tv->tv_usec = (long) (tim % 1000000L);
-  }
-  if (tz)
-     get_zone (tz, tv->tv_sec);
-  return (0);
-}
-#else
 
 /**
  * Called from init_timers() once.
@@ -176,17 +102,58 @@ void set_utc_offset (void)
   tzset();
 #endif
   get_zone (&tz, time(NULL));
-  utc_offset = 60 * tz.tz_minuteswest;
 
 #ifdef TEST_PROG
   printf ("Minutes west %d, DST %d\n", tz.tz_minuteswest, tz.tz_dsttime);
 #endif
+  utc_offset = 60 * tz.tz_minuteswest;
 }
-#endif   /* WIN32 */
 
+#if defined(WIN32)
+/*
+ * Stolen and modified from APR (Apache Portable Runtime):
+ * Number of micro-seconds between the beginning of the Windows epoch
+ * (Jan. 1, 1601) and the Unix epoch (Jan. 1, 1970).
+ *
+ * This assumes all Win32 compilers have 64-bit support.
+ */
+#define DELTA_EPOCH_IN_USEC  U64_SUFFIX (11644473600000000)
 
-#if (DOSX == 0)
-int W32_CALL W32_NAMESPACE (gettimeofday) (struct timeval *tv, struct timezone *tz)
+static __inline uint64 FileTimeToUnixEpoch (const FILETIME *ft)
+{
+  uint64 res = (uint64) ft->dwHighDateTime << 32;
+
+  res |= ft->dwLowDateTime;
+  res /= 10;                   /* from 100 nano-sec periods to usec */
+  res -= DELTA_EPOCH_IN_USEC;  /* from Win epoch to Unix epoch */
+  return (res);
+}
+
+int gettimeofday (struct timeval *tv, struct timezone *tz)
+{
+  if (!tv && !tz)
+  {
+    SOCK_ERRNO (EINVAL);
+    return (-1);
+  }
+
+  if (tv)
+  {
+    FILETIME ft;
+    uint64   tim;
+
+    GetSystemTimeAsFileTime (&ft);
+    tim = FileTimeToUnixEpoch (&ft);
+    tv->tv_sec  = (long) (tim / 1000000L);
+    tv->tv_usec = (long) (tim % 1000000L);
+  }
+  if (tz)
+     get_zone (tz, tv->tv_sec);
+  return (0);
+}
+
+#elif (DOSX == 0)
+int gettimeofday (struct timeval *tv, struct timezone *tz)
 {
   union  REGS reg;
   struct tm   tm;
@@ -222,7 +189,7 @@ int W32_CALL W32_NAMESPACE (gettimeofday) (struct timeval *tv, struct timezone *
 }
 
 #elif (DOSX & (PHARLAP|X32VM))
-int W32_CALL W32_NAMESPACE (gettimeofday) (struct timeval *tv, struct timezone *tz)
+int gettimeofday (struct timeval *tv, struct timezone *tz)
 {
   SWI_REGS  reg;
   struct tm tm;
@@ -256,8 +223,8 @@ int W32_CALL W32_NAMESPACE (gettimeofday) (struct timeval *tv, struct timezone *
   return (0);
 }
 
-#elif defined(__MSDOS__) && (defined(WATCOM386) || defined(BORLAND386) || defined(__CCDL__))
-int W32_CALL W32_NAMESPACE (gettimeofday) (struct timeval *tv, struct timezone *tz)
+#elif defined(WATCOM386) || defined(BORLAND386) || defined(__CCDL__)
+int gettimeofday (struct timeval *tv, struct timezone *tz)
 {
   union  REGS reg;
   struct tm   tm;
@@ -293,7 +260,7 @@ int W32_CALL W32_NAMESPACE (gettimeofday) (struct timeval *tv, struct timezone *
 #endif   /* DOSX == 0 */
 
 
-#if defined(HAVE_UINT64) && defined(__MSDOS__)
+#if defined(HAVE_UINT64) && !defined(WIN32)
 /*
  * Return hardware time-of-day in microseconds.
  * NOTE: hardware counter (lo) counts down from 65536 at a rate of
@@ -335,11 +302,11 @@ static uint64 tsc_microsec (const uint64 *base)
     start = time (NULL);
     while (time(NULL) == start)
           ENABLE();
-    time_ofs = GET_RDTSC();
+    time_ofs = get_rdtsc();
   }
   if (base)
        now = *base;
-  else now = GET_RDTSC();
+  else now = get_rdtsc();
   rc  = (now - time_ofs) / clocks_per_usec;
   rc += U64_SUFFIX(1000000) * (start+1);
   return (rc);
@@ -402,23 +369,14 @@ BOOL get_tv_from_tsc (const struct ulong_long *tsc, struct timeval *tv)
   return (TRUE);
 }
 #endif /* DOSX */
-#endif /* HAVE_UINT64 && __MSDOS__ */
+#endif /* HAVE_UINT64 && !WIN32 */
 
 
 /*
  * A high-resolution [1us] version of gettimeofday() needed in
  * select_s() etc. Should return 'tv_sec' in UTC.
  */
-#if defined(WIN32)
-int W32_CALL gettimeofday2 (struct timeval *tv, struct timezone *tz)
-{
-  init_misc();
-  return gettimeofday (tv, tz);
-}
-
-#else
-
-int W32_CALL gettimeofday2 (struct timeval *tv, struct timezone *tz)
+int gettimeofday2 (struct timeval *tv, struct timezone *tz)
 {
   init_misc();
 
@@ -432,7 +390,7 @@ int W32_CALL gettimeofday2 (struct timeval *tv, struct timezone *tz)
     return (0);
   }
 
-#if defined(HAVE_UINT64)
+#if defined(HAVE_UINT64) && !defined(WIN32)
 #if (DOSX)
   if (has_rdtsc && use_rdtsc)
   {
@@ -453,52 +411,38 @@ int W32_CALL gettimeofday2 (struct timeval *tv, struct timezone *tz)
   if (has_8254)
   {
     static time_t secs = 0;           /* seconds since midnight */
+    static uint64 last = 0;
     uint64 usecs = microsec_clock();  /* usec day-clock */
 
-#if STEVES_PATCHES
-    secs = time (NULL);
-#else
-    static uint64 last = 0;
     if (secs == 0 || usecs < last)    /* not init or wrapped */
     {
       secs = time (NULL);
       secs -= (secs % (24*3600));
     }
     last = usecs;
-#endif
     tv->tv_usec = (long) (usecs % U64_SUFFIX(1000000));
-#if STEVES_PATCHES
-    tv->tv_sec = (time_t) secs;
-#else
     tv->tv_sec  = (time_t) ((usecs - tv->tv_usec) / U64_SUFFIX(1000000) + (uint64)secs);
-#endif
     tv->tv_sec += utc_offset;
 
     if (tz)
        get_zone (tz, tv->tv_sec);
     return (0);
   }
-#endif  /* HAVE_UINT64 */
+#endif  /* HAVE_UINT64 && !WIN32 */
 
   return gettimeofday (tv, tz);
 }
-#endif
 
 
-#if defined(TEST_PROG)
+#if defined(TEST_PROG)   /* for djgpp/Watcom/HighC */
 
 #include "printk.h"
+#include "getopt.h"
 
-#ifdef __MSDOS__
-  static __inline BOOL day_rollover (void)
-  {
-    return PEEKB (0, 0x470);
-  }
-#else
-  #define day_rollover()  0
-  #undef  hires_timer
-  #define hires_timer(x)  ((void)0)
-#endif
+static __inline BOOL dayrollover (void)
+{
+  return PEEKB (0, 0x470);
+}
 
 #if !defined(__DJGPP__) && 0
 static void usleep (DWORD usec)
@@ -534,13 +478,13 @@ int main (int argc, char **argv)
 
   init_misc();
 
-  while ((ch = getopt(argc, argv, "?hcHir")) != EOF)
+  while ((ch = getopt(argc, argv, "?chir")) != EOF)
         switch (ch)
         {
           case 'c':
                do_cmp = TRUE;
                break;
-          case 'H':
+          case 'h':
                hires_timer (0);
                break;
           case 'i':
@@ -556,12 +500,11 @@ int main (int argc, char **argv)
                putenv ("USE_RDTSC=1");
                break;
           case '?':
-          case 'h':
           default:
                printf ("Usage: %s [-chir]\n"
                        "  -c compare gettimeofday2() and gettimeofday()\n"
-                       "  -H don't use hi-res 8254 PIT (DOS only)\n"
-                       "  -i use timer ISR             (DOS only)\n"
+                       "  -h don't use hi-res 8254 PIT\n"
+                       "  -i use timer ISR\n"
                        "  -r use RDTSC for gettimeofday2()\n",
                        argv[0]);
                return (0);
@@ -577,9 +520,7 @@ int main (int argc, char **argv)
   {
     struct timeval tv, tv2;
     struct timeval last;
-    time_t t;
     double delta;
-    const char *ct;
 
     gettimeofday (&tv, NULL);
     gettimeofday2 (&tv2, NULL);
@@ -599,14 +540,11 @@ int main (int argc, char **argv)
     else
       printf ("%10ld.%06lu, %.6f", (long)tv2.tv_sec, tv2.tv_usec, delta/1E6);
 
-    t = tv2.tv_sec;
-    ct = ctime (&t);  /*  Cannot do 'ctime (&tv2.tv_sec)' directly since 'tv2.tv_sec' is a 'long' */
-    printf (", %.8s, %d\n", ct ? ct+11 : "??", day_rollover());
+    printf (", %.8s, %d\n",
+            ctime(&tv2.tv_sec)+11, dayrollover());
 
-#if defined(__DJGPP__)   /* don't use delay(). It doesn't work under Win2K/XP */
+#ifdef __DJGPP__   /* don't use delay(). It doesn't work under Win2K/XP */
     usleep (1000000);
-#elif defined(_WIN32)
-    Sleep (1000);
 #else
     sleep (1);
 #endif

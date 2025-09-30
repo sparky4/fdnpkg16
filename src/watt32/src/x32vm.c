@@ -5,7 +5,7 @@
  *  A Pharlap-like interface for FlashTek's X32VM DOS extender
  *  Currently this only supports the Digital Mars compiler.
  *
- *  by G. Vanem <gvanem@yahoo.no>  July 2002
+ *  by G. Vanem <giva@bgnett.no>  July 2002
  */
 
 #include <stdio.h>

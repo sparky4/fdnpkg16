@@ -2,9 +2,9 @@
  * BSD poll().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -56,7 +56,7 @@
 #pragma stack_size_warn (16000)    /* ~3*MAX_SOCKETS */
 #endif
 
-int poll (struct pollfd *p, int num, int timeout)
+int W32_CALL poll (struct pollfd *p, int num, int timeout)
 {
   struct timeval tv;
   fd_set read  [NUM_SOCK_FDSETS];

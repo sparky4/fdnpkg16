@@ -6,10 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _Windows  /* not Watt-32. Only Win32 using Winsock */
+#ifdef _Windows
   #define WIN32_LEAN_AND_MEAN
   #include <winsock.h>
-  #include <conio.h>
 
   static struct WSAData wsa_state;
 
@@ -17,15 +16,11 @@
   {
     WSACleanup();
   }
-  #define sleep(s) Sleep((s)*1000)
+  #define sleep(x) Sleep((x)*1000)
   #define close(s) closesocket(s)
 #else
-  #ifndef __CYGWIN__
   #include <dos.h>
-  #endif
-  #ifndef _MSC_VER
   #include <unistd.h>
-  #endif
   #include <netdb.h>
   #include <sys/socket.h>
   #include <arpa/inet.h>
@@ -34,12 +29,6 @@
 #ifdef WATT32
   #include <tcp.h>
   #define close(s) close_s(s)
-  #define kbhit()  watt_kbhit()
-#endif
-
-#if defined(WIN32)
-  #include <windows.h>
-  #define sleep(x)  Sleep((x)*1000)
 #endif
 
 #define DEFAULT_PORT  6543
@@ -58,9 +47,11 @@ int sendUdp (char *message, int len, struct sockaddr_in *addr)
         return (-1);
     }
 
-   ret = sendto (fd, message, len, 0, (struct sockaddr*)addr, sizeof(struct sockaddr));
-    if (ret < 0)
+    if ((ret = sendto (fd, message, strlen(message), 0,
+                (struct sockaddr*)addr, sizeof(struct sockaddr))) < 0)
+    {
       perror ("sendto");
+    }
 
     printf("Ret %d\n", ret);
     sleep (4);
@@ -107,11 +98,12 @@ int main (int argc, char **argv)
          message = &argv[argc-1][2];
     else message = DEFAULT_MSG;
 
-    for (i = 0; i < 10 && !kbhit(); i++)
+    for (i = 0; i < 10; i++)
     {
         printf("[%d] Sending [%s] to %s port %d\n", i, message, pAddr, port);
         sprintf(sndMsg, "[% 2d]%s", i, message);
         sendUdp (sndMsg, strlen(sndMsg), &addr);
     }
+
     return (-1);
 }

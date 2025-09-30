@@ -2,7 +2,7 @@
  *
  *  PPPoE (PPP-over-Ethernet) for Watt-32. Refer RFC-2516 for spec.
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -45,7 +45,6 @@
 #include "timer.h"
 #include "strings.h"
 #include "language.h"
-#include "run.h"
 #include "pcconfig.h"
 #include "pcdbug.h"
 #include "pcqueue.h"
@@ -58,46 +57,46 @@
 #if defined(USE_PPPOE)
 
 enum States {
-     STATE_NONE = 0,
-     STATE_DISCOVERY,
-     STATE_SESSION
+     StateNone = 0,
+     StateDiscovery,
+     StateSession
    };
 
-static void (W32_CALL *prev_hook) (const char*, const char*) = NULL;
+static void (*prev_hook) (const char*, const char*) = NULL;
 
 static BOOL        got_PADO;
 static BOOL        got_PADS;
 static BOOL        got_PADT;
 static BOOL        got_PADM;
 static WORD        session = 0;
-static enum States state   = STATE_NONE;
-static mac_address ac_mac_addr;  /* Access Consentrator's (AC) MAC address */
+static enum States state   = StateNone;
+static mac_address ac_macAddr;  /* Access Consentrator's (AC) MAC address */
 
 static struct {
        int  enable;
        int  trace;
        int  timeout;
        int  retries;
-       int  lcp_echo_intv;                /**< Not used */
-       char service_name [MAX_VALUELEN+1];
-       char user_name [MAX_VALUELEN+1];   /**< \todo PPP user/passwd not handled */
-       char password  [MAX_VALUELEN+1];
+       int  lcpEchoInterval;
+       char serviceName [MAX_VALUELEN+1];
+       char userName [MAX_VALUELEN+1];   /**< \todo PPP user/passwd not handled */
+       char password [MAX_VALUELEN+1];
      } cfg = { 0, 0, 1, 3, 60, "", "", "" };
 
 static int pppoe_send_disc (int code);
 
-static void W32_CALL pppoe_config (const char *name, const char *value)
+static void pppoe_config (const char *name, const char *value)
 {
   static const struct config_table pppoe_cfg[] = {
-       { "ENABLE",      ARG_ATOI,   (void*)&cfg.enable        },
-       { "TRACE",       ARG_ATOI,   (void*)&cfg.trace         },
-       { "TIMEOUT",     ARG_ATOI,   (void*)&cfg.timeout       },
-       { "RETRIES",     ARG_ATOI,   (void*)&cfg.retries       },
-       { "LCP_ECHO",    ARG_ATOI,   (void*)&cfg.lcp_echo_intv },
-       { "SERVICENAME", ARG_STRCPY, (void*)&cfg.service_name  },
-       { "USER",        ARG_STRCPY, (void*)&cfg.user_name     },
-       { "PASSWD",      ARG_STRCPY, (void*)&cfg.password      },
-       { NULL,          0,          NULL                      }
+       { "ENABLE",      ARG_ATOI,   (void*)&cfg.enable          },
+       { "TRACE",       ARG_ATOI,   (void*)&cfg.trace           },
+       { "TIMEOUT",     ARG_ATOI,   (void*)&cfg.timeout         },
+       { "RETRIES",     ARG_ATOI,   (void*)&cfg.retries         },
+       { "LCP_ECHO",    ARG_ATOI,   (void*)&cfg.lcpEchoInterval },
+       { "SERVICENAME", ARG_STRCPY, (void*)&cfg.serviceName     },
+       { "USER",        ARG_STRCPY, (void*)&cfg.userName        },
+       { "PASSWD",      ARG_STRCPY, (void*)&cfg.password        },
+       { NULL,          0,          NULL                        }
      };
   if (!parse_config_table(&pppoe_cfg[0], "PPPOE.", name, value) && prev_hook)
      (*prev_hook) (name, value);
@@ -105,7 +104,7 @@ static void W32_CALL pppoe_config (const char *name, const char *value)
 
 /**
  * Loop waiting for timeout or a PAD response.
- * Blocks until some got_X flags are set in by pppoe_handler().
+ * Blocks until some got_X flags in by pppoe_handler().
  */
 static BOOL pppoe_wait (int wait_code)
 {
@@ -167,9 +166,9 @@ void pppoe_init (void)
 {
   prev_hook = usr_init;
   usr_init  = pppoe_config;
-  state     = STATE_DISCOVERY;
+  state     = StateDiscovery;
   got_PADO  = got_PADS = got_PADT = FALSE;
-  memcpy (ac_mac_addr, _eth_brdcast, sizeof(ac_mac_addr));
+  memcpy (ac_macAddr, _eth_brdcast, sizeof(ac_macAddr));
 }
 
 
@@ -198,7 +197,7 @@ int pppoe_start (void)
   if (_mtu > PPPOE_MAX_DATA)
       _mtu = PPPOE_MAX_DATA;
 
-  state = STATE_SESSION;
+  state = StateSession;
   ppp_start (cfg.trace);
   return (1);
 }
@@ -208,13 +207,13 @@ int pppoe_start (void)
  */
 void pppoe_exit (void)
 {
-  if (!cfg.enable || state == STATE_NONE)
+  if (!cfg.enable || state != StateNone)
      return;
 
   pppoe_send_disc (PPPOE_CODE_PADT);
   session = 0;
-  state   = STATE_NONE;
-  memcpy (ac_mac_addr, _eth_brdcast, sizeof(ac_mac_addr));
+  state   = StateNone;
+  memcpy (ac_macAddr, _eth_brdcast, sizeof(ac_macAddr));
 }
 
 /**
@@ -236,13 +235,12 @@ int pppoe_handler (const pppoe_Packet *pkt)
   proto = MAC_TYP (pkt);
   bcast = !memcmp (dst, _eth_brdcast, _eth_mac_len);
 
-  if (proto == PPPOE_SESS_TYPE && state == STATE_SESSION)
+  if (proto == PPPOE_SESS_TYPE && state == StateSession)
   {
     if (pkt->code    == PPPOE_CODE_SESS &&
-        pkt->session == session         &&
-        !bcast                          &&
+        pkt->session == session         && !bcast &&
         !memcmp(dst, _eth_addr, _eth_mac_len) &&  /* to us? */
-        !memcmp(src, ac_mac_addr, _eth_mac_len))
+        !memcmp(src, ac_macAddr, _eth_mac_len))
     {
       len = intel16 (pkt->length);
       buf = &pkt->data[0];
@@ -250,12 +248,12 @@ int pppoe_handler (const pppoe_Packet *pkt)
       delivered = TRUE;
     }
   }
-  else if (!bcast && proto == PPPOE_DISC_TYPE && state == STATE_DISCOVERY)
+  else if (!bcast && proto == PPPOE_DISC_TYPE && state == StateDiscovery)
   {
     if (pkt->code == PPPOE_CODE_PADO)          /* Offer (can this be bcast?) */
     {
       got_PADO = TRUE;
-      memcpy (ac_mac_addr, src, _eth_mac_len);
+      memcpy (ac_macAddr, src, _eth_mac_len);
     }
     else if (pkt->code == PPPOE_CODE_PADT &&  /* Terminate */
              pkt->session == session)
@@ -287,7 +285,7 @@ int pppoe_handler (const pppoe_Packet *pkt)
 BOOL pppoe_is_up (const void *dest)
 {
 #if 1
-  if (!cfg.enable || memcmp(dest,ac_mac_addr,_eth_mac_len))
+  if (!cfg.enable || memcmp(dest,ac_macAddr,_eth_mac_len))
      return (FALSE);
   return (session != 0 && !got_PADT);
 #else
@@ -309,11 +307,11 @@ static WORD build_pad (struct pppoe_Packet *pkt, WORD code)
 
     *(WORD*) tags = PPPOE_TAG_SERVICE_NAME;
     tags += 2;
-    if (cfg.service_name[0])
+    if (cfg.serviceName[0])
     {
-      srv_len = strlen (cfg.service_name);
+      srv_len = strlen (cfg.serviceName);
       srv_len = min (srv_len, sizeof(pkt->data)-2-PPPOE_TAG_HDR_SIZE);
-      memcpy (tags+2, cfg.service_name, srv_len);
+      memcpy (tags+2, cfg.serviceName, srv_len);
     }
     *(WORD*) tags = intel16 (srv_len);
 
@@ -334,7 +332,7 @@ static int pppoe_send_disc (int code)
   pppoe_Packet *pkt;
   WORD          len;
 
-  pkt = (pppoe_Packet*) _eth_formatpacket (&ac_mac_addr[0], PPPOE_DISC_TYPE);
+  pkt = (pppoe_Packet*) _eth_formatpacket (&ac_macAddr[0], PPPOE_DISC_TYPE);
   len = build_pad (pkt, code);
 
   pkt->ver     = 1;
@@ -358,7 +356,7 @@ int pppoe_send_sess (const void *sock, const BYTE *buf, WORD len)
 {
   pppoe_Packet *pkt;
 
-  pkt = (pppoe_Packet*) _eth_formatpacket (&ac_mac_addr[0], PPPOE_SESS_TYPE);
+  pkt = (pppoe_Packet*) _eth_formatpacket (&ac_macAddr[0], PPPOE_SESS_TYPE);
 
   pkt->ver     = 1;
   pkt->type    = 1;
@@ -378,7 +376,7 @@ void *pppoe_mac_format (union link_Packet *tx)
 {
   pppoe_Packet *pppoe = (pppoe_Packet*) tx->eth.data;
 
-  memcpy (&tx->eth.head.destination[0], ac_mac_addr, sizeof(mac_address));
+  memcpy (&tx->eth.head.destination[0], ac_macAddr, sizeof(mac_address));
   memcpy (&tx->eth.head.source[0], _eth_addr, sizeof(mac_address));
 
   tx->eth.head.type = PPPOE_SESS_TYPE;

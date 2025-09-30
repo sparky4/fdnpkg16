@@ -8,7 +8,7 @@
 
 #define FORTIFY_STORAGE              /* storage for public functions */
 
-#define FORTIFY_ALIGNMENT  sizeof(double) /* Byte alignment of all memory blocks */
+#define FORTIFY_ALIGNMENT        sizeof(double) /* Byte alignment of all memory blocks */
 
 #define FORTIFY_BEFORE_SIZE      32  /* Bytes to allocate before block */
 #define FORTIFY_BEFORE_VALUE   0xA3  /* Fill value before block */
@@ -28,8 +28,8 @@
 #define FORTIFY_CHECK_ALL_MEMORY_ON_DEALLOCATE
 #define FORTIFY_PARANOID_DEALLOCATE
 
-#define FORTIFY_WARN_ON_ZERO_MALLOC      /* A debug is issued on a malloc(0) */
-#define FORTIFY_FAIL_ON_ZERO_MALLOC      /* A malloc(0) will fail */
+#define FORTIFY_WARN_ON_ZERO_MALLOC  /* A debug is issued on a malloc(0) */
+#define FORTIFY_FAIL_ON_ZERO_MALLOC  /* A malloc(0) will fail */
 
 #define FORTIFY_WARN_ON_ALLOCATE_FAIL    /* A debug is issued on a failed alloc */
 #define FORTIFY_WARN_ON_FALSE_FAIL       /* See Fortify_SetAllocateFailRate */
@@ -38,13 +38,19 @@
 
 #define FORTIFY_TRACK_DEALLOCATED_MEMORY
 
-/* Maximum amount of deallocated bytes to keep
- */
-#define FORTIFY_DEALLOCATED_MEMORY_LIMIT 1048576
+#define FORTIFY_DEALLOCATED_MEMORY_LIMIT 1048576 /* Maximum amount of deallocated bytes to keep */
 #define FORTIFY_VERBOSE_WARN_WHEN_DISCARDING_DEALLOCATED_MEMORY
 
 #define FORTIFY_STRDUP                   /* if you use non-ANSI strdup() */
 #define FORTIFY_GLOBAL_REPLACE           /* Replace GlobalAlloc*() on Win32 */
+
+#ifdef __HIGHC__
+  #define FORTIFY_LOCK()   /* Fortify_LockLocalData(1) */ /**< \todo data locking */
+  #define FORTIFY_UNLOCK() /* Fortify_LockLocalData(0) */
+#else
+  #define FORTIFY_LOCK()
+  #define FORTIFY_UNLOCK()
+#endif
 
 #define FORTIFY_DELETE_STACK_SIZE    256
 

@@ -3,9 +3,7 @@
  */
 #if defined(USE_FAST_PKT)
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /* Data located in a real-mode segment. This becomes far at runtime
  */
@@ -15,7 +13,7 @@ typedef struct {             /* must match data/code in asmpkt.nas */
         WORD   _patch_nop;
         WORD   _size_chk;
         WORD   _xy_pos;
-        BYTE   _PktReceiver; /* starts on a paragraph (16byte) boundary */
+        BYTE   _PktReceiver; /* starts on a paragraph (16byte) */
       } PktRealStub;
 
 typedef struct {             /* structure asmpkt.nas sees */
@@ -23,9 +21,7 @@ typedef struct {             /* structure asmpkt.nas sees */
         struct pkt_rx_element rx_buf [RX_BUFS];
       } PKT_INFO;
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 static BYTE real_stub_array [] = {
        #include "pkt_stub.h"    /* generated opcode array */
@@ -40,7 +36,7 @@ static BYTE real_stub_array [] = {
 #define PKT_TMP()    (sizeof(real_stub_array) + sizeof(PKT_INFO))
 
 #define ASMPKT_INF   (rm_base + sizeof(real_stub_array))
-#define QUEUE_OFS(x) (ASMPKT_INF + offsetof(struct pkt_info,pkt_queue.x))
+#define QUE_OFS(x)   (ASMPKT_INF + offsetof(struct pkt_info,pkt_queue.x))
 #define RX_OFS(n,x)  (ASMPKT_INF + offsetof(struct pkt_info,rx_buf[n]) + \
                       offsetof(struct pkt_rx_element,x))
 
@@ -61,15 +57,15 @@ static DWORD setup_pkt_inf_fast (void)
 
   if (rdata_size >= 64*1024UL)
   {
-    CONSOLE_MSG (0, ("%s (%u): Development error:\nsize %u too large\n",
-                     __FILE__, __LINE__, (unsigned int)rdata_size));
+    TCP_CONSOLE_MSG (0, ("%s (%u): Development error:\nsize %u too large\n",
+                         __FILE__, __LINE__, (unsigned int)rdata_size));
     return (0);
   }
   if (stub_size < 0xC0)
   {
-    CONSOLE_MSG (0, ("%s (%u): Development error:\n\"pkt_stub.h\""
-                     " seems truncated (%d bytes)\n",
-                     __FILE__, __LINE__, SIZEOF(real_stub_array)));
+    TCP_CONSOLE_MSG (0, ("%s (%u): Development error:\n\"pkt_stub.h\""
+                         " seems truncated (%d bytes)\n",
+                         __FILE__, __LINE__, SIZEOF(real_stub_array)));
     return (0);
   }
 
@@ -167,16 +163,16 @@ static DWORD setup_pkt_inf_fast (void)
   return (rm_base);
 }
 
+typedef int _chk_head_size[2 * ((RX_ELEMENT_HEAD_SIZE % 4) == 0) - 1]; /* compile time assert */
 static int setup_rmode_receiver (void)
 {
-  WORD rx_seg;
+  WORD rx_seg, rx_ofs;
   WORD asmpkt_size_chk;
-  int  head_size = RX_ELEMENT_HEAD_SIZE;
 
   WATT_ASSERT (rm_base);
-  WATT_ASSERT ((head_size % 4) == 0);
 
   rx_seg = _pkt_inf->rm_seg;
+  rx_ofs = PktReceiver;
 
 #if 0  /* test */
   printf ("PktReceiver @ %04X:%04X, ", rx_seg, PktReceiver);
@@ -189,7 +185,7 @@ static int setup_rmode_receiver (void)
   asmpkt_size_chk = *(WORD*) (real_stub_array + size_chk);
   if (asmpkt_size_chk != sizeof(PKT_INFO))
   {
-    CONSOLE_MSG (0, ("%s (%u): Development error:\n"
+    TCP_CONSOLE_MSG (0, ("%s (%u): Development error:\n"
                      "  sizeof(pkt_info) = %ld in pcpkt.h\n"
                      "  sizeof(pkt_info) = %u in asmpkt.nas, (diff %ld)\n",
                      __FILE__, __LINE__,
@@ -201,8 +197,8 @@ static int setup_rmode_receiver (void)
   if (*(WORD*)&real_stub_array[PktReceiver]   != 0xA80F ||  /* push gs */
       *(WORD*)&real_stub_array[PktReceiver+2] != 0xA00F)    /* push fs */
   {
-    CONSOLE_MSG (0, ("%s (%u): Development error:\n"
-                     "  PktReceiver misaligned\n", __FILE__, __LINE__));
+    TCP_CONSOLE_MSG (0, ("%s (%u): Development error:\n"
+                         "  PktReceiver misaligned\n", __FILE__, __LINE__));
     return (-1);
   }
 
@@ -211,7 +207,7 @@ static int setup_rmode_receiver (void)
     DWORD patch_it = (*(WORD*) &real_stub_array[patch_nop]) +
                      (DWORD) &real_stub_array;
 
-    CONSOLE_MSG (4, ("patch_it (%04X): %02X,%02X,%02X\n",
+    TCP_CONSOLE_MSG (4, ("patch_it (%04X): %02X,%02X,%02X\n",
                      *(WORD*)&real_stub_array[patch_nop],
                      ((BYTE*)patch_it)[0],
                      ((BYTE*)patch_it)[1],
@@ -240,8 +236,6 @@ static __inline void get_tstamp (DWORD *ts)
 #if defined(HAVE_UINT64)
   if (has_rdtsc && use_rdtsc)
      *(uint64*)ts = get_rdtsc();
-#else
-  ARGSUSED (ts);
 #endif
 }
 
@@ -307,8 +301,8 @@ static __inline void pullup_rx_element (void *dest, DWORD rm_addr, size_t size)
 struct pkt_rx_element *pkt_poll_recv (void)
 {
   struct pkt_rx_element *rc;
-  WORD   out_idx = PEEKW (0, QUEUE_OFS(out_index));
-  WORD   in_idx  = PEEKW (0, QUEUE_OFS(in_index));
+  WORD   out_idx = PEEKW (0, QUE_OFS(out_index));
+  WORD   in_idx  = PEEKW (0, QUE_OFS(in_index));
 
   if (out_idx != in_idx)
   {
@@ -316,7 +310,7 @@ struct pkt_rx_element *pkt_poll_recv (void)
     struct pkt_ringbuf *q = &_pkt_inf->pkt_queue;
     DWORD  addr = ASMPKT_INF + offsetof(PKT_INFO,rx_buf[out_idx]);
 
-    /* It might be faster to copy the whole thing (head and rx-buffer)
+    /* It might be faster to copy whole thing (head and rx-buffer)
      * in one operation ??
      */
     pullup_rx_element (&rx_buf, addr, RX_ELEMENT_HEAD_SIZE);
@@ -340,13 +334,13 @@ struct pkt_rx_element *pkt_poll_recv (void)
     }
     else
     {
-      CONSOLE_MSG (1, ("pkt-error %s\n", pkt_error));
+      TCP_CONSOLE_MSG (1, ("pkt-error %s\n", pkt_error));
       rc = NULL;
     }
 
     if (++out_idx >= q->num_buf)
        out_idx = 0;
-    POKEW (0, QUEUE_OFS(out_index), out_idx);
+    POKEW (0, QUE_OFS(out_index), out_idx);
     return (rc);
   }
   return (NULL);
@@ -357,8 +351,8 @@ int pkt_buffers_used (void)
   BYTE in_idx, out_idx;
 
   DISABLE();
-  out_idx = PEEKW (0, QUEUE_OFS(out_index));
-  in_idx  = PEEKW (0, QUEUE_OFS(in_index));
+  out_idx = PEEKW (0, QUE_OFS(out_index));
+  in_idx  = PEEKW (0, QUE_OFS(in_index));
   ENABLE();
   if (in_idx >= out_idx)
      return (in_idx - out_idx);
@@ -367,7 +361,7 @@ int pkt_buffers_used (void)
 
 DWORD pkt_rx_dropped (void)
 {
-  DWORD rc = PEEKL (0, QUEUE_OFS(num_drop));
+  DWORD rc = PEEKL (0, QUE_OFS(num_drop));
   return (rc);
 }
 
@@ -383,7 +377,7 @@ int pkt_append_recv (const void *tx, unsigned len)
   int    idx;
 
   DISABLE();
-  idx = PEEKW (0, QUEUE_OFS(in_index));
+  idx = PEEKW (0, QUE_OFS(in_index));
 
   if (idx < 0 || idx >= q->num_buf)
   {
@@ -431,7 +425,7 @@ int pkt_append_recv (const void *tx, unsigned len)
   if (++idx == q->num_buf)
      idx = 0;
 
-  POKEW (0, QUEUE_OFS(in_index), idx);
+  POKEW (0, QUE_OFS(in_index), idx);
   ENABLE();
 /* pkt_dump_real_mem(); */
   return (len);
@@ -548,7 +542,7 @@ int pkt_test_upcall (void)
     printf ("buffers used %d, dropped %lu\n",
             pkt_buffers_used(), pkt_rx_dropped());
   }
-#endif  /* !NO_RMODE_CALL */
+#endif
 
   pkt_dump_real_mem();
   return (0);

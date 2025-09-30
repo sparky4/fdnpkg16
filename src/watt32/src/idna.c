@@ -19,7 +19,7 @@
 #include "wattcp.h"
 #include "misc.h"
 #include "strings.h"
-#include "pcdbug.h"
+#include "pcconfig.h"
 #include "punycode.h"
 #include "idna.h"
 
@@ -76,6 +76,7 @@
 #include "iconv/cp1255.h"
 #include "iconv/cp1256.h"
 #include "iconv/cp1257.h"
+#include "iconv/vietcomb.h"
 #include "iconv/cp1258.h"
 
 typedef int (*toUnicode) (conv_t, ucs4_t *, const unsigned char *, int);
@@ -129,7 +130,8 @@ static const struct iconv_table mappings[] = {
        { "CP1255", 1255, cp1255_mbtowc, cp1255_wctomb },
        { "CP1256", 1256, cp1256_mbtowc, cp1256_wctomb },
        { "CP1257", 1257, cp1257_mbtowc, cp1257_wctomb },
-       { "CP1258", 1258, cp1258_mbtowc, cp1258_wctomb }
+       { "CP1258", 1258, cp1258_mbtowc, cp1258_wctomb },
+       { NULL,     0,    NULL,          NULL }
      };
 
 static const struct iconv_table *curr_mapping = NULL;
@@ -262,11 +264,11 @@ static char **split_labels (const char *name)
 
     if (!dot)
     {
-      res[i] = _strlcpy (buf[i], p, sizeof(buf[i]));
+      res[i] = StrLcpy (buf[i], p, sizeof(buf[i]));
       i++;
       break;
     }
-    res[i] = _strlcpy (buf[i], p, dot-p+1);
+    res[i] = StrLcpy (buf[i], p, dot-p+1);
     p = ++dot;
   }
   res[i] = NULL;
@@ -279,22 +281,22 @@ static char **split_labels (const char *name)
  */
 static char *convert_to_ACE (const char *name)
 {
-  int          i, c;
-  DWORD        utf_input[MAX_HOSTLEN];
-  BYTE         utf_case [MAX_HOSTLEN];
+  DWORD  utf_input[MAX_HOSTLEN];
+  BYTE   utf_case [MAX_HOSTLEN];
   const  char *p;
-  size_t       in_len, out_len;
-  static char  out_buf [2*MAX_HOSTLEN];
+  size_t in_len, out_len;
+  static char out_buf [2*MAX_HOSTLEN];
   enum punycode_status status;
+  int  i, c;
 
   for (i = 0, p = name; *p; i++)
   {
     ucs4_t utf = 0;
 
-    c = (*p++) & 255;
+    c = *p++;
     iconv_to_unicode (c, &utf);
     utf_input[i] = utf;
-    utf_case[i]  = (BYTE) isupper (c);
+    utf_case[i]  = isupper (c);
     if (utf > 0xFFFF)
          IDNA_DEBUG (3, ("%c -> u+%08lX\n", c, utf));
     else IDNA_DEBUG (3, ("%c -> u+%04lX\n", c, utf));
@@ -324,7 +326,7 @@ static char *convert_to_ACE (const char *name)
   }
   out_buf[i] = '\0';
   IDNA_DEBUG (2, ("punycode_encode: status %d, out_len %lu, out_buf `%s'\n",
-              status, (u_long)out_len, out_buf));
+              status, (DWORD)out_len, out_buf));
   return (status == punycode_success ? out_buf : NULL);
 }
 
@@ -333,10 +335,10 @@ static char *convert_to_ACE (const char *name)
  */
 static char *convert_from_ACE (const char *name)
 {
-  DWORD       utf_output[MAX_HOSTLEN];
-  BYTE        utf_case  [MAX_HOSTLEN];
+  DWORD  utf_output[MAX_HOSTLEN];
+  BYTE   utf_case  [MAX_HOSTLEN];
   static char out_buf [MAX_HOSTLEN];
-  size_t      utf_len, i, j;
+  size_t utf_len, i, j;
   enum punycode_status status;
 
   utf_len = sizeof(utf_output);
@@ -358,7 +360,7 @@ static char *convert_from_ACE (const char *name)
   }
   out_buf[j] = '\0';
   IDNA_DEBUG (2, ("punycode_decode: status %d, out_len %lu, out_buf `%s'\n",
-              status, (u_long)utf_len, out_buf));
+              status, (DWORD)utf_len, out_buf));
   return (status == punycode_success ? out_buf : NULL);
 }
 
@@ -368,7 +370,7 @@ static char *convert_from_ACE (const char *name)
  *
  * E.g. convert "www.troms›.no" to ACE:
  *
- * 1) Convert each label separately; "www", "troms›" and "no"
+ * 1) Convert each label separately. "www", "troms›" and "no"
  * 2) "troms›" -> u+0074 u+0072 u+006F u+006D u+0073 u+00F8
  * 3) Pass this through `punycode_encode()' which gives "troms-zua".
  * 4) Repeat for all labels with non-ASCII letters.
@@ -427,13 +429,13 @@ BOOL IDNA_convert_to_ACE (
       name += sprintf (name, "%s.", label);
     }
   }
-  if (i > 0)   /* drop trailing '.' */
+  if (name > in_name)   /* drop trailing '.' */
      name--;
   len = name - in_name;
   *name = '\0';
   *size = len;
   IDNA_DEBUG (2, ("IDNA_convert_to_ACE: `%s', %lu bytes\n",
-              in_name, (u_long)len));
+              in_name, (DWORD)len));
   return (TRUE);
 }
 
@@ -454,7 +456,6 @@ BOOL IDNA_convert_from_ACE (
   char  *in_name = name;
   char **labels  = split_labels (name);
   int    i;
-  u_long dsize;
 
   for (i = 0; labels[i]; i++)
   {
@@ -469,11 +470,12 @@ BOOL IDNA_convert_from_ACE (
     }
     name += sprintf (name, "%s.", ascii ? ascii : label);
   }
+  if (name > in_name)   /* drop trailing '.' */
+     name--;
   *name = '\0';
   *size = name - in_name;
-  dsize = *(u_long*) size;
   IDNA_DEBUG (2, ("IDNA_convert_from_ACE: `%s', %lu bytes\n",
-              in_name, dsize));
+              in_name, (DWORD)*size));
   return (TRUE);
 }
 
@@ -483,43 +485,31 @@ BOOL IDNA_convert_from_ACE (
 #include <arpa/inet.h>
 
 #include "sock_ini.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "pcdbug.h"
-
-void dump_cp_list (void)
-{
-  int i;
-
-  printf ("Supported codepages:\n");
-  for (i = 0; i < DIM(mappings); i++)
-      printf ("  %s\n", mappings[i].name);
-  exit (0);
-}
+#include "getopt.h"
 
 void usage (void)
 {
-  printf ("IDNA [-d] [-c codepage] hostname | ip-address\n"
+  printf ("IDNA [-d] [-c <codepage] hostname | ip-address\n"
           "   -d debug level, \"-dd\" for more details\n"
-          "   -c select codepage (active is CP%d).\n", GET_CODEPAGE());
-  printf ("      use \"-c?\" to list supported codepages\n");
+          "   -c select codepage (active is CP%d)\n", GET_CODEPAGE());
   exit (0);
 }
 
 int main (int argc, char **argv)
 {
-  struct in_addr addr;
   struct hostent *he;
-  const  char    *host;
+  struct in_addr addr;
+  char   host [100];
   WORD   cp = 0;
-  int    ch;
   int    debug = 0;
+  int    ch;
 
   while ((ch = getopt(argc, argv, "c:dh?")) != EOF)
      switch (ch)
      {
        case 'c':
-            if (*optarg == '?')
-               dump_cp_list();
             cp = atoi (optarg);
             break;
        case 'd':
@@ -549,7 +539,8 @@ int main (int argc, char **argv)
 
   debug_on = debug;
   dns_do_idna = TRUE;
-  host = argv[0];
+
+  StrLcpy (host, argv[0], sizeof(host));
   printf ("Resolving `%s'...", host);
   fflush (stdout);
 
@@ -573,5 +564,4 @@ int main (int argc, char **argv)
 }
 #endif  /* TEST_PROG */
 #endif  /* USE_IDNA */
-
 

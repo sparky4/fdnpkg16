@@ -73,7 +73,7 @@
  */
 
 /*
- * 10.Dec-97   Adapted for Waterloo TCP/IP - G. Vanem (gvanem@yahoo.no)
+ * 10.Dec-97   Adapted for Waterloo TCP/IP - G. Vanem (giva@bgnett.no)
  *
  */
 
@@ -99,27 +99,24 @@
 
 #include "wattcp.h"
 #include "misc.h"
-#include "run.h"
 #include "timer.h"
 #include "strings.h"
 #include "bsdname.h"
 #include "sock_ini.h"
 #include "netaddr.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "netaddr.h"
 #include "pcbuf.h"
 #include "pcdbug.h"
 #include "pctcp.h"
 #include "pcconfig.h"
 
-/* We export these since they are needed in e.g.e nslookup
- */
-W32_DATA const char *_res_opcodes[];
-W32_DATA const char *_res_resultcodes[];
+extern const char *_res_opcodes[];
+extern const char *_res_resultcodes[];
 
-W32_DATA char *res_cfg_options, *res_cfg_aliases;
+extern char *res_cfg_options, *res_cfg_aliases;
 
-W32_FUNC void W32_CALL res_init0 (void);
+extern void res_init0 (void);
 
 #define CHECK_SRVR_ADDR  1  /* check nameserver address in responses */
 #define RESOLVSORT       1  /* allow sorting of addresses in gethostbyname (mpa) */

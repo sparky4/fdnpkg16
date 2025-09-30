@@ -1,4 +1,4 @@
-/*!\file src/tftp.h
+/*!\file SRC/tftp.h
  *
  * Boot-ROM-Code to load an operating system across a TCP/IP network.
  *
@@ -24,8 +24,11 @@
 #ifndef _w32_TFTP_H
 #define _w32_TFTP_H
 
-extern int   tftp_init      (void);
-extern int   tftp_boot_load (void);
+extern int (*tftp_writer)     (const void *buf, size_t length);
+extern int (*tftp_terminator) (void);
+
+extern int   tftp_init        (void);
+extern int   tftp_boot_load   (void);
 
 extern char *tftp_set_server     (const char *name, int len);
 extern char *tftp_set_boot_fname (const char *name, int len);

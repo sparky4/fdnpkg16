@@ -16,24 +16,10 @@
  *               releases PKTDRVR.
  */
 
- /** \mainpage Watt-32 interface documentation
-
-  \section Introduction
-
-  This document tries to describe the internals of Watt-32.
-
-  \b Sections:
-
-   - \ref pkt_drvr_init
-   - \ref winpcap_init
-   - \ref swsvpkt_init
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <setjmp.h>
-#include <limits.h>
 #include <float.h>
 #include <math.h>
 #include <time.h>
@@ -43,7 +29,7 @@
 #include <init.h>  /* _mwenv(), PL_ENV */
 #endif
 
-#ifdef __DJGPP__
+#if defined (__DJGPP__)
 #include <sys/exceptn.h>
 #endif
 
@@ -52,9 +38,7 @@
 #include "strings.h"
 #include "language.h"
 #include "misc.h"
-#include "run.h"
 #include "timer.h"
-#include "profile.h"
 #include "wdpmi.h"
 #include "x32vm.h"
 #include "powerpak.h"
@@ -62,7 +46,7 @@
 #include "pcrarp.h"
 #include "pcdhcp.h"
 #include "pcconfig.h"
-#include "pcigmp.h"
+#include "pcmulti.h"
 #include "pcicmp.h"
 #include "pctcp.h"
 #include "pcarp.h"
@@ -72,7 +56,7 @@
 #include "pcdbug.h"
 #include "netaddr.h"
 #include "syslog2.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "bsdname.h"
 #include "bsddbug.h"
 #include "ip4_frag.h"
@@ -82,6 +66,10 @@
 
 #if (DOSX & PHARLAP)
 #include <mw/exc.h>
+#endif
+
+#if defined(WATT32_DOS_DLL)
+/* #include <exc.h> */
 #endif
 
 #if defined(USE_TFTP)
@@ -114,7 +102,7 @@
 #endif
 
 #if defined(WIN32)
-#include "winpkt.h"
+#include "winpcap.h"
 #endif
 
 #if defined(__HIGHC__)  /* Metaware's HighC have SIGBREAK == SIGQUIT */
@@ -122,9 +110,6 @@
 #endif
 
 #include "nochkstk.h"
-
-typedef void (MS_CDECL *_signal_handler) (int);
-typedef void (MS_CDECL *_atexit_handler) (void);
 
 BOOL _bootp_on       = FALSE; /**< Try booting using BOOTP ? */
 BOOL _dhcp_on        = FALSE; /**< Try booting using DHCP ? */
@@ -153,8 +138,8 @@ BOOL survive_eth = 0; /**< GvB 2002-09, allows us to survive without a
   BOOL survive_dhcp = FALSE;     /**< Don't survive a failed DHCP attempt */
 #endif
 
-BOOL survive_rarp  = FALSE;      /**< Don't survive a failed RARP attempt */
-BOOL _watt_is_init = FALSE;      /**< watt_sock_init() done (but with possible failed boot) */
+BOOL survive_rarp = FALSE;       /**< Don't survive a failed RARP attempt */
+BOOL _watt_is_init     = FALSE;  /**< watt_sock_init() done (but with possible failed boot) */
 
 static BOOL tcp_is_init = FALSE; /**< tcp_init() called okay. */
 static int  old_break   = -1;    /**< Original state of DOS's BREAK handler. */
@@ -196,7 +181,7 @@ static int  old_break   = -1;    /**< Original state of DOS's BREAK handler. */
  *
  * Never called inside Watt-32.
  */
-WattUserConfigFunc W32_CALL _watt_user_config (WattUserConfigFunc fn)
+WattUserConfigFunc _watt_user_config (WattUserConfigFunc fn)
 {
   WattUserConfigFunc old_fn = _watt_user_config_fn;
 
@@ -218,6 +203,8 @@ static int do_exit (int code)
 /**
  * Some target dependent functions. Install signal handlers.
  */
+#if !defined(MAKE_TSR)
+
 static BOOL use_except = TRUE;
 
 #if (DOSX & (DOS4GW|X32VM))
@@ -256,11 +243,11 @@ static void do_traceback (void)
     _printk_flush();
   }
 }
-#endif   /* !__CCDL__ && !__BORLANDC__ */
+#endif   /* __CCDL__ */
 #endif   /* DOS4GW|X32VM */
 
 
-#if defined(__DJGPP__)
+#if defined (__DJGPP__)
 static void except_handler (int sig)
 {
   static BOOL been_here = FALSE;
@@ -282,9 +269,7 @@ static void except_handler (int sig)
     rundown_run();
 
 #if 0
-    /** \todo Disassemble crash address. Don't confuse this yet-to-be function
-     * with the function ShowStack() in stkwalk.cpp. That one is for Win32 only.
-      */
+    /** \todo Disassemble crash address */
     StackWalk (exc_buf[0].__eip, exc_buf[0].__ebp);
 #endif
   }
@@ -308,7 +293,7 @@ static void except_handler (excReg *regs)
  */
 static void except_handler (int sig, int code)
 {
-#if defined(__WATCOMC__) && !defined(W32_NO_8087)
+#if defined(__WATCOMC__)
   if (sig == SIGFPE && code == FPE_IOVERFLOW)
   {
     _fpreset();
@@ -317,9 +302,8 @@ static void except_handler (int sig, int code)
   }
 #endif
 
-#if defined(__MSDOS__)
-  /* Take extra care only under MSDOS.
-    */
+#if !defined(WIN32)
+  /* Nothing is really fatal under Watt-32/Win32 */
   _watt_fatal_error = TRUE;
 #endif
 
@@ -413,18 +397,18 @@ static void setup_sig_handlers (void)
 #else
   /*
    * SIGSEGV may not be effective under all environments.
-   * PowerPak definetly supports SIGSEGV.
+   * PowerPak definetely supports SIGSEGV.
    */
   #ifdef SIGSEGV
-    signal (SIGSEGV, (_signal_handler)except_handler);
+    signal (SIGSEGV, (void(*)(int))except_handler);
   #endif
   #ifdef SIGFPE
-    signal (SIGFPE, (_signal_handler)except_handler);
+    signal (SIGFPE, (void(*)(int))except_handler);
   #endif
 #endif
 }
 
-static void W32_CALL restore_sig_handlers (void)
+static void restore_sig_handlers (void)
 {
   if (!_watt_cbroke)
      signal (SIGINT, SIG_DFL);
@@ -450,6 +434,8 @@ static void W32_CALL restore_sig_handlers (void)
   signal (SIGFPE, SIG_DFL);
 #endif
 }
+#endif  /* MAKE_TSR */
+
 
 /**
  * Abort all TCP sockets, release DHCP lease and restore signal
@@ -484,7 +470,7 @@ static void tcp_shutdown (void)
 
 
 /**
- * Initialise the PKTDRVR or WinPcap driver (calls _eth_init()).
+ * Initialise the PKTDRVR (calls _eth_init()).
  *  - Reset nameserver table.
  *  - Initialise local ports.
  *  - Get machine name (w/o domain) from LAN extension (if any).
@@ -500,12 +486,10 @@ static int tcp_init (void)
   {
     tcp_is_init = TRUE;
     rc = _eth_init();          /* initialize LAN-card */
-
-    if (rc == WERR_NO_ERROR)
+    if (rc == 0)
     {
       last_nameserver  = 0;    /* reset the nameserver table */
       last_cookie = 0;         /* eat all remaining crumbs */
-
       if (!init_localport())   /* clear local ports in-use */
          return (WERR_NO_MEM);
 
@@ -524,12 +508,11 @@ static int tcp_init (void)
  */
 static void tcp_post_init (void)
 {
-  int MTU;
+  DWORD max_rwin;
+  int   MTU;
 
   if (!tcp_is_init)       /* tcp_init() not called */
      return;
-
-  memdbg_post_init();
 
 #if defined(USE_BSD_API)
   ReadEthersFile();       /* requires gethostbyname() */
@@ -559,35 +542,27 @@ static void tcp_post_init (void)
   if (_mss > MSS_MAX)
       _mss = MSS_MAX;
 
-#if defined(__MSDOS__) && !defined(USE_UDP_ONLY)
-  {
-    DWORD max_rwin;
-
-    /* Work around a limitation of NDIS3PKT. It only allocates 6 buffers
-     * per VDD (DOS-box). Thus receiving a burts of RWIN/MSS packets, they
-     * could all get lost. Clamp our advertised RWIN. Hence, it's adviced
-     * to use SwsVpkt in a Windows DOS-box.
-     *
-     * Note: bandwidth <= 1.3 * MTU / (RTT * sqrt(Loss))
-     */
-    max_rwin = 6 * _mss;
-
-    if (_eth_ndis3pkt && tcp_recv_win > max_rwin)
-       tcp_recv_win = max_rwin;
-  }
-#endif
+  /* Work around a limitation of NDIS3PKT. It only allocates 6 buffers
+   * per VDD (DOS-box). Thus receiving a burts of RWIN/MSS packets, they
+   * could all get lost. Clamp our advertised RWIN.
+   *
+   * Note: bandwidth <= 1.3 * MTU / (RTT * sqrt(Loss))
+   */
+  max_rwin = 6 * _mss;
+  if (_eth_ndis3pkt && tcp_recv_win > max_rwin)
+     tcp_recv_win = max_rwin;
 
   if (usr_post_init)      /* tell hook(s) we're done */
     (*usr_post_init)();
 }
 
 /**
- * Try to boot-up the stack using BOOTP, DHCP or RARP.
+ * Try to boot using BOOTP, DHCP or RARP.
  * Only called if at least one '_*on' flag is set.
  *
  * \retval 0 on success.
  */
-static int tcp_do_bootp (BOOL try_bootp, BOOL try_dhcp, BOOL try_rarp)
+static int tcp_do_boot (BOOL try_bootp, BOOL try_dhcp, BOOL try_rarp)
 {
   if (try_bootp)
   {
@@ -650,67 +625,29 @@ static int tcp_do_bootp (BOOL try_bootp, BOOL try_dhcp, BOOL try_rarp)
 /*
  * A guard against this common error; The wattlib user forgot to rebuild
  * using the latest <tcp.h>.
- *
- * \todo: test this in a GUI program.
  */
 static void check_sock_sizes (size_t tcp_Sock_size, size_t udp_Sock_size)
 {
-  char  buf[100];
-  char *p = buf;
-
   if (tcp_Sock_size > 0 && tcp_Sock_size < sizeof(_tcp_Socket))
-     p += sprintf (p, "  sizeof(_tcp_Socket) in <tcp.h> too small (%u bytes)."
-                      " %d bytes needed\r\n", (int)tcp_Sock_size, SIZEOF(_tcp_Socket));
-
-  if (udp_Sock_size > 0 && udp_Sock_size < sizeof(_udp_Socket))
-     p += sprintf (p, "  sizeof(_udp_Socket) in <tcp.h> too small (%u bytes)."
-                      " %d bytes needed\r\n", (int)udp_Sock_size, SIZEOF(_udp_Socket));
-  if (p != buf)
   {
-    (*_printf) ("Watt-32 development error:\r\n%s", buf);
+    (*_printf) ("Watt-32 development error: sizeof(_tcp_Socket) in "
+                "<tcp.h> too small. %d bytes needed\n", SIZEOF(_tcp_Socket));
+    exit (-1);
+  }
+  if (udp_Sock_size > 0 && udp_Sock_size < sizeof(_udp_Socket))
+  {
+    (*_printf) ("Watt-32 development error: sizeof(_udp_Socket) in "
+                "<tcp.h> too small. %d bytes needed\n", SIZEOF(_udp_Socket));
     exit (-1);
   }
 }
+#endif
 
-static void check_time_t (size_t time_t_size)
-{
-#if 0
-  /*
-   * I'm not sure a 32-bit 'time_t' is needed for ABI compatibility (?).
-   * \note: a 'long' is still 32-bit on Win64.
-   */
-  if (time_t_size && time_t_size != sizeof(long))
-  {
-    (*_printf) ("Size mismatch in 'time_t'. Your application may break in "
-                "mysterious ways.\n"
-#if defined(_MSC_VER) || defined(__MINGW32__)
-                "Build with \"-D_USE_32BIT_TIME_T\"\n"
-#endif
-               );
-  }
-#endif
-  (void) time_t_size;
-}
-#endif  /* USE_DEBUG */
-
-#if defined(__MINGW32__)
-/*
- * Try to detect the situation where the 'MinGW32.mak' file was
- * erroneously used to build a 64-bit Watt-32 DLL. Since in MinGW-w64
- * or TDM-gcc, 'gcc' w/o '-m32', will generate 64-bit code, the result from
- * 'MinGW32.mak' is '../bin/watt-32.dll'. And not '../bin/watt-32_64.dll'
- * as was my intention behind the 'MinGW*.mak' namings.
- */
-static void check_mingw (void)
-{
-  return;  /* \todo: Find a clever way to detect the above error. */
-}
-#endif
 
 /*
  * Return error text for watt_sock_init() result.
  */
-const char *W32_CALL sock_init_err (int rc)
+const char * sock_init_err (int rc)
 {
   enum eth_init_result rc2 = rc;
 
@@ -723,10 +660,10 @@ const char *W32_CALL sock_init_err (int rc)
          return _LANG ("No memory for buffers");
 
     case WERR_PKT_ERROR:
-         return _LANG ("Error in " PKTDRVR_STR " interface");
+         return _LANG ("Error in PKTDRVR interface");
 
     case WERR_NO_DRIVER:
-         return _LANG ("No " PKTDRVR_STR " found");
+         return _LANG ("No PKTDRVR found");
 
     case WERR_BOOTP_FAIL:
          return _LANG ("BOOTP protocol failed");
@@ -749,23 +686,15 @@ const char *W32_CALL sock_init_err (int rc)
   return _LANG ("No error");
 }
 
-/*
- * Since 'RUNDOWN_ADD()' functions MUST be cdecl, call 'daemon_clear()'
- * (potentially '__fastcall') via this 'daemon_clear_cdecl()'.
- */
-static void W32_CALL daemon_clear_cdecl (void)
-{
-  daemon_clear();
-}
 
 /**
  * The main initialisation routine.
  * Called only once (during program startup).
- * sock_init() is a macro in <tcp.h>.
+ * sock_init() is not a macro in <tcp.h>.
  */
 static BOOL sock_init_called = FALSE;
 
-int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t time_t_size)
+int watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size)
 {
   static int rc = 0;
 
@@ -774,15 +703,12 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
 
   sock_init_called = TRUE;
 
-  memdbg_init();        /* Init Fortify or CrtDbg; a possible no-op */
-
-#if defined(USE_DEBUG)
-  _printf = printf;
+#if defined(USE_CRTDBG) || defined(USE_FORTIFY)
+  memdbg_init();
 #endif
 
 #if defined(WIN32)
   /* Nothing to do here */
-
 #elif defined(__HIGHC__)
   if (_mwenv != PL_ENV)
   {
@@ -802,18 +728,17 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
   }
 #endif
 
-#if defined(__MINGW32__)
-  check_mingw();
-#endif
-
 #if defined(USE_DEBUG)
   check_sock_sizes (tcp_Sock_size, udp_Sock_size);
-  check_time_t (time_t_size);
 #else
   ARGSUSED (tcp_Sock_size);
   ARGSUSED (udp_Sock_size);
-  ARGSUSED (time_t_size);
 #endif
+
+#if defined(USE_DEBUG) && defined(WATT32_DOS_DLL)
+  _printf = import_export.printf;
+#endif
+
 
   /* DOSX: Set DOS far-ptr, get CPU type, use BSWAP
    *       instruction on 486+CPUs, setup DOS transfer buffer.
@@ -821,10 +746,12 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
    */
   init_misc();
 
+#if !defined(MAKE_TSR)
   setup_sig_handlers();
+#endif
 
-  /* Init PKTDRVR/WinPcap/SwsVpkt, get ether-addr, set
-   * config-hook for parsing TCP-values.
+  /* Init PKTDRVR, get ether-addr, set config-hook for
+   * parsing TCP-values
    */
   rc = tcp_init();
 
@@ -832,12 +759,9 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
      return do_exit (rc);  /* else failed */
 
   _watt_is_init = TRUE;
+  start_time    = set_timeout (0);
+  start_day     = get_day_num();
 
- /* UPDATE: 26FEB2006 psuggs@pobox.com
-  *   Add a shutdown method to remove and clear the daemons so that
-  *   we can reinitialize cleanly.
-  */
-  RUNDOWN_ADD (daemon_clear_cdecl, 1000);
 
   /* Setup the ARP daemon, GvB 2002-09
    */
@@ -854,7 +778,7 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
   syslog_init();
 #endif
 
-#if defined(USE_BIND)
+#if defined (USE_BIND)
   res_init0();
 #endif
 
@@ -884,11 +808,13 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
 
   old_break = tcp_cbreak (0x10);
 
-  /* The one and only atexit() handler.
+  /* The only atexit() handler
    */
-  atexit (sock_exit);
+  atexit ((void(*)(void))sock_exit);
 
+#if !defined(MAKE_TSR)
   RUNDOWN_ADD (restore_sig_handlers, 3);
+#endif
 
   if (_watt_no_config && !_watt_user_config_fn)
   {
@@ -922,17 +848,15 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
   }
 
 #if defined(USE_DEBUG)
-  if (debug_xmit)          /* if dbug_init() called */
+  if (_dbugxmit)          /* if dbug_init() called */
   {
     dbug_open();
 #if defined(USE_BSD_API)
     _sock_dbug_open();
-#if defined(USE_FORTIFY)
-    Fortify_SetOutputFunc (bsd_fortify_print);
-#endif
 #endif
   }
 #endif
+
 
 #if defined(USE_DHCP)
   /*
@@ -952,10 +876,11 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
 
   if (_bootp_on || _dhcp_on || _rarp_on)
   {
-    rc = tcp_do_bootp (_bootp_on, _dhcp_on, _rarp_on);
+    rc = tcp_do_boot (_bootp_on, _dhcp_on, _rarp_on);
     if (rc && !survive_eth)
        return do_exit (rc);
   }
+
 
 #if defined(USE_PPPOE)
   if (!pppoe_start())
@@ -992,8 +917,8 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
     if (sin_mask == 0)
        outsnl ("Warning: \"NETMASK\" is 0.0.0.0 !");
 
-    if (_arp_check_gateways() == 0)
-       outsnl ("Warning: no default gateway!");
+    if (!_arp_check_gateways())
+       outsnl ("Warning: multiple or no default gateway!");
 #endif
   }
 
@@ -1011,9 +936,10 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
 #endif
 
 #if defined(USE_FRAGMENTS)
-  /* Initialise IPv4 fragment handling.
+  /*
+   * Add a daemon to check for IP-fragment time-outs.
    */
-  ip4_frag_init();
+  addwattcpd (chk_timeout_frags);
 #endif
 
   /* if "ICMP_MASK_REQ = 1" in wattcp.cfg, send an ICMP_MASK_REQ.
@@ -1026,7 +952,7 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
    * If application supplied a tftp_writer hook, try to load
    * the specified BOOT-file.
    */
-  if (_tftp_write)
+  if (tftp_writer)
      tftp_boot_load();
 #endif
 
@@ -1045,9 +971,9 @@ int W32_CALL watt_sock_init (size_t tcp_Sock_size, size_t udp_Sock_size, size_t 
  * Old compatibility (if user didn't include <tcp.h>
  */
 #undef sock_init
-int W32_CALL sock_init (void)
+int sock_init (void)
 {
-  return watt_sock_init (0, 0, sizeof(time_t));
+  return watt_sock_init (0, 0);
 }
 
 
@@ -1065,16 +991,17 @@ void MS_CDECL sock_exit (void)
     if (!_watt_fatal_error)
        tcp_shutdown();
 
-    /* Closed the PKTDRVR/WinPcap etc. No effect if already done.
+    /* Closed the PKTDRVR etc. No effect if already done.
      */
     rundown_run();
   }
 }
 
+
 /**
  * Exit handler for unhandled signals.
  */
-void W32_CALL sock_sig_exit (const char *msg, int sig)
+void sock_sig_exit (const char *msg, int sig)
 {
 #if defined(SIGBREAK)
   if (sig == SIGBREAK) /* should only happen for Watcom (from signal.c) */
@@ -1119,9 +1046,8 @@ void W32_CALL sock_sig_exit (const char *msg, int sig)
   sig = 0;
 #endif
 
-#if (defined(__BORLANDC__) || defined(__TURBOC__)) && !defined(__FLAT__) && !defined(WIN32)
-  if (_stklen < 0x1000)
-      _stklen = 0x1000;   /* avoid stack-overflow during exit() */
+#if (defined(__BORLANDC__) || defined(__TURBOC__)) && !defined(__FLAT__)
+  _stklen = 0x1000;   /* avoid stack-overflow during exit() */
 #endif
 
 #if !defined(__POCC__)
@@ -1134,14 +1060,14 @@ void W32_CALL sock_sig_exit (const char *msg, int sig)
 
 
 /*
- * Make sure user links the correct C-libs.
+ * Make sure user links the correct C-libs
  */
 #if defined(WATCOM386)
-  #if defined(__SW_3R)   /* '-3r' in CFLAGS */
+  #if defined(__SW_3R)
     #pragma library ("clib3r.lib");
     #pragma library ("math387r.lib");
 
-  #else /* __SW_3S, '-3s' in CFLAGS */
+  #else /* __SW_3S */
     #pragma library ("clib3s.lib");
     #pragma library ("math387s.lib");
   #endif
@@ -1165,12 +1091,12 @@ void W32_CALL sock_sig_exit (const char *msg, int sig)
 #elif defined(__DMC__) && 0
   #if defined(WIN32)
     #pragma comment (lib, "wattcpd_imp.lib")
-  #elif defined(__SMALL32__)
-    #pragma comment (lib, "wattcpDF.lib")
-  #elif defined(__SMALL__)
+  #elif defined(__SMALL16__)
     #pragma comment (lib, "wattcpDS.lib")
   #elif defined(__LARGE__)
     #pragma comment (lib, "wattcpDL.lib")
+  #elif defined(DMC386)
+    #pragma comment (lib, "wattcpDF.lib")
   #endif
 #endif
 

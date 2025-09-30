@@ -3,7 +3,7 @@
  *  Simple ring-buffer queue handler for reception of packets
  *  from network driver.
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@ int pktq_init (struct pkt_ringbuf *q, int size, int num, char *buf)
 {
   q->buf_size  = size;
   q->num_buf   = num;
-  q->buf_start = (DWORD_PTR) buf;
+  q->buf_start = (DWORD) buf;
   q->in_index  = 0;
   q->out_index = 0;
 #if (DOSX & DOS4GW)
@@ -150,11 +150,11 @@ char *pktq_out_buf (struct pkt_ringbuf *q)
 
 
 /*
- * Clear the queue ring-buffer by setting head = tail.
+ * Clear the queue ring-buffer by setting head=tail.
  */
 void pktq_clear (struct pkt_ringbuf *q)
 {
-#if defined(USE_FAST_PKT) && defined(__MSDOS__)
+#if defined(USE_FAST_PKT) && !defined(WIN32)
   WORD out_ofs;
 
   DISABLE();
@@ -191,7 +191,7 @@ int pktq_queued (struct pkt_ringbuf *q)
 }
 
 
-#if defined(USE_FAST_PKT) && defined(__MSDOS__)
+#if defined(USE_FAST_PKT) && !defined(WIN32)
 
 #if (DOSX == 0)
 #error USE_FAST_PKT is not for real-mode targets.
@@ -278,4 +278,4 @@ int pktq_far_init (int size, int num, DWORD real_base)
 #endif
   return (1);
 }
-#endif /* USE_FAST_PKT && __MSDOS__ */
+#endif /* USE_FAST_PKT && !WIN32 */

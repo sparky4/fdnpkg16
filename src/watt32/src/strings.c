@@ -9,7 +9,6 @@
 
 #include "wattcp.h"
 #include "misc.h"
-#include "pcdbug.h"
 #include "strings.h"
 
 /*
@@ -29,20 +28,18 @@
 /*
  * Print a single character to stdout.
  */
-static int W32_CALL outch (char chr)
+static void outch (char chr)
 {
   if (chr == (char)0x1A)     /* EOF (^Z) causes trouble to stdout */
-     return (0);
+     return;
 
 #if defined(WIN32)
-  if (stdout_hnd != INVALID_HANDLE_VALUE)
   {
-    DWORD written = 0UL;
+    HANDLE hnd = GetStdHandle (STD_OUTPUT_HANDLE);
 
-    WriteConsoleA (stdout_hnd, &chr, 1, &written, NULL);
-    return (int) written;
+    if (hnd != INVALID_HANDLE_VALUE)
+       WriteConsoleA (hnd, &chr, 1, NULL, NULL);
   }
-
 #elif !(DOSX)
   /* Qemm doesn't like INT 21 without a valid ES reg. intdos() sets up that.
    */
@@ -97,31 +94,33 @@ static int W32_CALL outch (char chr)
 #else
   #error Tell me how to do this
 #endif
-
-  return (1);
 }
 
-int (W32_CALL *_outch)(char c) = outch;
+void (*_outch)(char c) = outch;
 
 /*---------------------------------------------------*/
 
 #if defined(USE_DEBUG)
-  int (MS_CDECL *_printf) (const char*, ...) = printf;
+  #if defined(WATT32_DOS_DLL)   /* cannot use 'import_export.printf' here */
+    int (MS_CDECL *_printf) (const char*, ...) = NULL;
+  #else
+    int (MS_CDECL *_printf) (const char*, ...) = printf;
+  #endif
 #else
-  static int MS_CDECL empty_printf (const char *fmt, ...)
+  static int MS_CDECL EmptyPrint (const char *fmt, ...)
   {
     outsnl ("`(*_printf)()' called outside `USE_DEBUG'");
     ARGSUSED (fmt);
     return (0);
   }
-  int (MS_CDECL *_printf) (const char*, ...) = empty_printf;
+  int (MS_CDECL *_printf) (const char*, ...) = EmptyPrint;
 #endif
 
 /*---------------------------------------------------*/
 
-void W32_CALL outs (const char *s)
+void outs (const char *s)
 {
-  while (_outch && s && *s)
+  while (s && *s)
   {
     if (*s == '\n')
        (*_outch) ('\r');
@@ -129,15 +128,16 @@ void W32_CALL outs (const char *s)
   }
 }
 
-void W32_CALL outsnl (const char *s)
+void outsnl (const char *s)
 {
   outs (s);
-  outs ("\n");
+  (*_outch) ('\r');
+  (*_outch) ('\n');
 }
 
-void W32_CALL outsn (const char *s, int n)
+void outsn (const char *s, int n)
 {
-  while (_outch && *s != '\0' && n-- >= 0)
+  while (*s != '\0' && n-- >= 0)
   {
     if (*s == '\n')
        (*_outch) ('\r');
@@ -145,15 +145,10 @@ void W32_CALL outsn (const char *s, int n)
   }
 }
 
-void W32_CALL outhex (char c)
+void outhex (char c)
 {
-  char lo, hi;
-
-  if (!_outch)
-     return;
-
-  hi = (c & 0xF0) >> 4;
-  lo = c & 15;
+  char hi = (c & 0xF0) >> 4;
+  char lo = c & 15;
 
   if (hi > 9)
        (*_outch) ((char)(hi-10+'A'));
@@ -164,9 +159,9 @@ void W32_CALL outhex (char c)
   else (*_outch) ((char)(lo+'0'));
 }
 
-void W32_CALL outhexes (const char *s, int n)
+void outhexes (const char *s, int n)
 {
-  while (_outch && n-- > 0)
+  while (n-- > 0)
   {
     outhex (*s++);
     (*_outch) (' ');
@@ -178,7 +173,7 @@ void W32_CALL outhexes (const char *s, int n)
  * Removes "\n" (Unix), "\r" (MacOS) or "\r\n" (DOS/net-ascii)
  * terminations, but not single "\n\r" (who uses that?).
  */
-char * W32_CALL rip (char *s)
+char *rip (char *s)
 {
   char *p;
 
@@ -194,8 +189,8 @@ char * W32_CALL rip (char *s)
  */
 BYTE atox (const char *hex)
 {
-  unsigned hi = toupper ((int)hex[2]);
-  unsigned lo = toupper ((int)hex[3]);
+  unsigned hi = toupper (hex[2]);
+  unsigned lo = toupper (hex[3]);
 
   hi -= isdigit (hi) ? '0' : 'A'-10;
   lo -= isdigit (lo) ? '0' : 'A'-10;
@@ -203,14 +198,13 @@ BYTE atox (const char *hex)
 }
 
 /**
- * Replace 'ch1' to 'ch2' in string 'str'.
+ * Replace 'ch1' to 'ch2' in string.
  */
 char *strreplace (int ch1, int ch2, char *str)
 {
   char *s = str;
 
   WATT_ASSERT (str != NULL);
-
   while (*s)
   {
     if (*s == ch1)
@@ -220,22 +214,23 @@ char *strreplace (int ch1, int ch2, char *str)
   return (str);
 }
 
+
 /**
  * Similar to strncpy(), but always returns 'dst' with 0-termination.
+ * \note Don't call this strlcpy() in case Watt-32 was compiled with
+ *       djgpp 2.03, but linked with 2.04 (which already have strlcpy).
+ *       And vice-versa.
  */
-char *_strlcpy (char *dst, const char *src, size_t len)
+char *StrLcpy (char *dst, const char *src, size_t len)
 {
-  size_t slen;
-
   WATT_ASSERT (src != NULL);
   WATT_ASSERT (dst != NULL);
   WATT_ASSERT (len > 0);
 
-  slen = strlen (src);
-  if (slen < len)
+  if (strlen(src) < len)
      return strcpy (dst, src);
 
-  memcpy (dst, src, len-1);
+  memcpy (dst, src, len);
   dst [len-1] = '\0';
   return (dst);
 }
@@ -245,15 +240,17 @@ char *_strlcpy (char *dst, const char *src, size_t len)
  */
 char *strltrim (const char *s)
 {
+  const char *p = s;
+
   WATT_ASSERT (s != NULL);
 
-  while (s[0] && s[1] && isspace((int)s[0]))
-       s++;
-  return (char*)s;
+  while (p[0] && p[1] && isspace(*p))
+       p++;
+  return (char*)p;
 }
 
 /**
- * Return pointer to string with trailing blanks (space/tab) removed.
+ * Trim trailing blanks (space/tab) from a string.
  */
 char *strrtrim (char *s)
 {
@@ -264,53 +261,11 @@ char *strrtrim (char *s)
   n = strlen (s);
   while (n)
   {
-    if (!isspace((int)s[--n]))
+    if (!isspace(s[--n]))
        break;
     s[n] = '\0';
   }
   return (s);
-}
-
-/**
- * Copy a string (to 'dest') with all excessive blanks (space/tab) removed.
- */
-char *strtrim (const char *orig, char *dest, size_t len)
-{
-  size_t i, j;
-  int    ch, last = -1;
-
-  WATT_ASSERT (orig != NULL);
-  WATT_ASSERT (dest != NULL);
-
-  for (i = j = 0; i < len && j < len-1; i++)
-  {
-    ch = orig[i];
-    if (isspace(ch) && isspace(last))
-    {
-      last = ch;
-      continue;
-    }
-    dest[j++] = ch;
-    last = ch;
-  }
-  dest[j] = '\0';
-  return (dest);
-}
-
-/*
- * Reverse string 'str' in place.
- */
-char *strreverse (char *str)
-{
-  int i, j;
-
-  for (i = 0, j = strlen(str)-1; i < j; i++, j--)
-  {
-    char c = str[i];
-    str[i] = str[j];
-    str[j] = c;
-  }
-  return (str);
 }
 
 /**
@@ -332,13 +287,13 @@ size_t strntrimcpy (char *dst, const char *src, size_t n)
 
   if (n && s[0])
   {
-    while (isspace((int)*s))
+    while (isspace(*s))
           ++s;
     len = strlen (s);
     if (len)
     {
       const char *e = &s[len-1];
-      while (isspace((int)*e))
+      while (isspace(*e))
       {
         --e;
         --len;
@@ -351,49 +306,6 @@ size_t strntrimcpy (char *dst, const char *src, size_t n)
   if (len < n)
      dst[len] = '\0';
   return (len);
-}
-
-/*
- * A strtok_r() function taken from libcurl:
- *
- * Copyright (C) 1998 - 2007, Daniel Stenberg, <daniel@haxx.se>, et al.
-  */
-char *strtok_r (char *ptr, const char *sep, char **end)
-{
-  if (!ptr)
-  {
-    /* we got NULL input so then we get our last position instead */
-    ptr = *end;
-  }
-
-  /* pass all letters that are including in the separator string */
-  while (*ptr && strchr(sep, *ptr))
-    ++ptr;
-
-  if (*ptr)
-  {
-    /* so this is where the next piece of string starts */
-    char *start = ptr;
-
-    /* set the end pointer to the first byte after the start */
-    *end = start + 1;
-
-    /* scan through the string to find where it ends, it ends on a
-     *  null byte or a character that exists in the separator string.
-     */
-    while (**end && !strchr(sep, **end))
-      ++*end;
-
-    if (**end)
-    {
-      /* the end is not a null byte */
-      **end = '\0';  /* zero terminate it! */
-      ++*end;        /* advance the last pointer to beyond the null byte */
-    }
-    return (start);  /* return the position where the string starts */
-  }
-  /* we ended up on a null byte, there are no more strings to find! */
-  return (NULL);
 }
 
 #ifdef NOT_USED
@@ -414,54 +326,3 @@ int isstring (const char *str, size_t len)
   return (1);
 }
 #endif
-
-#if defined(WIN32) || defined(WIN64)    /* rest of file */
-#include <wchar.h>
-
-static const char *wide_string (const wchar_t *in_str, UINT cp)
-{
-  static char buf [300];
-
-  buf[0] = '\0';
-  if (WideCharToMultiByte(cp, 0, in_str, -1,
-                          buf, sizeof(buf), NULL, NULL) == 0)
-     SNPRINTF (buf, sizeof(buf),
-               "WideCharToMultiByte() failed: %s", win_strerror(GetLastError()));
-  return (buf);
-}
-
-static const wchar_t *ascii_string (const char *in_str, UINT cp)
-{
-  static wchar_t buf [300];
-
-  buf[0] = '\0';
-  if (MultiByteToWideChar(cp, 0, in_str, -1, buf, DIM(buf)) == 0)
-  {
-    CONSOLE_MSG (2, ("MultiByteToWideChar() failed: %s", win_strerror(GetLastError())));
-    return (L"??");
-  }
-  return (buf);
-}
-
-const wchar_t *astring_acp (const char *in_str)
-{
-  return ascii_string (in_str, CP_ACP);
-}
-
-const wchar_t *astring_utf8 (const char *in_str)
-{
-  return ascii_string (in_str, CP_UTF8);
-}
-
-const char *wstring_acp (const wchar_t *in_str)
-{
-  return wide_string (in_str, CP_ACP);
-}
-
-const char *wstring_utf8 (const wchar_t *in_str)
-{
-  return wide_string (in_str, CP_UTF8);
-}
-#endif  /* WIN32 || WIN64 */
-
-

@@ -182,11 +182,10 @@ W32_DATA int h_errno;
 #define AI_PASSIVE      0x00000001 /* get address to use bind() */
 #define AI_CANONNAME    0x00000002 /* fill ai_canonname */
 #define AI_NUMERICHOST  0x00000004 /* prevent name resolution */
-#define AI_IDN          0x00000008 /* convert ti IDN form as needed */
 
 /* valid flags for addrinfo
  */
-#define AI_MASK         (AI_PASSIVE | AI_CANONNAME | AI_NUMERICHOST | AI_IDN)
+#define AI_MASK         (AI_PASSIVE | AI_CANONNAME | AI_NUMERICHOST)
 
 #define AI_ALL          0x00000100 /* IPv6 and IPv4-mapped (with AI_V4MAPPED) */
 #define AI_V4MAPPED_CFG 0x00000200 /* accept IPv4-mapped if kernel supports */
@@ -221,17 +220,14 @@ W32_DATA int h_errno;
 __BEGIN_DECLS
 
 W32_FUNC void              W32_CALL endhostent     (void);
-W32_FUNC void              W32_CALL endhostent6    (void);
 W32_FUNC void              W32_CALL endnetent      (void);
 W32_FUNC void              W32_CALL endprotoent    (void);
 W32_FUNC void              W32_CALL endservent     (void);
-W32_FUNC struct hostent  * W32_CALL gethostbyaddr  (const char *, socklen_t, int);
-W32_FUNC struct hostent  * W32_CALL gethostbyaddr6 (const void *);
-W32_FUNC struct hostent  * W32_CALL gethostbyname  (const char *name);
-W32_FUNC struct hostent  * W32_CALL gethostbyname2 (const char *name, int af);
-W32_FUNC struct hostent  * W32_CALL gethostbyname6 (const char *name);
+
+W32_FUNC struct hostent  * W32_CALL gethostbyaddr  (const char *, int, int);
+W32_FUNC struct hostent  * W32_CALL gethostbyname  (const char *);
+W32_FUNC struct hostent  * W32_CALL gethostbyname2 (const char *, int af);
 W32_FUNC struct hostent  * W32_CALL gethostent     (void);
-W32_FUNC struct hostent  * W32_CALL gethostent6    (void);
 W32_FUNC struct hostent  * W32_CALL getipnodebyaddr(const void *, size_t, int, int *);
 W32_FUNC struct hostent  * W32_CALL getipnodebyname(const char *, int, int, int *);
 W32_FUNC struct netent   * W32_CALL getnetbyaddr   (long, int);
@@ -245,19 +241,17 @@ W32_FUNC struct servent  * W32_CALL getservbyport  (int, const char *);
 W32_FUNC struct servent  * W32_CALL getservent     (void);
 W32_FUNC void              W32_CALL herror         (const char *);
 W32_FUNC const char      * W32_CALL hstrerror      (int);
-W32_FUNC void              W32_CALL sethostent     (int stayopen);
-W32_FUNC void              W32_CALL sethostent6    (int stayopen);
+W32_FUNC void              W32_CALL sethostent     (int);
 W32_FUNC void              W32_CALL setnetent      (int);
 W32_FUNC void              W32_CALL setprotoent    (int);
 W32_FUNC void              W32_CALL setservent     (int);
 
-W32_FUNC int    W32_CALL getnameinfo (const struct sockaddr *sa, socklen_t salen,
-                                      char *host, socklen_t hostlen,
-                                      char *serv, socklen_t servlen, int flags);
+W32_FUNC int W32_CALL getnameinfo (const struct sockaddr *sa, int salen,
+                                   char *host, int hostlen,
+                                   char *serv, int servlen, int flags);
 
-W32_FUNC int    W32_CALL getaddrinfo (const char *hostname, const char *servname,
-                                      const struct addrinfo *hints,
-                                      struct addrinfo **res);
+W32_FUNC int W32_CALL getaddrinfo (const char *hostname, const char *servname,
+                                   const struct addrinfo *hints, struct addrinfo **res);
 
 W32_FUNC void   W32_CALL freeaddrinfo (struct addrinfo *ai);
 W32_FUNC void   W32_CALL freehostent  (struct hostent *);
@@ -268,65 +262,48 @@ W32_FUNC char * W32_CALL if_indextoname (int, char *);
 
 W32_FUNC int  * W32_CALL __h_errno_location (void);
 
-/*
- * The implementation of these reentrant 'getXbyY_r()' functions is not
- * finished (ref. ./src/get_xbyr.c). And since MinGW-w64 has '_REENTRANT'
- * as a built-in, we do not provide any prototypes for these yet.
- */
-#if defined(_REENTRANT) && !defined(__MINGW64_VERSION_MAJOR)
-  W32_FUNC struct hostent *
-  W32_CALL gethostbyaddr_r (
-           const char *addr, int len, int type, struct hostent *result,
-           char *buffer, int buflen, int *h_errnop );
+#if defined(_REENTRANT)
+W32_FUNC struct hostent * W32_CALL gethostbyaddr_r (
+  const char *addr, int len, int type, struct hostent *result,
+  char *buffer, int buflen, int *h_errnop);
 
-  W32_FUNC struct hostent *
-  W32_CALL gethostbyname_r (
-           const char *name, struct hostent *result,
-           char *buffer, int buflen, int *h_errnop);
+W32_FUNC struct hostent * W32_CALL gethostbyname_r (
+  const char *name, struct hostent *result,
+  char *buffer, int buflen, int *h_errnop);
 
-  W32_FUNC struct hostent *
-  W32_CALL gethostent_r (
-           struct hostent *result, char *buffer, int buflen, int *h_errnop);
+W32_FUNC struct hostent * W32_CALL gethostent_r (
+  struct hostent *result, char *buffer, int buflen, int *h_errnop);
 
-  W32_FUNC struct netent *
-  W32_CALL getnetbyaddr_r (
-           long net, int type, struct netent *result, char *buffer, int buflen);
+W32_FUNC struct netent * W32_CALL getnetbyaddr_r (
+  long net, int type, struct netent *result, char *buffer, int buflen);
 
-  W32_FUNC struct netent *
-  W32_CALL getnetbyname_r (
-           const char *name, struct netent *result, char *buffer, int buflen);
+W32_FUNC struct netent * W32_CALL getnetbyname_r (
+  const char *name, struct netent *result, char *buffer, int buflen);
 
-  W32_FUNC struct netent *
-  W32_CALL getnetent_r (
-           struct netent *result, char *buffer, int buflen);
+W32_FUNC struct netent * W32_CALL getnetent_r (
+  struct netent *result, char *buffer, int buflen);
 
-  W32_FUNC struct protoent *
-  W32_CALL getprotobyname_r (
-           const char *name, struct protoent *result, char *buffer, int buflen);
+W32_FUNC struct protoent * W32_CALL getprotobyname_r (
+  const char *name, struct protoent *result, char *buffer, int buflen);
 
-  W32_FUNC struct protoent *
-  W32_CALL getprotobynumber_r (
-           int proto, struct protoent *result, char *buffer, int buflen);
+W32_FUNC struct protoent * W32_CALL getprotobynumber_r (
+  int proto, struct protoent *result, char *buffer, int buflen);
 
-  W32_FUNC struct protoent *
-  W32_CALL getprotoent_r (
-           struct protoent *result, char *buffer, int buflen);
+W32_FUNC struct protoent * W32_CALL getprotoent_r (
+  struct protoent *result, char *buffer, int buflen);
 
-  W32_FUNC struct servent *
-  W32_CALL getservbyname_r (
-           const char *name, const char *proto, struct servent *result,
-           char *buffer, int buflen);
+W32_FUNC struct servent * W32_CALL getservbyname_r (
+  const char *name, const char *proto, struct servent *result,
+  char *buffer, int buflen);
 
-  W32_FUNC struct servent *
-  W32_CALL getservbyport_r (
-           int port, const char *proto, struct servent *result,
-           char *buffer, int buflen);
+W32_FUNC struct servent * W32_CALL getservbyport_r (
+  int port, const char *proto, struct servent *result,
+  char *buffer, int buflen);
 
-  W32_FUNC struct servent *
-  W32_CALL getservent_r (
-           struct servent *result, char *buffer, int buflen);
+W32_FUNC struct servent * W32_CALL getservent_r (
+  struct servent *result, char *buffer, int buflen);
 
-#endif /* _REENTRANT && !__MINGW64_VERSION_MAJOR */
+#endif /* _REENTRANT */
 
 __END_DECLS
 

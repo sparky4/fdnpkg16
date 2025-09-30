@@ -2,9 +2,9 @@
  * BSD connect().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@ static int nblk_connect (Socket *socket);
  *  foreign port address.  This is achieved by specifying the foreign IP
  *  address and foreign port number in the "servaddr".
  */
-int W32_CALL connect (int s, const struct sockaddr *servaddr, socklen_t addrlen)
+int W32_CALL connect (int s, const struct sockaddr *servaddr, int addrlen)
 {
   struct   sockaddr_in  *addr   = (struct sockaddr_in*) servaddr;
   struct   sockaddr_in6 *addr6  = (struct sockaddr_in6*) servaddr;
@@ -176,8 +176,8 @@ int W32_CALL connect (int s, const struct sockaddr *servaddr, socklen_t addrlen)
    */
   if (_sock_sig_setup() < 0)
   {
-    SOCK_DEBUGF ((", EINTR"));
     SOCK_ERRNO (EINTR);
+    SOCK_DEBUGF ((", EINTR"));
     _sock_crit_stop();
     return (-1);
   }
@@ -330,7 +330,7 @@ static int tcp_connect (Socket *socket)
      */
     socket->so_error = EALREADY;
     socket->nb_timer = timeout;
-    SOCK_DEBUGF ((", EINPROGRESS (-1)"));
+    SOCK_DEBUGF ((", EINPROGRESS"));
     SOCK_ERRNO (EINPROGRESS);
     return (-1);
   }

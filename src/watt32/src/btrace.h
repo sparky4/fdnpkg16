@@ -8,9 +8,9 @@
  *
  * NOT FINISHED.
  */
-#define backtrace             W32_NAMESPACE (backtrace)
-#define backtrace_init        W32_NAMESPACE (backtrace_init)
-#define backtrace_symbols_fd  W32_NAMESPACE (backtrace_symbols_fd)
+#define backtrace             NAMESPACE (backtrace)
+#define backtrace_init        NAMESPACE (backtrace_init)
+#define backtrace_symbols_fd  NAMESPACE (backtrace_symbols_fd)
 
 extern int backtrace_init       (const char *prog);
 extern int backtrace            (void **buf, int size);

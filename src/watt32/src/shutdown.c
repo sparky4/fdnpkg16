@@ -2,9 +2,9 @@
  * BSD shutdown().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -38,10 +38,6 @@
 #include "socket.h"
 
 #if defined(USE_BSD_API)
-
-#define SHUT_RD   0    /* Further receives are disallowed */
-#define SHUT_WR   1    /* Further sends are disallowed */
-#define SHUT_RDWR 2    /* Further sends and receives are disallowed */
 
 int W32_CALL shutdown (int s, int how)
 {

@@ -1757,7 +1757,7 @@ const char *state_name (int state)
 }
 
 /*
- * Parse file and build up an EXPORT list.
+ * Pars file and uild up an EXPORT list.
  */
 void parse_file (const char *fname)
 {
@@ -1938,7 +1938,7 @@ char *trim (char *str)
   while (p > start && (*p == ' ' || *p == '\t'))
         *p-- = '\0';
   return (start);
-}
+}      
 
 /*
  * Return identifier in 'str'.

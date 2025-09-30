@@ -9,70 +9,43 @@
 #include "misc.h"
 #include "timer.h"
 #include "sock_ini.h"
+#include "getopt.h"
 #include "gettod.h"
 #include "chksum.h"
 #include "cpumodel.h"
 
-#undef START_TIME
-
-/* The 64-bit version of in_checksum_fast() simply does a
- * 'jmp _w32_in_checksum'. Doesn't seems to hurt on speed.
- */
-#if (DOSX)
-  #define HAVE_IN_CHKSUM_FAST
-#endif
-
-long loops   = 20000;
-long ip_size = 10000;
+#undef start_time
 
 #if defined(HAVE_UINT64)
-  static uint64 start64, delta64;
+  static uint64 start64;
 
-  const char *get_clk_calls (void)
+  const char *get_clk_calls (uint64 delta, long loops)
   {
     static char buf[30];
 
     if (!has_rdtsc)
        return ("");
 
-    sprintf (buf, "(%" U64_FMT " clk/call, ", delta64/loops);
+    sprintf (buf, "(%Lu clk/call)", delta/loops);
     return (buf);
   }
-
-  const char *get_usec_calls (void)
-  {
-    static char buf[30];
-    uint64 clocks;
-    double usec;
-
-    if (clocks_per_usec == 0)
-       return ("? uS/call)");
-
-    clocks = delta64 / loops;
-    usec = (double)clocks / (double)clocks_per_usec;
-    sprintf (buf, "%.3f uS/call)", usec);
-    return (buf);
-  }
-
-  #define START_TIME() start64 = get_rdtsc()
-  #define DELTA_TIME() delta64 = get_rdtsc() - start64
+  #define start_time() start64 = get_rdtsc()
 
 #else
-  #define START_TIME()        ((void)0)
-  #define DELTA_TIME()        ((void)0)
-  #define get_clk_calls(d,l)  ""
-  #define get_usec_calls(d,l) ""
+  #define start_time()       ((void)0)
+  #define get_clk_calls(d,l) ""
 #endif
+
+long loops   = 20000;
+long ip_size = 10000;
 
 
 /*
- * Some notes:
- *
- * Timing 'in_checksum_fast()' and 'in_checksum()' reveals that
+ * Some notes: timing in_checksum_fast() and in_checksum() reveals that
  * Watcom's wcc386 is around 100% faster that gcc 2.95.2. And that
- * 'in_checksum_fast()' is around 2.5 times faster than 'in_checksum()'
- * compiled with wcc386. Hence using 'in_checksum_fast()' for djgpp
- * targets gives around 450% performance gain !!
+ * in_checksum_fast() is around 2.5 times faster than in_checksum() compiled
+ * with wcc386. Hence using in_checksum_fast() for djgpp targets gives
+ * around 450% performance gain !!
  */
 
 const char * Delta_ms (clock_t dt)
@@ -112,65 +85,66 @@ WORD ip_checksum_dummy (const char *ptr, int len)
 int test_checksum_speed (const char *buf)
 {
   struct timeval start, now;
+  int    i;
   long   j;
 
   /*---------------------------------------------------------------*/
   printf ("Timing in_checksum()....... ");
   fflush (stdout);
   gettimeofday2 (&start, NULL);
-  START_TIME();
+  start_time();
 
   for (j = 0; j < loops; j++)
-      in_checksum (buf, ip_size);
+      i = ~in_checksum (buf, ip_size);
 
   gettimeofday2 (&now, NULL);
-  DELTA_TIME();
-  printf ("time ....%.6fs %s%s\n",
-          timeval_diff(&now, &start)/1E6, get_clk_calls(), get_usec_calls());
+  printf ("time ....%.6fs %s\n",
+          timeval_diff (&now, &start)/1E6,
+          get_clk_calls(get_rdtsc()-start64,loops));
 
   /*---------------------------------------------------------------*/
   printf ("Timing ip_checksum()....... ");
   fflush (stdout);
   gettimeofday2 (&start, NULL);
-  START_TIME();
+  start_time();
 
   for (j = 0; j < loops; j++)
-      ip_checksum (buf, ip_size);
+      i = ~ip_checksum (buf, ip_size);
 
   gettimeofday2 (&now, NULL);
-  DELTA_TIME();
-  printf ("time ....%.6fs %s%s\n",
-          timeval_diff (&now, &start)/1E6, get_clk_calls(), get_usec_calls());
+  printf ("time ....%.6fs %s\n",
+          timeval_diff (&now, &start)/1E6,
+          get_clk_calls(get_rdtsc()-start64,loops));
 
-#if defined(HAVE_IN_CHKSUM_FAST)
+#if (DOSX)
   /*---------------------------------------------------------------*/
   printf ("Timing in_checksum_fast().. ");
   fflush (stdout);
   gettimeofday2 (&start, NULL);
-  START_TIME();
+  start_time();
 
   for (j = 0; j < loops; j++)
-      in_checksum_fast (buf, ip_size);
+      i = ~in_checksum_fast (buf, ip_size);
 
   gettimeofday2 (&now, NULL);
-  DELTA_TIME();
-  printf ("time ....%.6fs %s%s\n",
-          timeval_diff(&now, &start)/1E6, get_clk_calls(), get_usec_calls());
+  printf ("time ....%.6fs %s\n",
+          timeval_diff (&now, &start)/1E6,
+          get_clk_calls(get_rdtsc()-start64,loops));
 #endif
 
   /*---------------------------------------------------------------*/
   printf ("Timing overhead............ ");
   fflush (stdout);
   gettimeofday2 (&start, NULL);
-  START_TIME();
+  start_time();
 
   for (j = 0; j < loops; j++)
-      ip_checksum_dummy (buf, ip_size);
+      i = ~ip_checksum_dummy (buf, ip_size);
 
   gettimeofday2 (&now, NULL);
-  DELTA_TIME();
-  printf ("time ....%.6fs %s%s\n",
-          timeval_diff(&now, &start)/1E6, get_clk_calls(), get_usec_calls());
+  printf ("time ....%.6fs %s\n",
+          timeval_diff (&now, &start)/1E6,
+          get_clk_calls(get_rdtsc()-start64,loops));
   return (0);
 }
 
@@ -183,7 +157,7 @@ int test_checksum_correctness (const char *buf)
     WORD len   = 10 + (i % 1000);
     WORD csum1 = ~in_checksum (buf, len);
     WORD csum2 = ~ip_checksum (buf, len);
-#if defined(HAVE_IN_CHKSUM_FAST)
+#if (DOSX)
     WORD csum3 = ~in_checksum_fast (buf, len);
 #else
     WORD csum3 = 0;
@@ -242,7 +216,7 @@ int main (int argc, char **argv)
            break;
       case 'i':
            ip_size = atol (optarg);
-           if (ip_size <= 100 || ip_size > (long)USHRT_MAX)
+           if (ip_size <= 100 || ip_size > USHRT_MAX)
            {
              printf ("`-i' argument must be 101 - %u", USHRT_MAX);
              return (-1);

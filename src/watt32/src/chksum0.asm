@@ -16,17 +16,15 @@
 ; - Changes for DOSX targets and various compiler naming styles.
 ;
 
-ifdef DOSX    ; only for DOSX-targets including WIN32/WIN64
+ifdef DOSX    ; only for DOSX-targets including WIN32
 
 PAGE 66, 132
 
-PUBLIC _w32_in_checksum_fast, __w32_in_checksum_fast, in_checksum_fast
-PUBLIC _w32_in_chksum_fast,   __w32_in_chksum_fast,   in_chksum_fast   ; old names
+PUBLIC _w32_in_checksum_fast, __w32_in_checksum_fast
+PUBLIC _w32_inchksum_fast,    __w32_in_chksum_fast     ; old names
 
 LOOP_UNROLLING_BITS  equ  5
 LOOP_UNROLLING       equ  (1 SHL LOOP_UNROLLING_BITS)
-
-ifndef WIN64
 
 .386
 
@@ -54,11 +52,10 @@ to_checksum_dword_loop_done:
 ;
 ; WORD cdecl in_checksum_fast (const void *buf, unsigned len);
 ;
-      in_checksum_fast:
+
  _w32_in_checksum_fast:
 __w32_in_checksum_fast:
-      in_chksum_fast:
- _w32_in_chksum_fast:
+ _w32_inchksum_fast:
 __w32_in_chksum_fast:
 
        push ebx
@@ -275,7 +272,6 @@ comment ~
 ;
 ; For Watcom register calls
 ;
-     in_checksum_fast_:
 _w32_in_checksum_fast_:
        push  edx
        push  ecx
@@ -287,25 +283,6 @@ _w32_in_checksum_fast_:
        ret
    ~
 
-else  ; WIN64
-
-;
-; Probably no speed to gain from the above. Just jump to the C-version
-;  of in_checksum().
-
-.CODE
-
-extern _w32_in_checksum: near
-
-      in_checksum_fast:
- _w32_in_checksum_fast:
-__w32_in_checksum_fast:
-      in_chksum_fast:
- _w32_in_chksum_fast:
-__w32_in_chksum_fast:
-      jmp _w32_in_checksum
-
-endif ; WIN64
 endif ; DOSX
 
 end

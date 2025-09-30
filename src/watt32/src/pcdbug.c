@@ -1,11 +1,11 @@
 /*!\file pcdbug.c
  *
- * Watt-32 protocol debugger.
+ * WatTCP protocol debugger.
  * Writes to `debug.file' specified in config-file.
  * File may be stdout/stderr/nul.
  *
- * Most functions are prefixed with `dbug_'. And variables
- * with `dbg_'.
+ * Most functions are prefixed with `dbug_', variables with
+ * `dbg_'.
  */
 
 #include <stdio.h>
@@ -16,27 +16,24 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <ctype.h>
 #include <io.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
 
 #if defined(__DJGPP__) && (DJGPP_MINOR >= 4)
-  #include <sys/xdevices.h>
+#include <sys/xdevices.h>
 #endif
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
-  #include <fcntl.h>
-
-  #if !defined(__POCC__)
-    #include <share.h>
-  #endif
+#if defined(WIN32) || defined(_WIN32)
+#include <fcntl.h>
+#include <share.h>
 #endif
 
 #include "wattcp.h"
 #include "strings.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "misc.h"
-#include "run.h"
 #include "timer.h"
 #include "sock_ini.h"
 #include "chksum.h"
@@ -56,19 +53,14 @@
 #include "language.h"
 #include "printk.h"
 #include "gettod.h"
-#include "get_xby.h"
 #include "pppoe.h"
 #include "ppp.h"
 #include "split.h"
 #include "bsddbug.h"
 #include "pcdbug.h"
 
-#if defined(USE_GZIP)
-  #include "zlib.h"
-#endif
-
-#if defined(USE_SCTP)
-  #include "sctp.h"
+#if defined(USE_GZIP_COMPR)
+#include "zlib/zlib.h"
 #endif
 
 #define DEBUG_RTP 1       /**< \todo include detailed RTP debugging */
@@ -87,8 +79,8 @@ const char *tcpStateName (UINT state)
   return itoa (state, buf, 10);
 }
 
-DebugProc debug_xmit = NULL;
-DebugProc debug_recv = NULL;
+DebugProc _dbugxmit = NULL;
+DebugProc _dbugrecv = NULL;
 
 #if !defined(USE_DEBUG)
 
@@ -99,11 +91,10 @@ void dbug_init (void)
 
 #else  /* rest of file */
 
-static void  W32_CALL dbug_exit  (void);
-static void           dbug_close (void);
-
-static void  dump_ip_opt (const void *opt, int len);
-static void  dump_tcp_opt(const void *opt, int len, DWORD ack);
+static void  dbug_exit   (void);
+static void  dbug_close  (void);
+static void  dbug_flush  (void);
+static void  dump_options(const void *opt, int len, DWORD ack, BOOL is_ip);
 static DWORD dump_data   (const void *data, UINT datalen);
 static int   udp_dump    (const _udp_Socket *sock, const in_Header *ip);
 static int   tcp_dump    (const _tcp_Socket *sock, const in_Header *ip);
@@ -121,31 +112,17 @@ static int write_pcap_packet (const void *pkt, BOOL out);
   static unsigned ipcp_dump (const BYTE *bp);
 #endif
 
-#if (DOSX) && !(defined(__CYGWIN__) && defined(__x86_64__)) && \
-    !defined(__NO_INLINE__)   /* Don't do this if 'gcc -O0' is used */
-  #define PRINT_CPU_INFO
-  #define COMPILING_PCDBUG_C
-  #define CPU_TEST
-
-  #include "cpumodel.h"
-  #include "tests/cpu.c"
-  static void print_cpu_info (void);
-#endif
-
-
-static void (W32_CALL *prev_hook) (const char*, const char*) = NULL;
-
 static jmp_buf dbg_jmp;
-static char    dbg_name [MAX_PATHLEN+1] = "WATTCP.DBG";
-static BOOL    dbg_linebuf = FALSE;
-static BOOL    pcap_mode   = FALSE;
-static DWORD   now;               /* ticks or milli-sec */
-static BOOL    outbound;          /* transmitting packet? */
-static BOOL    in_dbug_dump;
-static BOOL    use_gzip;          /* if using pcap-mode, use gzip-compression */
-static BOOL    use_ods = FALSE;   /* Win32: use OutputDebugString() */
-static char    ip4_src [20];
-static char    ip4_dst [20];
+static void (*prev_hook) (const char*, const char*) = NULL;
+static char   dbg_name [MAX_PATHLEN+1] = "WATTCP.DBG";
+static BOOL   dbg_linebuf = FALSE;
+static BOOL   pcap_mode   = FALSE;
+static DWORD  now;         /* ticks or milli-sec */
+static BOOL   outbound;    /* transmitting packet? */
+static BOOL   in_dbug_dump;
+static BOOL   use_gzip;
+static char   ip4_src [20];
+static char   ip4_dst [20];
 
 static union {
        FILE  *stream;
@@ -156,10 +133,10 @@ static union {
 /* IP-fragment handling
  */
 #define IS_FRAG   0x01      /* is this a fragment? */
-#define IS_LAST   0x02      /* is this last fragment? */
-#define IS_FIRST  0x04      /* is this first fragment? */
+#define IS_LAST   0x02      /* is this first fragment? */
+#define IS_FIRST  0x04      /* is this last fragment? */
 
-static int frag_status;     /* IPv4 fragment bits */
+static int frag_status;
 
 
 #if defined(USE_IPV6)
@@ -172,7 +149,7 @@ static struct {
        char MAC;
        char ARP;
        char RARP;
-       char IP;    /* both IPv4 and IPv6 */
+       char IP;    /* both IPv/IPv6 */
        char BCAST;
        char MCAST;
        char LOOP;
@@ -189,8 +166,7 @@ static struct {
        char TCP;
        char ICMP;
        char IGMP;
-       char SCTP;
-     } debug = { 0,0,1,1,1,1,1,1,1,1 };
+     } debug = { 0,0,1,1,1,1,1,1,1 };
 
 /**
  * These are public so they can be set by application if
@@ -200,18 +176,18 @@ BOOL dbg_mode_all    = 1;
 BOOL dbg_print_stat  = 1;
 BOOL dbg_dns_details = 1;
 
-#if defined(USE_GZIP)
-static DWORD bytes_raw = 0UL;  /* raw uncompressed bytes written */
+#if defined(USE_GZIP_COMPR)
+static DWORD bytes_raw = 0UL;  /* raw bytes written */
 #endif
 
 
 /*----------------------------------------------------------------------*/
 
-BOOL dbug_file (void)
+FILE *dbug_file (void)
 {
-  if (pcap_mode)        /* don't let anyone mess with this file */
-     return (FALSE);
-  return (dbg_file.stream != NULL || use_ods);
+  if (pcap_mode)    /* don't let anyone mess with this file */
+     return (NULL);
+  return (dbg_file.stream);
 }
 
 void dbug_open (void)
@@ -219,7 +195,7 @@ void dbug_open (void)
   const char *fmode = pcap_mode ? "w+b" : "w+t";
   const char *end;
 
-  if (dbg_file.stream || use_ods)  /* Already opened; quit */
+  if (dbg_file.stream)
      return;
 
 #if defined(__DJGPP__) && (DJGPP_MINOR >= 4) /* Just for testing */
@@ -239,28 +215,20 @@ void dbug_open (void)
   else if (!stricmp(dbg_name,"stderr"))
      dbg_file.stream = stderr;
 
-#if defined(_WIN32)
-  else if (!stricmp(dbg_name,"$ods"))
-  {
-    use_ods = TRUE;
-    goto quit;
-  }
-#endif
-
-#if defined(USE_GZIP)
+#if defined(USE_GZIP_COMPR)
   else if (pcap_mode && use_gzip)
   {
-#if defined(_WIN32) && !defined(__WATCOMC__) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__WATCOMC__)
     int fd = _sopen (dbg_name, _O_CREAT | _O_TRUNC | _O_WRONLY,
                      SH_DENYWR, S_IREAD | S_IWRITE);
     if (fd > -1)
-       dbg_file.gz_stream = gzdopen (fd, "w+b2");   /* compression level 2 */
+       dbg_file.gz_stream = gzdopen (fd, "w+b2"); /* comp-level 2 */
 #else
     errno = 0;
-    dbg_file.gz_stream = gzopen (dbg_name, "w+b2"); /* compression level 2 */
+    dbg_file.gz_stream = gzopen (dbg_name, "w+b2");
 #endif
   }
-#endif  /* USE_GZIP */
+#endif  /* USE_GZIP_COMPR */
   else
   {
     dbg_file.stream = fopen_excl (dbg_name, fmode);
@@ -298,11 +266,6 @@ void dbug_open (void)
     setvbuf (dbg_file.stream, buf, _IOLBF, sizeof(buf));
   }
 #endif
-
-#if defined(_WIN32)
-  quit:
-#endif
-
   RUNDOWN_ADD (dbug_exit, 5);
 }
 
@@ -314,9 +277,6 @@ static __inline BOOL MAC_is_mcast (const void *addr)
   return ((*(const BYTE*)addr & 1) == 1);
 }
 
-/*
- * Return TRUE if MAC address is broadcast.
- */
 static __inline BOOL MAC_is_bcast (const void *addr)
 {
   return (!memcmp(addr, _eth_brdcast, _eth_mac_len));
@@ -325,7 +285,7 @@ static __inline BOOL MAC_is_bcast (const void *addr)
 /*
  * Using NDIS3PKT causes all non-broadcast packets sent to
  * appear in receive buffer approx 100 msec later.
- * WinPcap: Also if _pkt_rxmode == RXMODE_ALL_LOCAL.
+ * WIN32: Also if _pkt_rxmode == RXMODE_ALL_LOCAL.
  *
  * To avoid confusion, we print a warning in this case.
  */
@@ -353,7 +313,7 @@ static __inline BOOL is_looped (const in_Header *ip)
  *  - is broadcast and we don't filter broadcast.
  *  - is multicast and we don't filter multicast.
  */
-static __inline BOOL match_link_destination (const void *addr)
+static __inline BOOL MatchLinkDestination (const void *addr)
 {
   if (!memcmp(addr, _eth_addr, _eth_mac_len) ||
       (!filter.BCAST && MAC_is_bcast(addr)) ||
@@ -364,14 +324,13 @@ static __inline BOOL match_link_destination (const void *addr)
 
 /*
  * Return TRUE if destination address of received/sent ARP packet:
- *  - matches our ether/IP-address.
+ *  - matches our ether-address.
  *  - is broadcast and we don't filter broadcast
  *    (ARP/RARP packets should never use multicast in it's header).
  */
-static __inline BOOL match_arp_rarp (const arp_Header *arp)
+static __inline BOOL MatchArpRarp (const arp_Header *arp)
 {
-  if (!memcmp(&arp->dstEthAddr, _eth_addr, _eth_mac_len) ||
-      _ip4_is_local_addr(intel(arp->dstIPAddr)))
+  if (!memcmp(&arp->dstEthAddr, _eth_addr, _eth_mac_len))
      return (TRUE);
 
   if (!filter.BCAST && MAC_is_bcast(&arp->dstEthAddr))
@@ -384,7 +343,7 @@ static __inline BOOL match_arp_rarp (const arp_Header *arp)
  *  - matches our IP-address.
  *  - is broadcast and we don't filter (directed) IP-broadcast.
  */
-static __inline BOOL match_ip4_dest (const in_Header *ip)
+static __inline BOOL MatchIp4Dest (const in_Header *ip)
 {
   DWORD destin = intel (ip->destination);
 
@@ -394,7 +353,7 @@ static __inline BOOL match_ip4_dest (const in_Header *ip)
 }
 
 #if defined(USE_IPV6)
-static __inline BOOL match_ip6_dest (const in6_Header *ip)
+static __inline BOOL MatchIp6Dest (const in6_Header *ip)
 {
   const void *dest = &ip->destination;
 
@@ -408,7 +367,7 @@ static __inline BOOL match_ip6_dest (const in6_Header *ip)
 /*
  * Return checksum and print "ok" or "ERROR"
  */
-static __inline const char *do_check_sum (WORD value, const void *p, int len)
+static __inline const char *DoCheckSum (WORD value, const void *p, int len)
 {
   static char buf[20];
   WORD   chk = CHECKSUM (p, len);
@@ -420,7 +379,7 @@ static __inline const char *do_check_sum (WORD value, const void *p, int len)
 /*
  * Return name of some known link-layer protocols.
  */
-static __inline const char *link_protocol (WORD type)
+static __inline const char *LinkProtocol (WORD type)
 {
   switch (type)
   {
@@ -432,8 +391,6 @@ static __inline const char *link_protocol (WORD type)
          return ("ARP");
     case RARP_TYPE:
          return ("RARP");
-    case IEEE802_1Q_TYPE:
-         return ("VLAN");
     case PPPOE_DISC_TYPE:
          return ("PPPoE DISCOVERY");
     case PPPOE_SESS_TYPE:
@@ -446,7 +403,7 @@ static __inline const char *link_protocol (WORD type)
 /*
  * Return name of known IP-protocols.
  */
-static __inline const char *ip4_protocol (BYTE prot)
+static __inline const char *IpProtocol (BYTE prot)
 {
   static char buf[4];
 
@@ -460,16 +417,15 @@ static __inline const char *ip4_protocol (BYTE prot)
          return ("ICMP");
     case IGMP_PROTO:
          return ("IGMP");
-    case SCTP_PROTO:
-         return ("SCTP");
   }
-  return itoa (prot, buf, 10);
+  itoa (prot, buf, 10);
+  return (buf);
 }
 
 /*
  * Return name for IP's "Type Of Service".
  */
-static const char *type_of_service (BYTE tos)
+static const char *TypeOfService (BYTE tos)
 {
   static char buf[30];
   char  *p = buf;
@@ -522,7 +478,7 @@ static __inline const char *RTT_str (DWORD rtt, DWORD now)
 /*
  * Return string for ARP/RARP opcodes.
  */
-static __inline const char *arp_opcode (WORD code)
+static __inline const char *ArpOpcode (WORD code)
 {
   if (code == ARP_REQUEST || code == RARP_REQUEST)
      return ("Request");
@@ -554,15 +510,15 @@ static void dump_addr_port (const char      *proto,
     const _tcp_Socket *sk = (const _tcp_Socket*) sock;
 
     if (outbound)
-         dbug_printf ("%s:   %s (%d) -> %s (%d), sock %" ADDR_FMT "\n", proto,
+         dbug_printf ("%s:   %s (%d) -> %s (%d), sock %08lX\n", proto,
                       _inet_ntoa(NULL,my_ip_addr),  sk->myport,
                       _inet_ntoa(NULL,sk->hisaddr), sk->hisport,
-                      ADDR_CAST(sock));
+                      (DWORD)sock);
 
-    else dbug_printf ("%s:   %s (%d) -> %s (%d), sock %" ADDR_FMT "\n", proto,
+    else dbug_printf ("%s:   %s (%d) -> %s (%d), sock %08lX\n", proto,
                       _inet_ntoa(NULL,sk->hisaddr), sk->hisport,
                       _inet_ntoa(NULL,my_ip_addr),  sk->myport,
-                      ADDR_CAST(sock));
+                      (DWORD)sock);
   }
 }
 
@@ -628,7 +584,6 @@ static void dump_addr6_port (const char       *proto,
 static void link_head_dump (const union link_Packet *pkt)
 {
   const struct eth_Header *eth;
-  const char *src_name, *dst_name;
   WORD  type;
 
   if (_pktdevclass == PDCLASS_TOKEN || _pktdevclass == PDCLASS_TOKEN_RIF)
@@ -640,7 +595,7 @@ static void link_head_dump (const union link_Packet *pkt)
                  "       type %s (%04X)\n",
                  MAC_address (tok->destination), tok->accessCtrl, tok->frameCtrl,
                  MAC_address (tok->source), tok->DSAP, tok->SSAP, tok->ctrl,
-                 link_protocol(tok->type), intel16(tok->type));
+                 LinkProtocol(tok->type), intel16(tok->type));
     return;
   }
 
@@ -653,7 +608,7 @@ static void link_head_dump (const union link_Packet *pkt)
                  "       type %s (%04X)\n",
                  MAC_address (fddi->destination), fddi->frameCtrl,
                  MAC_address (fddi->source), fddi->DSAP, fddi->SSAP,
-                 fddi->ctrl, link_protocol(fddi->type), intel16(fddi->type));
+                 fddi->ctrl, LinkProtocol(fddi->type), intel16(fddi->type));
     return;
   }
 
@@ -696,21 +651,14 @@ static void link_head_dump (const union link_Packet *pkt)
 
   eth = &pkt->eth.head;
 
-  /* src/dst_names comes from /etc/ethers file
-   */
-  src_name = GetEtherName (&eth->source);
-  dst_name = GetEtherName (&eth->destination);
-
-  dbug_printf ("ETH:   destin %s %s %s\n"
-               "       source %s %s %s\n",
+  dbug_printf ("ETH:   destin %s %s\n"
+               "       source %s %s\n",
                MAC_address (&eth->destination),
                MAC_is_bcast(&eth->destination) ? "(broadcast)" :
                MAC_is_mcast(&eth->destination) ? "(multicast)" : "",
-               dst_name ? dst_name : "",
                MAC_address (&eth->source),
                MAC_is_bcast(&eth->source) ? "(broadcast)" :
-               MAC_is_mcast(&eth->source) ? "(multicast)" : "",
-               src_name ? src_name : "");
+               MAC_is_mcast(&eth->source) ? "(multicast)" : "");
 
   type = intel16 (eth->type);
   if (type == 0xFFFF)
@@ -720,13 +668,13 @@ static void link_head_dump (const union link_Packet *pkt)
   else if (type < 0x600)      /* type is LLC length field */
   {
     const llc_Header *llc = (const llc_Header*) (eth+1);
-    unsigned          len = type;
+    unsigned len = type;
 
     dbug_printf ("       IEEE 802.3 encap (LLC: DSAP %02X, SSAP %02X, len %u)\n",
                  llc->DSAP, llc->SSAP, len);
   }
   else
-    dbug_printf ("       type %s (%04X)\n", link_protocol(eth->type), type);
+    dbug_printf ("       type %s (%04X)\n", LinkProtocol(eth->type), type);
 }
 
 /*----------------------------------------------------------------------*/
@@ -738,7 +686,7 @@ static int arp_dump (const arp_Header *arp)
 
   return dbug_printf ("ARP:   %s (%d), hw %04X, type %04X\n"
                       "       %s (%s) -> %s (%s)\n",
-                      arp_opcode(arp->opcode), intel16(arp->opcode),
+                      ArpOpcode(arp->opcode), intel16(arp->opcode),
                       arp->hwType, intel16(arp->protType),
                       MAC_address (&arp->srcEthAddr), ip4_src,
                       MAC_address (&arp->dstEthAddr), ip4_dst);
@@ -753,7 +701,7 @@ static int rarp_dump (const rarp_Header *rarp)
 
   return dbug_printf ("RARP:  %s (%d), hw %04X, type %04X\n"
                       "       %s (%s) -> %s (%s)\n",
-                      arp_opcode(rarp->opcode), intel16(rarp->opcode),
+                      ArpOpcode(rarp->opcode), intel16(rarp->opcode),
                       rarp->hwType, intel16(rarp->protType),
                       MAC_address (&rarp->srcEthAddr), ip4_src,
                       MAC_address (&rarp->dstEthAddr), ip4_dst);
@@ -776,10 +724,12 @@ static void ip4_dump (const in_Header *ip)
   if (flg & IP_MF)
   {
     frag_status |= IS_FRAG;
-
-    /* This is 1st fragment. */
     if (ofs == 0)
+    {
+      /* This is 1st fragment. Assume this upper header isn't be fragmented
+       */
       frag_status |= IS_FIRST;
+    }
   }
   else if (ofs)
           frag_status = (IS_FRAG | IS_LAST);  /* last fragment */
@@ -799,10 +749,10 @@ static void ip4_dump (const in_Header *ip)
   dbug_printf ("       IHL %u, ver %u, tos%s, len %u,"
                " ttl %u, prot %s, chksum %s\n"
                "       id %04X, ofs %lu",
-               ihl, (BYTE)ip->ver, type_of_service(ip->tos), intel16(ip->length),
-               (BYTE)ip->ttl, ip4_protocol (ip->proto),
-               do_check_sum (ip->checksum, ip, ihl),
-               intel16 (ip->identification), (u_long)ofs);
+               ihl, (BYTE)ip->ver, TypeOfService(ip->tos), intel16(ip->length),
+               (BYTE)ip->ttl, IpProtocol (ip->proto),
+               DoCheckSum (ip->checksum, ip, ihl),
+               intel16 (ip->identification), ofs);
 
   if (flg & IP_CE)
      dbug_write (", CE");
@@ -813,15 +763,16 @@ static void ip4_dump (const in_Header *ip)
   if (frag_status)
   {
     if (frag_status & IS_FIRST)
-       dbug_write (", 1st frag");
-    if (frag_status & IS_LAST)
-       dbug_write (", last frag");
+         dbug_write (", MF");
+    else dbug_write (", MF (following header invalid)");
   }
+  if (frag_status & IS_LAST)
+     dbug_write (" (last frag)");
 
-  dbug_putc ('\n');
+  fputc ('\n', dbg_file.stream);
   opt_len = ihl - sizeof(*ip);
   if (opt_len > 0)
-     dump_ip_opt (ip+1, opt_len);
+     dump_options (ip+1, opt_len, 0, TRUE);
 }
 
 /*----------------------------------------------------------------------*/
@@ -841,7 +792,7 @@ static int ip4_orig_dump (const in_Header *this_ip,
   ihl = in_GetHdrLen (orig_ip);
   if (ihl < sizeof(*orig_ip))
   {
-    dbug_write ("           Bad orig. header\n");
+    dbug_write ("           Bad header\n");
     return dump_data (this_ip, intel16(this_ip->length));
   }
 
@@ -854,11 +805,11 @@ static int ip4_orig_dump (const in_Header *this_ip,
   dbug_printf ("           IHL %u, ver %u, tos%s, len %u,"
                " ttl %u, prot %s\n"
                "           chksum %s, id %04X, ofs %lu\n",
-               ihl, (BYTE)orig_ip->ver, type_of_service(orig_ip->tos),
+               ihl, (BYTE)orig_ip->ver, TypeOfService(orig_ip->tos),
                intel16(orig_ip->length), (BYTE)orig_ip->ttl,
-               ip4_protocol (orig_ip->proto),
-               do_check_sum (orig_ip->checksum, orig_ip, ihl),
-               intel16 (orig_ip->identification), (u_long)ofs);
+               IpProtocol (orig_ip->proto),
+               DoCheckSum (orig_ip->checksum, orig_ip, ihl),
+               intel16 (orig_ip->identification), ofs);
 
   if (icmp_len <= ihl)
      dbug_write ("           No transport header present\n");
@@ -887,7 +838,7 @@ static int icmp4_dump (const in_Header *ip)
 {
   WORD  len  = in_GetHdrLen (ip);
   const ICMP_PKT *icmp = (const ICMP_PKT*) ((const BYTE*)ip + len);
-  const char     *type_str, *chk_ok;
+  const char     *type_str;
   char  buf[200] = "";
   char *p = buf;
   int   type, code;
@@ -902,312 +853,116 @@ static int icmp4_dump (const in_Header *ip)
     return (1);
   }
 
-  /* Simply dump the remaining data if this is a fragment.
-   */
-  if (frag_status)
-     return dump_data (icmp, len);
+  if (!(frag_status & IS_FRAG))
+     switch (type)
+     {
+       case ICMP_UNREACH:
+            type_str = icmp_type_str [ICMP_UNREACH];
+            if (code < DIM(icmp_unreach_str))
+                 sprintf (buf, "%s: %s", type_str, icmp_unreach_str[code]);
+            else sprintf (buf, "%s: code %d", type_str, code);
+            break;
 
-  switch (type)
-  {
-    case ICMP_UNREACH:
-         type_str = icmp_type_str [ICMP_UNREACH];
-         if (code < DIM(icmp_unreach_str))
-              sprintf (buf, "%s: %s", type_str, icmp_unreach_str[code]);
-         else sprintf (buf, "%s: code %d", type_str, code);
-         break;
+       case ICMP_TIMXCEED:
+            type_str = icmp_type_str [ICMP_TIMXCEED];
+            if (code < DIM(icmp_exceed_str))
+                 p += sprintf (p, "%s: %s", type_str, icmp_exceed_str[code]);
+            else p += sprintf (buf, "%s: code %d", type_str, code);
+            break;
 
-    case ICMP_TIMXCEED:
-         type_str = icmp_type_str [ICMP_TIMXCEED];
-         if (code < DIM(icmp_exceed_str))
-              p += sprintf (p, "%s: %s", type_str, icmp_exceed_str[code]);
-         else p += sprintf (buf, "%s: code %d", type_str, code);
-         break;
+       case ICMP_REDIRECT:
+            if (code < DIM(icmp_redirect_str))
+                 strcpy (buf, icmp_redirect_str[code]);
+            else sprintf (buf, "Redirect; code %d", code);
+            break;
 
-    case ICMP_REDIRECT:
-         if (code < DIM(icmp_redirect_str))
-              strcpy (buf, icmp_redirect_str[code]);
-         else sprintf (buf, "Redirect; code %d", code);
-         break;
+       case ICMP_PARAMPROB:
+            if (code)
+                 sprintf (buf, "Param prob code %d", code);
+            else sprintf (buf, "Param prob at %d", icmp->pointer.pointer);
+            break;
 
-    case ICMP_PARAMPROB:
-         if (code)
-              sprintf (buf, "Param prob code %d", code);
-         else sprintf (buf, "Param prob at %d", icmp->pointer.pointer);
-         break;
+       case ICMP_MASKREQ:
+       case ICMP_MASKREPLY:
+            sprintf (buf, "ICMP %s: %s", icmp_type_str[type],
+                     _inet_ntoa(NULL, intel(icmp->mask.mask)));
+            break;
 
-    case ICMP_MASKREQ:
-    case ICMP_MASKREPLY:
-         sprintf (buf, "ICMP %s: %s", icmp_type_str[type],
-                  _inet_ntoa(NULL, intel(icmp->mask.mask)));
-         break;
-
+       /** \todo Handle debugging of these
+        */
 #if 0
-    /** \todo Handle debugging of these
-     */
-    case ICMP_ROUTERADVERT:
-    case ICMP_ROUTERSOLICIT:
-    case ICMP_TSTAMP:
-    case ICMP_TSTAMPREPLY:
-    case ICMP_IREQ:
-    case ICMP_IREQREPLY:
+       case ICMP_ROUTERADVERT:
+       case ICMP_ROUTERSOLICIT:
+       case ICMP_TSTAMP:
+       case ICMP_TSTAMPREPLY:
+       case ICMP_IREQ:
+       case ICMP_IREQREPLY:
 #endif
 
-    default:
-         sprintf (buf, "%s (%d), code %d",
-                  type < DIM(icmp_type_str) ?
-                    icmp_type_str[type] : "Unknown", type, code);
+       default:
+            sprintf (buf, "%s (%d), code %d",
+                     type < DIM(icmp_type_str) ?
+                       icmp_type_str[type] : "Unknown", type, code);
+     }
+
+  dbug_printf ("ICMP:  %s -> %s\n", ip4_src, ip4_dst);
+
+  if (frag_status)
+     dbug_printf ("       <%sfragment>\n",
+                  (frag_status & IS_LAST) ? "last " : "");
+  else
+  {
+    dbug_printf ("       %s, chksum %s\n",
+                 buf, DoCheckSum(icmp->unused.checksum,icmp,len));
+
+    if (type == ICMP_UNREACH || type == ICMP_PARAMPROB)
+       return ip4_orig_dump (ip, &icmp->ip.ip, len - 8);
+
+    if (type == ICMP_TIMXCEED)
+       return ip4_orig_dump (ip, &icmp->unused.ip, len - 8);
   }
-
-  chk_ok = do_check_sum (icmp->unused.checksum, icmp, len);
-
-  dbug_printf ("ICMP:  %s -> %s\n"
-               "       %s, chksum %s\n",
-               ip4_src, ip4_dst, buf, chk_ok);
-
-  if (type == ICMP_UNREACH || type == ICMP_PARAMPROB)
-     return ip4_orig_dump (ip, &icmp->ip.ip, len - 8);
-
-  if (type == ICMP_TIMXCEED)
-     return ip4_orig_dump (ip, &icmp->unused.ip, len - 8);
-
   return dump_data (icmp, len);
 }
 
 /*----------------------------------------------------------------------*/
 
 #if defined(USE_MULTICAST)
-
-static int igmp0_dump (const IGMPv0_packet *igmp, WORD len)
-{
-  ARGSUSED (len);
-  return dbug_printf ("IGMP:  unfinished IGMP v0 parser. addr %s\n",
-                      _inet_ntoa(NULL, intel(igmp->address)));
-}
-
-static int igmp1_dump (const IGMPv1_packet *igmp, WORD len)
-{
-  static const struct search_list types[] = {
-                                { IGMPv1_QUERY,  "Query" },
-                                { IGMPv1_REPORT, "Report" },
-                                { IGMPv1_DVMRP,  "DVMRP" }
-                              };
-  return dbug_printf ("IGMP:  %s, ver %d, chksum %s, addr %s\n",
-                      list_lookup(igmp->type, types, DIM(types)),
-                      igmp->version, do_check_sum(igmp->checksum, igmp, len),
-                      _inet_ntoa(NULL, intel(igmp->address)));
-}
-
-static int igmp2_dump (const IGMPv2_packet *igmp, WORD len)
-{
-  ARGSUSED (len);
-  return dbug_printf ("IGMP:  unfinished IGMP v2 parser. addr %s\n",
-                      _inet_ntoa(NULL, intel(igmp->address)));
-}
-
-static int igmp3_dump (const IGMPv3_packet *igmp, WORD len)
-{
-  ARGSUSED (len);
-  return dbug_printf ("IGMP:  unfinished IGMP v3 parser. addr %s\n",
-                      _inet_ntoa(NULL, intel(igmp->address)));
-}
-
 static int igmp_dump (const in_Header *ip)
 {
-  WORD  hdr_len              = in_GetHdrLen (ip);           /* length of IP-header */
-  const IGMPv0_packet *igmp0 = (const IGMPv0_packet*) ((const BYTE*)ip + hdr_len);
-  const IGMPv1_packet *igmp1 = (const IGMPv1_packet*) igmp0;
-  const IGMPv2_packet *igmp2 = (const IGMPv2_packet*) igmp0;
-  const IGMPv3_packet *igmp3 = (const IGMPv3_packet*) igmp0;
-  WORD  igmp_len             = intel16 (ip->length) - hdr_len;
-  BOOL  is_v[4]              = { FALSE, FALSE, FALSE, FALSE };
+  WORD  len               = in_GetHdrLen (ip);
+  const IGMP_packet *igmp = (const IGMP_packet*) ((const BYTE*)ip + len);
+  char  type[20];
 
-  if (igmp_len == sizeof(*igmp1) && igmp1->version == 1) /* 8 byte */
-      is_v[1] = TRUE;
+  len = intel16 (ip->length) - len;   /* IGMP length */
 
-  else if (igmp_len == sizeof(*igmp2))                   /* 8 byte */
-      is_v[2] = TRUE;
+  if (len < sizeof(*igmp))
+  {
+    dbug_write ("IGMP:  Short header\n");
+    return (1);
+  }
 
-  else if (igmp_len == sizeof(*igmp0))                   /* 16 byte */
-      is_v[0] = TRUE;
+  switch (igmp->type)
+  {
+    case IGMPv1_QUERY:
+         strcpy (type, "Query");
+         break;
+    case IGMPv1_REPORT:
+         strcpy (type, "Report");
+         break;
+    default:
+         sprintf (type, "type %d?", igmp->type);
+         break;
+  }
 
-  else if (igmp_len >= sizeof(*igmp3))                   /* >= 14 byte, multiple of 4 (14,18,22..) */
-      is_v[3] = TRUE;
+  dbug_printf ("IGMP:  %s, ver %d, chksum %s, addr %s\n",
+               type, igmp->version,
+               DoCheckSum(igmp->checksum, igmp, len),
+               _inet_ntoa (NULL, intel(igmp->address)));
 
-  else
-      return dbug_printf ("IGMP:  Header length %u??\n", igmp_len);
-
-  if (is_v[0])
-     return igmp0_dump (igmp0, igmp_len);
-  if (is_v[1])
-     return igmp1_dump (igmp1, igmp_len);
-  if (is_v[2])
-     return igmp2_dump (igmp2, igmp_len);
-  if (is_v[3])
-     return igmp3_dump (igmp3, igmp_len);
-
-  return dbug_printf ("IGMP:  Unknown pkt, len %u\n", igmp_len);
+  len -= sizeof(*igmp);
+  return dump_data (igmp+1, len);
 }
 #endif  /* USE_MULTICAST */
-
-/*----------------------------------------------------------------------*/
-
-#if defined(USE_SCTP)
-/*
- * A simple SCTP dumper used for both SCTP inside IPv4 and IPv6 packets.
- *
- * Refs:
- * RFC 2960, 3309, 3758, 4460
- */
-static const struct search_list sctp_chunks[] = {
-                    { SCTP_DATA,                  "DATA"              },
-                    { SCTP_INITIATION,            "INIT"              },
-                    { SCTP_INITIATION_ACK,        "INIT-ACK"          },
-                    { SCTP_SELECTIVE_ACK,         "SACK"              },
-                    { SCTP_HEARTBEAT_REQUEST,     "HB REQ"            },
-                    { SCTP_HEARTBEAT_ACK,         "HB ACK"            },
-                    { SCTP_ABORT_ASSOCIATION,     "ABORT"             },
-                    { SCTP_SHUTDOWN,              "SHUTDOWN"          },
-                    { SCTP_SHUTDOWN_ACK,          "SHUTDOWN ACK"      },
-                    { SCTP_OPERATION_ERR,         "OP ERR"            },
-                    { SCTP_COOKIE_ECHO,           "COOKIE ECHO"       },
-                    { SCTP_COOKIE_ACK,            "COOKIE ACK"        },
-                    { SCTP_ECN_ECHO,              "ECN ECHO"          },
-                    { SCTP_ECN_CWR,               "ECN CWR"           },
-                    { SCTP_SHUTDOWN_COMPLETE,     "SHUTDOWN COMPLETE" },
-                    { SCTP_FORWARD_CUM_TSN,       "FOR CUM TSN"       },
-                    { SCTP_RELIABLE_CNTL,         "REL CTRL"          },
-                    { SCTP_RELIABLE_CNTL_ACK,     "REL CTRL ACK"      },
-                    { SCTP_ASCONF_ACK_CHUNK_ID,   "ASCONF ACK CHUNK ID"   },
-                    { SCTP_PKTDROP_CHUNK_ID,      "PKTDROP CHUNK ID"      },
-                    { SCTP_STREAM_RESET_CHUNK_ID, "STREAM RESET_CHUNK ID" },
-                    { SCTP_IETF_EXT,              "IETF EXT" }
-                  };
-
-static const struct search_list sctp_params[] = {
-                    { SCTP_IPV4_PARAM_TYPE,     "IPV4 PARAM TYPE"    },
-                    { SCTP_IPV6_PARAM_TYPE,     "IPV6 PARAM TYPE"    },
-                    { SCTP_RESPONDER_COOKIE,    "RESPONDER COOKIE"   },
-                    { SCTP_UNRECOG_PARAM,       "UNRECOG_PARAM"      },
-                    { SCTP_COOKIE_PRESERVE,     "COOKIE PRESERVE"    },
-                    { SCTP_HOSTNAME_VIA_DNS,    "HOSTNAME VIA_DNS"   },
-                    { SCTP_RESTRICT_ADDR_TO,    "RESTRICT ADDR_TO"   },
-                    { SCTP_ECN_I_CAN_DO_ECN,    "I CAN DO ECN"       },
-                    { SCTP_OPERATION_SUCCEED,   "OPERATION SUCCEED"  },
-                    { SCTP_ERROR_NOT_EXECUTED,  "ERROR NOT EXECUTED" },
-                    { SCTP_UNRELIABLE_STRM,     "UNRELIABLE STRM"    },
-                    { SCTP_ADD_IP_ADDRESS,      "ADD IP ADDRESS"     },
-                    { SCTP_DEL_IP_ADDRESS,      "DEL IP ADDRESS"     },
-                    { SCTP_STRM_FLOW_LIMIT,     "STRM FLOW LIMIT"    },
-                    { SCTP_PARTIAL_CSUM,        "PARTIAL CSUM"       },
-                    { SCTP_ERROR_CAUSE_TLV,     "ERROR CAUSE TLV"    },
-                    { SCTP_MIT_STACK_NAME,      "MIT STACK NAME"     },
-                    { SCTP_SETADDRESS_PRIMARY,  "SETADDRESS PRIMARY" },
-                    { SCTP_RANDOM_PARAM,        "RANDOM PARAM"       },
-                    { SCTP_AUTH_CHUNK,          "AUTH CHUNK"         },
-                    { SCTP_REQ_HMAC_ALGO,       "REQ HMAC ALGO"      },
-                    { SCTP_SUPPORTED_EXT,       "SUPPORTED EXT"      }
-                  };
-
-static void sctp_dump_params (const BYTE *p, int len)
-{
-  while (len > 0)
-  {
-    const struct sctp_ParamDesc *param = (const struct sctp_ParamDesc*) p;
-    WORD  plen  = intel16 (param->paramLength);
-    WORD  ptype = intel16 (param->paramType);
-    WORD  align = 0;
-
-    dbug_printf ("       param: plen %d, %s\n",
-                 plen, list_lookupX(ptype, sctp_params, DIM(sctp_params)));
-    align = plen % 4;
-    if (align != 0)
-        align = 4 - align;
-    len -= plen + align;
-    p   += plen + align;
-  }
-}
-
-static void sctp_dump_init (const struct sctp_Initiation *init, const BYTE *chunk_end)
-{
-  dbug_printf ("       init tag %lu, rwnd %lu, OS %u, MIS %u, init TSN %lu\n",
-               intel(init->initTag), intel(init->rcvWindowCredit),
-               intel16(init->NumPreopenStreams), intel16(init->MaxInboundStreams),
-               intel(init->initialTSN));
-  init++;
-  /* optional parameters after init-message */
-  if ((const BYTE*)init < chunk_end)
-     sctp_dump_params ((const BYTE*)init, chunk_end - (const BYTE*)init);
-}
-
-static int sctp_dump (const in_Header *ip4, const in6_Header *ip6)
-{
-  const struct sctp_Header    *head;
-  const struct sctp_ChunkDesc *chunk;
-  WORD   hlen, chunk_cnt, chunk_len;
-  size_t len;
-
-  if (ip4)
-  {
-    hlen = in_GetHdrLen (ip4);
-    head = (const struct sctp_Header*) ((const BYTE*)ip4 + hlen);
-    len  = intel16 (ip4->length) - hlen;
-  }
-  else
-  {
-    len  = intel16 (ip6->len);
-    len  = min (len, MAX_IP6_DATA-sizeof(*ip6));
-    head = (const struct sctp_Header*) (ip6 + 1);
-  }
-
-  if (len < sizeof(*head))
-  {
-    dbug_printf ("SCTP:  Bogus length %u\n", (unsigned)len);
-    return (0);
-  }
-
-  dbug_printf ("SCTP:  %s (%d) -> %s (%d), Verif 0x%08lX, Adler 0x%08lX\n",
-               ip4 ? ip4_src : ip6_src, intel16(head->source),
-               ip4 ? ip4_dst : ip6_dst, intel16(head->destination),
-               intel(head->verificationTag), intel(head->adler32));
-
-  len -= sizeof(*head);
-  if (len < sizeof(*chunk))
-  {
-    dbug_printf ("       no chunks!!, len %u\n", (unsigned)len);
-    return (0);
-  }
-  chunk = (const struct sctp_ChunkDesc*) (head+1);
-
-  for (chunk_cnt = 1; len > 0; chunk_cnt++)
-  {
-    const BYTE *chunk_end;
-    WORD  align;
-
-    chunk_len = intel16 (chunk->chunkLength);
-    chunk_end = ((const BYTE*)chunk + chunk_len);
-
-    if (chunk_len < sizeof(*chunk))
-    {
-      dbug_printf ("%d) [Bad chunk length %u]\n", chunk_cnt+1, chunk_len);
-      break;
-    }
-    dbug_printf ("       chunk %d: [%s], len %d, flag 0x%02X\n",
-                 chunk_cnt, list_lookup(chunk->chunkID, sctp_chunks, DIM(sctp_chunks)),
-                 chunk_len, chunk->chunkFlg);
-
-    if (chunk->chunkID == SCTP_INITIATION || chunk->chunkID == SCTP_INITIATION_ACK)
-       sctp_dump_init ((const struct sctp_Initiation*)(chunk+1), chunk_end);
-
-    align = chunk_len % 4;
-    if (align != 0)
-        align = 4 - align;
-
-    chunk = (const struct sctp_ChunkDesc*) (chunk_end + align);
-    len  -= chunk_len + align;
-  }
-  return dump_data (chunk, len);
-}
-#endif
 
 /*----------------------------------------------------------------------*/
 
@@ -1216,11 +971,6 @@ static unsigned ip4_payload_dump (const void *sock, const in_Header *ip)
 #if defined(USE_MULTICAST)
   if (ip->proto == IGMP_PROTO && debug.IGMP)
      return igmp_dump (ip);
-#endif
-
-#if defined(USE_SCTP)
-  if (ip->proto == SCTP_PROTO && debug.SCTP)
-     return sctp_dump (ip, FALSE);
 #endif
 
   if (ip->proto == ICMP_PROTO && debug.ICMP)
@@ -1237,7 +987,7 @@ static unsigned ip4_payload_dump (const void *sock, const in_Header *ip)
     WORD  hlen       = in_GetHdrLen (ip);
     WORD  len        = intel16 (ip->length) - hlen;
     const BYTE *data = (const BYTE*)ip + hlen;
-    return dump_data (data, min(len, (WORD)(MAX_IP4_DATA-hlen)));
+    return dump_data (data, min(len,MAX_IP4_DATA-hlen));
   }
   return (0);
 }
@@ -1271,8 +1021,6 @@ static const char *ip6_next_hdr (BYTE nxt)
          return ("NONE");
     case IP6_NEXT_DEST:
          return ("DEST");
-    case IP6_NEXT_SCTP:
-         return ("SCTP");
     default:
          return ("??");
   }
@@ -1451,11 +1199,6 @@ static unsigned ip6_payload_dump (const void *sock, const in6_Header *ip)
   if (ip->next_hdr == IP6_NEXT_TCP && debug.TCP)
      return tcp_dump ((const _tcp_Socket*)sock, (const in_Header*)ip);
 
-#if defined(USE_SCTP)
-  if (ip->next_hdr == IP6_NEXT_SCTP && debug.SCTP)
-     return sctp_dump (NULL, ip);
-#endif
-
   if (debug.IP)    /* dump IPv6-network protocols as hex */
   {
     WORD len = intel16 (ip->len);
@@ -1464,7 +1207,7 @@ static unsigned ip6_payload_dump (const void *sock, const in6_Header *ip)
   }
   return (0);
 }
-#endif  /* USE_IPV6 */
+#endif
 
 /*----------------------------------------------------------------------*/
 
@@ -1677,7 +1420,7 @@ static int pppoe_sess_dump (const void *sock, const struct pppoe_Packet *pppoe)
   buf   = &pppoe->data[2];
 
   dbug_printf ("        Protocol %04X (%s)\n", proto,
-               tok2str(ppp_type2str,"%u??",proto));
+               tok2str(ppp_type2str, "%u??",proto));
 
   if (proto == PPP_IP)
   {
@@ -1753,7 +1496,7 @@ static const char *tcp_checksum (const in6_Header *ip, const tcp_Header *tcp)
 
 /*----------------------------------------------------------------------*/
 
-static BOOL is_dns_packet (WORD src_port, WORD dst_port)
+static __inline BOOL is_dns_packet (WORD src_port, WORD dst_port)
 {
   WORD dns_port;
 
@@ -1797,7 +1540,7 @@ static int udp_dump (const _udp_Socket *sock, const in_Header *ip)
   dbug_printf ("       len %d, chksum %04X (%s)\n",
                intel16(udp->length), intel16(udp->checksum), chk_ok);
 
-  if (udplen >= sizeof(struct DNS_Header) &&
+  if (udplen >= sizeof(struct DNS_head) &&
       is_dns_packet(udp->srcPort,udp->dstPort))
      return dns_dump (data, udplen, 0);
   return dump_data (data, udplen);
@@ -1812,14 +1555,14 @@ static int udp6_dump (const _udp_Socket *sock, const in6_Header *ip)
   const BYTE *data      = (const BYTE*) (udp + 1);
   const char *chk_ok    = udp_checksum (ip, udp);
 
-  udplen = min (udplen, (WORD)(iplen - sizeof(*udp)));
+  udplen = min (udplen, iplen - sizeof(*udp));
 
   dump_addr6_port ("UDP", sock, ip);
 
   dbug_printf ("       len %d, chksum %04X (%s)\n",
                intel16(udp->length), intel16(udp->checksum), chk_ok);
 
-  if (udplen >= sizeof(struct DNS_Header) &&
+  if (udplen >= sizeof(struct DNS_head) &&
       is_dns_packet(udp->srcPort,udp->dstPort))
      return dns_dump (data, udplen, 0);
   return dump_data (data, udplen);
@@ -1832,7 +1575,7 @@ static int tcp_dump (const _tcp_Socket *sock, const in_Header *ip)
 {
   const tcp_Header *tcp;
   const BYTE       *data;
-  const char       *chk_ok = "n/a";
+  const char       *chk_ok;
   WORD  hlen;
   WORD  iplen, dlen, olen;
   DWORD win, ack, seq;
@@ -1883,15 +1626,15 @@ static int tcp_dump (const _tcp_Socket *sock, const in_Header *ip)
   if (tcp->flags & tcp_FlagECN)  strcat (flgBuf, " ECN");
   if (tcp->flags & tcp_FlagCWR)  strcat (flgBuf, " CWR");
 
-  if (!frag_status || (frag_status & IS_FIRST))
-  {
+  if (frag_status && !(frag_status & IS_FIRST))
+     chk_ok = "n/a";
+  else
 #if defined(USE_IPV6)
-    if (ip->ver == 6)
-       chk_ok = tcp_checksum (ip6, tcp);
-    else
+  if (ip->ver == 6)
+     chk_ok = tcp_checksum (ip6, tcp);
+  else
 #endif
-       chk_ok = udp_tcp_checksum (ip, NULL, tcp);
-  }
+     chk_ok = udp_tcp_checksum (ip, NULL, tcp);
 
 #if defined(USE_IPV6)
   if (ip->ver == 6)
@@ -1908,8 +1651,8 @@ static int tcp_dump (const _tcp_Socket *sock, const in_Header *ip)
 
   dbug_printf ("       flags%s, win %lu, chksum %04X (%s), urg %u\n"
                "                  SEQ %10lu,  ACK %10lu\n",
-               flgBuf, (u_long)win, intel16(tcp->checksum), chk_ok,
-               intel16(tcp->urgent), (u_long)seq, (u_long)ack);
+               flgBuf, win, intel16(tcp->checksum), chk_ok,
+               intel16(tcp->urgent), seq, ack);
   if (sock)
   {
     BOOL  in_seq_space;
@@ -1973,23 +1716,23 @@ static int tcp_dump (const _tcp_Socket *sock, const in_Header *ip)
                  tcpStateName(state), delta_seq, delta_ack, ms_left, ms_right,
                  in_seq_space  ? ", in-SEQ"  : "",
                  sock->unhappy ? ", Unhappy" : "",
-                 (u_long)sock->recv_next, (u_long)sock->send_next, (u_long)sock->send_una,
-                 sock->karn_count, (u_long)sock->vj_sa, (u_long)sock->vj_sd,
+                 sock->recv_next, sock->send_next, sock->send_una,
+                 sock->karn_count, sock->vj_sa, sock->vj_sd,
                  sock->cwindow, sock->wwindow, sock->rto);
     dbug_printf ("RTT-diff %s\n", RTT_str(sock->rtt_time, now));
   }
 
   olen = (WORD) (hlen - sizeof(*tcp));
   if (olen > 0)
-     dump_tcp_opt (tcp+1, olen, ack);
+     dump_options (tcp+1, olen, ack, FALSE);
 
-  if (dlen > sizeof(struct DNS_Header) &&
+  if (dlen > sizeof(struct DNS_head) &&
       is_dns_packet(tcp->srcPort,tcp->dstPort))
   {
     WORD dns_len = intel16 (*(WORD*)data);
 
     if (dns_len == dlen-2)
-       return dns_dump (data+2, dns_len, dns_len);
+       return dns_dump (data+2, dlen-2, dns_len);
   }
   return dump_data (data, dlen);
 }
@@ -1998,7 +1741,6 @@ static int tcp_dump (const _tcp_Socket *sock, const in_Header *ip)
 
 static BOOL dbug_filter (void)
 {
-#if defined(NEED_PKT_SPLIT)
   const struct pkt_split *ps = outbound ? pkt_get_split_out() :
                                           pkt_get_split_in();
   for ( ; ps->data; ps++)
@@ -2010,7 +1752,7 @@ static BOOL dbug_filter (void)
            {
              const eth_Header *eth = (const eth_Header*) ps->data;
 
-             if (filter.MAC && !match_link_destination(&eth->destination))
+             if (filter.MAC && !MatchLinkDestination(&eth->destination))
                 return (FALSE);
              if (filter.LOOP && !memcmp(&eth->source,_eth_addr,_eth_mac_len))
                 return (FALSE);
@@ -2022,7 +1764,7 @@ static BOOL dbug_filter (void)
            {
              const tok_Header *tok = (const tok_Header*) ps->data;
 
-             if (filter.MAC && !match_link_destination(&tok->destination))
+             if (filter.MAC && !MatchLinkDestination(&tok->destination))
                 return (FALSE);
              if (filter.LOOP && !memcmp(&tok->source,_eth_addr,_eth_mac_len))
                 return (FALSE);
@@ -2034,7 +1776,7 @@ static BOOL dbug_filter (void)
            {
              const fddi_Header *fddi = (const fddi_Header*) ps->data;
 
-             if (filter.MAC && !match_link_destination(&fddi->destination))
+             if (filter.MAC && !MatchLinkDestination(&fddi->destination))
                 return (FALSE);
              if (filter.LOOP && !memcmp(&fddi->source,_eth_addr,_eth_mac_len))
                 return (FALSE);
@@ -2046,7 +1788,7 @@ static BOOL dbug_filter (void)
            {
              const arp_Header *arp = (const arp_Header*) ps->data;
 
-             if (filter.ARP && !match_arp_rarp(arp))
+             if (filter.ARP && !MatchArpRarp(arp))
                 return (FALSE);
              if (filter.LOOP && !memcmp(&arp->srcEthAddr,_eth_addr,_eth_mac_len))
                 return (FALSE);
@@ -2058,7 +1800,7 @@ static BOOL dbug_filter (void)
            {
              const rarp_Header *rarp = (const rarp_Header*) ps->data;
 
-             if (filter.RARP && !match_arp_rarp(rarp))
+             if (filter.RARP && !MatchArpRarp(rarp))
                 return (FALSE);
              if (filter.LOOP && !memcmp(&rarp->srcEthAddr,_eth_addr,_eth_mac_len))
                 return (FALSE);
@@ -2074,7 +1816,7 @@ static BOOL dbug_filter (void)
            {
              const in_Header *ip = (const in_Header*) ps->data;
 
-             if (filter.IP && !match_ip4_dest(ip))
+             if (filter.IP && !MatchIp4Dest(ip))
                 return (FALSE);
              if (filter.LOOP && intel(ip->source) == my_ip_addr)
                 return (FALSE);
@@ -2087,10 +1829,10 @@ static BOOL dbug_filter (void)
            {
              const in6_Header *ip6 = (const in6_Header*) ps->data;
 
-             if (filter.IP && !match_ip6_dest(ip6))
+             if (filter.IP && !MatchIp6Dest(ip6))
                 return (FALSE);
              if (filter.LOOP &&
-                 IN6_ARE_ADDR_EQUAL(&ip6->source, &in6addr_my_ip))
+                 IN6_ARE_ADDR_EQUAL(ip6->source, &in6addr_my_ip))
                 return (FALSE);
            }
            return (TRUE);
@@ -2100,76 +1842,39 @@ static BOOL dbug_filter (void)
            return (TRUE);  /* don't have filter for anything else */
     }
   }
-#endif                     /* NEED_PKT_SPLIT */
   return (TRUE);           /* didn't match the component; allow it */
 }
 
 /*----------------------------------------------------------------------*/
 
-static const char *pcdbug_driver_ver (void)
+static const char *pkt_driver_ver (void)
 {
-  static char buf[20];
-  WORD major, minor, unused, build;
+  static char buf[10];
+  BYTE   ver[4];
 
-  if (!pkt_get_drvr_ver(&major,&minor,&unused,&build))
+  if (!pkt_get_drvr_ver((DWORD*)&ver))
      return ("?");
 
-#if defined(_WIN32)  /* NPF.SYS/SwsVpkt.sys ver e.g. 3.1.0.22 */
-  sprintf (buf, "%u.%u.%u.%u", major, minor, unused, build);
+#if defined(WIN32)  /* NPF.SYS ver e.g. 3.1.0.22 */
+  sprintf (buf, "%d.%d.%d.%d", ver[3], ver[2], ver[1], ver[0]);
 #else
-  sprintf (buf, "%d.%02d", major, minor);
+  sprintf (buf, "%d.%02d", ver[1], ver[0]);
 #endif
-
   return (buf);
 }
 
-static const char *pcdbug_api_ver (void)
+static const char *pkt_api_ver (void)
 {
   static char buf[10];
-  WORD   ver;
+  DWORD  ver;
 
-  /* DOS:   return pktdrvr API version (1.09 hopefully).
-   * Win32: return NDIS version.
-   */
   if (!pkt_get_api_ver(&ver))
      return ("?");
 
-#if defined(_WIN32)
-  sprintf (buf, "%d.%d", hiBYTE(ver), loBYTE(ver));
-#else
   if (ver >= 255)  /* assumed to be MSB.LSB */
        sprintf (buf, "%d.%02d", hiBYTE(ver), loBYTE(ver));
-  else sprintf (buf, "%d", loBYTE(ver));
-#endif
+  else sprintf (buf, "%d", (BYTE)ver);
   return (buf);
-}
-
-/*----------------------------------------------------------------------*/
-
-static void print_driver_info (void)
-{
-#if defined(_WIN32)
-  /* What is needed to enable promiscous receive mode?*/
-  #define PROMISC_RECV()  (_pkt_rxmode & RXMODE_PROMISCOUS)
-  #define CONFIG_RXMODE   "winpkt.rxmode"
-
-  const char *api = (_pkt_inf ? _pkt_inf->api_name      : "??");
-  const char *sys = (_pkt_inf ? _pkt_inf->sys_drvr_name : "??");
-
-  dbug_printf ("%s\n"
-               "Using: %s, \"%s\" (%s)\n"
-               "       %s ver %s, NDIS ver %s, mode 0x%02X\n",
-               wattcpVersion(), api, _pktdrvrname, _pktdrvr_descr,
-               sys, pcdbug_driver_ver(), pcdbug_api_ver(), _pkt_rxmode);
-
-#else
-  #define PROMISC_RECV()  (_pkt_rxmode >= RXMODE_PROMISCOUS)
-  #define CONFIG_RXMODE   "pkt.rxmode"
-
-  dbug_printf ("%s\nPKTDRVR: \"%s\", ver %s, API ver %s, mode %d\n",
-               wattcpVersion(), _pktdrvrname, pcdbug_driver_ver(),
-               pcdbug_api_ver(), _pkt_rxmode);
-#endif
 }
 
 /*----------------------------------------------------------------------*/
@@ -2177,8 +1882,8 @@ static void print_driver_info (void)
 static void dbug_dump (const void *sock, const in_Header *ip,
                        const char *fname, unsigned line, BOOL out)
 {
-  static BOOL print_once = FALSE;
-  int    err;
+  static BOOL arp_dumped = FALSE;
+  int    errno_save = errno;
 
   WATT_ASSERT (ip);
 
@@ -2186,14 +1891,14 @@ static void dbug_dump (const void *sock, const in_Header *ip,
   frag_status = 0;
   now = set_timeout (0);
 
-  if ((err = setjmp(dbg_jmp)) != 0)
+  if (setjmp(dbg_jmp))
   {
-    (*_printf) ("\ndbug_dump: write failed; %s (%d)\n", strerror(err), err);
+    (*_printf) ("\ndbug_dump: write failed; %s\n", strerror(errno));
     dbug_close();
     goto quit;
   }
 
-  if (pcap_mode && !use_ods)
+  if (pcap_mode)
   {
     int rc = 0;
 
@@ -2214,22 +1919,20 @@ static void dbug_dump (const void *sock, const in_Header *ip,
     goto quit;
   }
 
-  if (!print_once)
+  if (!arp_dumped)
   {
-    print_once = TRUE;
-    print_driver_info();
+    arp_dumped = TRUE;
 
-#if defined(PRINT_CPU_INFO)
-    print_cpu_info();
+#if defined(WIN32)
+  #define FORMAT "%s\nWinPcap: \"%s\"\n          NPF.SYS ver %s, NDIS ver %s, mode 0x%02X\n\n"
+#else
+  #define FORMAT "%s\nPKTDRVR: \"%s\", ver %s, API ver %s, mode %d\n\n"
 #endif
+    dbug_printf (FORMAT, wattcpVersion(), _pktdrvrname,
+                 pkt_driver_ver(), pkt_api_ver(), _pkt_rxmode);
 
-    if (!PROMISC_RECV() && filter.NONE)
-       dbug_printf ("\nNB: receive-mode (%s = 0x%02X) is not suitable for "
-                    "receiving all traffic.\n", CONFIG_RXMODE, _pkt_rxmode);
-    dbug_putc ('\n');
-
-#if !defined(__BORLANDC__) && 0 /* Some weird bug with Borland */
-    _arp_debug_dump();          /* GvB 2002-09 now encapsuled in pcarp.c */
+#if !defined(__BORLANDC__) /* Some weird bug with Borland */
+    _arp_debug_dump();     /* GvB 2002-09 now encapsuled in pcarp.c */
 
     if (_bootp_on || _dhcp_on || _rarp_on)
        dbug_printf ("       Above routing data may be overridden by "
@@ -2240,15 +1943,12 @@ static void dbug_dump (const void *sock, const in_Header *ip,
   if (!filter.NONE && !dbug_filter())
      goto quit;
 
-  if (use_ods)
-     dbug_putc ('\n');   /* !! Why do I need this? */
+  dbug_printf ("\n%s: ", outbound ? "Transmitted" : "Received");
+  dbug_printf ("%s (%u), ", fname, line);
+  dbug_printf ("time %s", elapsed_str(now));
+  dbug_printf ("%s\n", is_looped(ip) ? ", Link-layer loop!" : "");
 
-  dbug_printf ("\n%s: %s (%u), time %s%s\n",
-               outbound ? "Transmitted" : "Received",
-               fname, line, elapsed_str(now),
-               is_looped(ip) ? ", Link-layer loop!" : "");
-
-  /* Either PDCLASS_ETHER, PDCLASS_TOKEN, PDCLASS_FDDI or PDCLASS_ARCNET
+  /* One of PDCLASS_ETHER/PDCLASS_TOKEN/PDCLASS_FDDI/PDCLASS_ARCNET
    */
   if (!_pktserial)
   {
@@ -2273,7 +1973,7 @@ static void dbug_dump (const void *sock, const in_Header *ip,
       dbug_printf ("IPX:   unsupported\n");
       goto quit;
     }
-    else if (intel16(type) < 0x600)  /* 0x600=1536; type is IEEE 802.3 length field */
+    else if (intel16(type) < 0x600)  /* type is IEEE 802.3 length field */
     {
       const llc_Header *llc = (const llc_Header*) (&pkt->eth.head + 1);
 
@@ -2323,9 +2023,9 @@ static void dbug_dump (const void *sock, const in_Header *ip,
                       _pktdevclass == PDCLASS_ARCNET ? type : intel16(type));
 
       data = (const BYTE*)pkt + _pkt_ip_ofs;
-      if (out && _eth_last.tx.size > (unsigned)_pkt_ip_ofs)
+      if (out && _eth_last.tx.size > _pkt_ip_ofs)
          dump_data (data, _eth_last.tx.size - _pkt_ip_ofs);
-      else if (!out && _eth_last.rx.size > (unsigned)_pkt_ip_ofs)
+      else if (!out && _eth_last.rx.size > _pkt_ip_ofs)
          dump_data (data, _eth_last.rx.size - _pkt_ip_ofs);
       goto quit;
     }
@@ -2366,44 +2066,45 @@ ip6_dmp:
   }
 
 quit:
-  return;
+  errno = errno_save;
 }
 
 /*----------------------------------------------------------------------*/
 
-static void trace_xmit_pkt (const void *sock, const in_Header *ip,
-                            const char *fname, unsigned line)
+static void dbug_send (const void *sock, const in_Header *ip,
+                       const char *fname, unsigned line)
 {
-  if (use_ods || dbg_file.stream)
-  {
-    in_dbug_dump = TRUE;
-    dbug_dump (sock, ip, fname, line, TRUE);
-    in_dbug_dump = FALSE;
-    dbug_flush();
-  }
+  if (!dbg_file.stream)
+     return;
+
+  in_dbug_dump = TRUE;
+  dbug_dump (sock, ip, fname, line, TRUE);
+  in_dbug_dump = FALSE;
+  dbug_flush();
 }
 
-static void trace_recv_pkt (const void *sock, const in_Header *ip,
-                            const char *fname, unsigned line)
+static void dbug_recv (const void *sock, const in_Header *ip,
+                       const char *fname, unsigned line)
 {
-  if (use_ods || dbg_file.stream)
-  {
-    in_dbug_dump = TRUE;
-    dbug_dump (sock, ip, fname, line, FALSE);
-    in_dbug_dump = FALSE;
-    dbug_flush();
-  }
+  if (!dbg_file.stream)
+     return;
+
+  in_dbug_dump = TRUE;
+  dbug_dump (sock, ip, fname, line, FALSE);
+  in_dbug_dump = FALSE;
+  dbug_flush();
 }
 
 /*
- * Print IP-options
+ * Print IP or TCP-options
  */
-static void dump_ip_opt (const void *opt_p, int len)
+static void dump_options (const void *opt_p, int len, DWORD ack, BOOL is_ip)
 {
   const BYTE *opt   = (const BYTE*) opt_p;
   const BYTE *start = opt;
+  BYTE  val8;
   WORD  val16;
-  DWORD val32, ip, ts;
+  DWORD val32;
   int   i, num, num_opt = 0;
 
   dbug_write ("       Options:");
@@ -2412,49 +2113,183 @@ static void dump_ip_opt (const void *opt_p, int len)
   {
     switch (*opt)  /* Note: IP-option includes copy/class bits */
     {
-      case IPOPT_EOL:
+      case TCPOPT_EOL:
+   /* case IPOPT_EOL: */
            dbug_write (" EOL\n");
            return;
 
-      case IPOPT_NOP:
+      case TCPOPT_NOP:
+   /* case IPOPT_NOP: */
            dbug_write (" NOP");
            opt++;
            continue;
 
-      case IPOPT_RR:
-           dbug_write (" RR");
-           num = *(opt+1) - 3;
-           num = min (num, len-1);
-           for (i = 0; i < num; i += sizeof(DWORD))
+      case TCPOPT_MAXSEG:
+           if (!is_ip)
            {
-             val32 = intel (*(DWORD*)(opt+3+i));
-             dbug_printf (" %s", _inet_ntoa(NULL,val32));
+             val16 = intel16 (*(WORD*)(opt+2));
+             dbug_printf (" MSS %u", val16);
+           }
+           break;
+
+      case TCPOPT_WINDOW:
+           if (!is_ip)
+           {
+             val8 = opt[2];
+             dbug_printf (" Wscale 2^%d", val8);
+           }
+           break;
+
+      case TCPOPT_SACK:
+           if (is_ip)
+              break;
+           dbug_write (" SACK ");
+           num = (*(opt+1) - 2) / SIZEOF(DWORD);
+           num = min (num, len/SIZEOF(DWORD));
+
+           for (i = 0; i < num; i++)
+           {
+             DWORD origin  = intel (*(DWORD*)(opt+2+4*i));
+             DWORD relsize = intel (*(DWORD*)(opt+6+4*i));
+             dbug_printf ("blk %d {%ld/%ld}, ", i+1,
+                          (long)(ack-origin-1),
+                          (long)(ack-origin+relsize));
+           }
+           break;
+
+      case TCPOPT_SACK_PERM:
+           if (!is_ip)
+              dbug_write (" SACK-OK");
+           break;
+
+      case TCPOPT_ECHO:
+           if (!is_ip)
+           {
+             val32 = intel (*(DWORD*)(opt+2));
+             dbug_printf (" Echo %lu", val32);
+           }
+           break;
+
+      case TCPOPT_CHKSUM_REQ:
+           if (!is_ip)
+           {
+             val8 = opt[2];
+             dbug_printf (" ChkReq %d", val8);
+           }
+           break;
+
+      case TCPOPT_CHKSUM_DAT:
+           if (!is_ip)
+           {
+             num = opt[1];
+             dbug_write (" ChkDat ");
+             for (i = 0; i < num; i++)
+                 dbug_printf ("%02X", opt[2+i]);
+           }
+           break;
+
+      case TCPOPT_ECHOREPLY:
+   /* case IPOPT_RR: */
+           if (is_ip)
+           {
+             dbug_write (" RR");
+             num = *(opt+1) - 3;
+             num = min (num, len-1);
+             for (i = 0; i < num; i += sizeof(DWORD))
+             {
+               val32 = intel (*(DWORD*)(opt+3+i));
+               dbug_printf (" %s", _inet_ntoa(NULL,val32));
+             }
+           }
+           else
+           {
+             val32 = intel (*(DWORD*)(opt+2));
+             dbug_printf (" Echoreply %lu", val32);
+           }
+           break;
+
+      case TCPOPT_TIMESTAMP:
+           if (!is_ip)
+           {
+             val32 = intel (*(DWORD*)(opt+2));
+             dbug_printf (" TS <%lu", val32);
+             val32 = intel (*(DWORD*)(opt+6));
+             dbug_printf ("/%lu>", val32);
+           }
+           break;
+
+      case TCPOPT_CC:
+           if (!is_ip)
+           {
+             val32 = intel (*(DWORD*)(opt+2));
+             dbug_printf (" CC %lu", val32);
+           }
+           break;
+
+      case TCPOPT_CCNEW:
+           if (!is_ip)
+           {
+             val32 = intel (*(DWORD*)(opt+2));
+             dbug_printf (" CCnew %lu", val32);
+           }
+           break;
+
+      case TCPOPT_CCECHO:
+           if (!is_ip)
+           {
+             val32 = intel (*(DWORD*)(opt+2));
+             dbug_printf (" CCecho %lu", val32);
+           }
+           break;
+
+      case TCPOPT_SIGNATURE:
+           if (!is_ip)
+           {
+             if (opt > (const BYTE*)opt_p)
+                dbug_write ("\n               ");
+             dbug_write (" MD5 ");
+             for (i = 0; i < TCPOPT_SIGN_LEN; i++)
+                 dbug_printf ("%02X ", opt[2+i]);
            }
            break;
 
       case IPOPT_TS:
-           ip = intel (*(DWORD*)(opt+4));
-           ts = intel (*(DWORD*)(opt+8));
-           dbug_printf (" TS <%s/%lus..>", _inet_ntoa(NULL,ip), (u_long)ts);
+           if (is_ip)
+           {
+             DWORD ip = intel (*(DWORD*)(opt+4));
+             DWORD ts = intel (*(DWORD*)(opt+8));
+             dbug_printf (" TS <%s/%lus..>", _inet_ntoa(NULL,ip), ts);
+           }
            break;
 
       case IPOPT_SECURITY:
-           val32 = intel (*(DWORD*)(opt+2));
-           dbug_printf (" SEC %08lX", (u_long)val32);
+           if (is_ip)
+           {
+             val32 = intel (*(DWORD*)(opt+2));
+             dbug_printf (" SEC %08lX", val32);
+           }
            break;
 
       case IPOPT_SATID:
-           val16 = intel16 (*(WORD*)(opt+2));
-           dbug_printf (" SATID %04X", val16);
+           if (is_ip)
+           {
+             val16 = intel16 (*(WORD*)(opt+2));
+             dbug_printf (" SATID %04X", val16);
+           }
            break;
 
       case IPOPT_RA:
-           val16 = intel16 (*(WORD*)(opt+2));
-           dbug_printf (" RA %u", val16);
+           if (is_ip)
+           {
+             val16 = intel16 (*(WORD*)(opt+2));
+             dbug_printf (" RA %u", val16);
+           }
            break;
 
       case IPOPT_LSRR:
       case IPOPT_SSRR:
+           if (!is_ip)
+              break;
            dbug_write (*opt == IPOPT_LSRR ? " LSRR" : " SSRR");
            num = *(opt+1) - 3;
            num = min (num, len-1);
@@ -2471,124 +2306,7 @@ static void dump_ip_opt (const void *opt_p, int len)
     opt += *(opt+1);
     num_opt++;
   }
-  dbug_putc ('\n');
-}
-
-/*
- * Print TCP-options
- */
-static void dump_tcp_opt (const void *opt_p, int len, DWORD ack)
-{
-  const BYTE *opt   = (const BYTE*) opt_p;
-  const BYTE *start = opt;
-  BYTE  val8;
-  WORD  val16;
-  DWORD val32;
-  int   i, num, num_opt = 0;
-
-  dbug_write ("       Options:");
-
-  while (opt < start+len && num_opt < 10)
-  {
-    switch (*opt)
-    {
-      case TCPOPT_EOL:
-           dbug_write (" EOL\n");
-           return;
-
-      case TCPOPT_NOP:
-           dbug_write (" NOP");
-           opt++;
-           continue;
-
-      case TCPOPT_MAXSEG:
-           val16 = intel16 (*(WORD*)(opt+2));
-           dbug_printf (" MSS %u", val16);
-           break;
-
-      case TCPOPT_WINDOW:
-           val8 = opt[2];
-           dbug_printf (" Wscale 2^%d", val8);
-           break;
-
-      case TCPOPT_SACK:
-           dbug_write (" SACK ");
-           num = (*(opt+1) - 2) / SIZEOF(DWORD);
-           num = min (num, len/SIZEOF(DWORD));
-
-           for (i = 0; i < num; i++)
-           {
-             DWORD origin  = intel (*(DWORD*)(opt+2+4*i));
-             DWORD relsize = intel (*(DWORD*)(opt+6+4*i));
-             dbug_printf ("blk %d {%ld/%ld}, ", i+1,
-                          (long)(ack-origin-1),
-                          (long)(ack-origin+relsize));
-           }
-           break;
-
-      case TCPOPT_SACK_PERM:
-           dbug_write (" SACK-OK");
-           break;
-
-      case TCPOPT_ECHO:
-           val32 = intel (*(DWORD*)(opt+2));
-           dbug_printf (" Echo %lu", (u_long)val32);
-           break;
-
-      case TCPOPT_CHKSUM_REQ:
-           val8 = opt[2];
-           dbug_printf (" ChkReq %d", val8);
-           break;
-
-      case TCPOPT_CHKSUM_DAT:
-           num = opt[1];
-           dbug_write (" ChkDat ");
-           for (i = 0; i < num; i++)
-               dbug_printf ("%02X", opt[2+i]);
-           break;
-
-      case TCPOPT_ECHOREPLY:
-           val32 = intel (*(DWORD*)(opt+2));
-           dbug_printf (" Echoreply %lu", (u_long)val32);
-           break;
-
-      case TCPOPT_TIMESTAMP:
-           val32 = intel (*(DWORD*)(opt+2));
-           dbug_printf (" TS <%lu", (u_long)val32);
-           val32 = intel (*(DWORD*)(opt+6));
-           dbug_printf ("/%lu>", (u_long)val32);
-           break;
-
-      case TCPOPT_CC:
-           val32 = intel (*(DWORD*)(opt+2));
-           dbug_printf (" CC %lu", (u_long)val32);
-           break;
-
-      case TCPOPT_CCNEW:
-           val32 = intel (*(DWORD*)(opt+2));
-           dbug_printf (" CCnew %lu", (u_long)val32);
-           break;
-
-      case TCPOPT_CCECHO:
-           val32 = intel (*(DWORD*)(opt+2));
-           dbug_printf (" CCecho %lu", (u_long)val32);
-           break;
-
-      case TCPOPT_SIGNATURE:
-           if (opt > (const BYTE*)opt_p)
-              dbug_write ("\n               ");
-           dbug_write (" MD5 ");
-           for (i = 0; i < TCPOPT_SIGN_LEN; i++)
-               dbug_printf ("%02X ", opt[2+i]);
-           break;
-
-      default:
-           dbug_printf (" opt %d?", *opt);
-    }
-    opt += *(opt+1);
-    num_opt++;
-  }
-  dbug_putc ('\n');
+  fputc ('\n', dbg_file.stream);
 }
 
 /*----------------------------------------------------------------------*/
@@ -2608,31 +2326,27 @@ static DWORD dump_data (const void *data_p, UINT datalen)
 
     if (ofs == 0)
          len += dbug_printf ("%u:%s%04X: ", datalen,
-                             datalen > 9999 ? " "    :
-                             datalen > 999  ? "  "   :
-                             datalen > 99   ? "   "  :
-                             datalen > 9    ? "    " :
-                                              "     ",
-                             ofs);
+                             datalen > 9999 ? " "   :
+                             datalen > 999  ? "  "  :
+                             datalen > 99   ? "   " :
+                             "    ", ofs);
     else len += dbug_printf ("       %04X: ", ofs);
 
     for (j = 0; j < 16 && j+ofs < datalen; j++)
         len += dbug_printf ("%02X%c", (unsigned)data[j+ofs],
-                            j == 7 ? '-' : ' ');  /* no beeps */
+                            j == 7 ? '-' : ' ');
 
     for ( ; j < 16; j++)       /* pad line to 16 positions */
         len += dbug_write ("   ");
 
     for (j = 0; j < 16 && j+ofs < datalen; j++)
     {
-      int ch = data[j+ofs];
-
-      if (ch < ' ')            /* non-printable */
-           dbug_putc ('.');
-      else dbug_putc (ch);
+      if (data[j+ofs] < ' ')   /* non-printable */
+           fputc ('.', dbg_file.stream);
+      else fputc (data[j+ofs], dbg_file.stream);
       len++;
     }
-    dbug_putc ('\n');
+    fputc ('\n', dbg_file.stream);
     len++;
   }
   return (len);
@@ -2642,7 +2356,7 @@ static DWORD dump_data (const void *data_p, UINT datalen)
 
 static void set_debug_file (const char *value)
 {
-  _strlcpy (dbg_name, value, sizeof(dbg_name)-1);
+  StrLcpy (dbg_name, value, sizeof(dbg_name)-1);
 }
 
 static void set_debug_mode (const char *value)
@@ -2657,7 +2371,7 @@ static void set_debug_filter (const char *value)
 {
   char val[80];
 
-  _strlcpy (val, value, sizeof(val));
+  StrLcpy (val, value, sizeof(val));
   strupr (val);
 
   if (strstr(val,"ALL"))
@@ -2687,7 +2401,7 @@ static void set_debug_proto (const char *value)
 {
   char val[80];
 
-  _strlcpy (val, value, sizeof(val));
+  StrLcpy (val, value, sizeof(val));
   strupr (val);
 
   if (!strcmp(val,"ALL"))
@@ -2704,128 +2418,55 @@ static void set_debug_proto (const char *value)
     debug.UDP  = (strstr(val,"UDP" ) != NULL);
     debug.ICMP = (strstr(val,"ICMP") != NULL);
     debug.IGMP = (strstr(val,"IGMP") != NULL);
-    debug.SCTP = (strstr(val,"SCTP") != NULL);
   }
 }
 
-static void W32_CALL dbug_cfg_parse (const char *name, const char *value)
+static void ourinit (const char *name, const char *value)
 {
   static const struct config_table debug_cfg[] = {
-             { "FILE",    ARG_FUNC, (void*)set_debug_file   },
-             { "MODE",    ARG_FUNC, (void*)set_debug_mode   },
-             { "LINEBUF", ARG_ATOI, (void*)&dbg_linebuf     },
-             { "FILTER",  ARG_FUNC, (void*)set_debug_filter },
-             { "PROTO",   ARG_FUNC, (void*)set_debug_proto  },
-             { "STAT",    ARG_ATOI, (void*)&dbg_print_stat  },
-             { "DNS",     ARG_ATOI, (void*)&dbg_dns_details },
-             { "PCAP",    ARG_ATOI, (void*)&pcap_mode       },
-             { NULL,      0,        NULL                    }
+             { "FILE",   ARG_FUNC, (void*)set_debug_file   },
+             { "MODE",   ARG_FUNC, (void*)set_debug_mode   },
+             { "LINEBUF",ARG_ATOI, (void*)&dbg_linebuf     },
+             { "FILTER", ARG_FUNC, (void*)set_debug_filter },
+             { "PROTO",  ARG_FUNC, (void*)set_debug_proto  },
+             { "STAT",   ARG_ATOI, (void*)&dbg_print_stat  },
+             { "DNS",    ARG_ATOI, (void*)&dbg_dns_details },
+             { "PCAP",   ARG_ATOI, (void*)&pcap_mode       },
+             { NULL,     0,        NULL                    }
            };
   if (!parse_config_table(&debug_cfg[0], "DEBUG.", name, value) && prev_hook)
      (*prev_hook) (name, value);
 }
 
-#if defined(_WIN32)
-  static char  ods_buf [4000];
-  static char *ods_ptr = ods_buf;
-
-  static int flush_ods (void)
-  {
-    WATT_ASSERT (ods_ptr >= ods_buf);
-    WATT_ASSERT (ods_ptr < ods_buf + sizeof(ods_buf) - 2);
-
-    if (ods_ptr == ods_buf)
-       return (0);
-
-    if (ods_ptr[-2] != '\r' && ods_ptr[-1] != '\n')
-    {
-      *ods_ptr++ = '\r';
-      *ods_ptr++ = '\n';
-    }
-    *ods_ptr = '\0';
-    ods_ptr = ods_buf;   /* restart buffer */
-    OutputDebugStringA (ods_buf);
-    return (1);
-  }
-#endif
-
-
 int MS_CDECL dbug_printf (const char *format, ...)
 {
-  va_list arg;
   int len = 0;
-
-#if defined(_WIN32)
-  if (use_ods)
-  {
-    len = ods_buf + sizeof(ods_buf) - ods_ptr - 1;   /* length left on ods_buf[] */
-    va_start (arg, format);
-    if (len > 2)
-       len = VSNPRINTF (ods_ptr, len, format, arg);
-    va_end (arg);
-    if (len > 0)
-       ods_ptr += len;
-    return (len);
-  }
-#endif
 
   /* don't let anyone else write if pcap-mode
    */
   if (dbg_file.stream && !pcap_mode)
   {
+    va_list arg;
     va_start (arg, format);
     len = vfprintf (dbg_file.stream, format, arg);
     va_end (arg);
     if (in_dbug_dump && ferror(dbg_file.stream))
-       longjmp (dbg_jmp, errno);
+       longjmp (dbg_jmp, 1);
   }
   return (len);
 }
 
 int dbug_write (const char *buf)
 {
-  int len = -1;
-
-#if defined(_WIN32)
-  if (use_ods)
-  {
-    len = strlen (buf);
-    len = min (len, ods_buf + sizeof(ods_buf) - ods_ptr - 1);
-    memcpy (ods_ptr, buf, len);
-    ods_ptr += len;
-    return (len);
-  }
-#endif
+  int rc = -1;
 
   if (dbg_file.stream && !pcap_mode)
   {
-    len = fputs (buf, dbg_file.stream);
-    if (in_dbug_dump && (len < 0 || ferror(dbg_file.stream)))
-       longjmp (dbg_jmp, errno);
+    rc = fputs (buf, dbg_file.stream);
+    if (in_dbug_dump && (rc < 0 || ferror(dbg_file.stream)))
+       longjmp (dbg_jmp, 1);
   }
-  return (len);
-}
-
-int dbug_putc (int c)
-{
-#if defined(_WIN32)
-  if (use_ods)
-  {
-    WATT_ASSERT (ods_ptr);
-    WATT_ASSERT (ods_ptr >= ods_buf);
-    WATT_ASSERT (ods_ptr <= ods_buf + sizeof(ods_buf) - 2);
-
-    if (c == '\n')
-    {
-      *ods_ptr++ = '\r';
-      *ods_ptr++ = '\n';
-      return flush_ods();
-    }
-    *ods_ptr++ = c;
-    return (1);
-  }
-#endif
-  return fputc (c, dbg_file.stream);
+  return (rc);
 }
 
 int db_write_raw (const char *buf) /* old name */
@@ -2838,7 +2479,7 @@ static void dbug_close (void)
   if (dbg_file.stream &&
       dbg_file.stream != stdout && dbg_file.stream != stderr)
   {
-#if defined(USE_GZIP)
+#if defined(USE_GZIP_COMPR)
     if (use_gzip)
        gzclose (dbg_file.gz_stream);
     else
@@ -2848,13 +2489,8 @@ static void dbug_close (void)
   dbg_file.stream = NULL;
 }
 
-void dbug_flush (void)
+static void dbug_flush (void)
 {
-#if defined(_WIN32)
-  if (use_ods)
-     flush_ods();
-  else
-#endif
   if (dbg_file.stream && !pcap_mode)
   {
     fflush (dbg_file.stream);
@@ -2869,7 +2505,7 @@ void dbug_flush (void)
 /*
  * Public initialisation
  */
-void W32_CALL dbug_init (void)
+void dbug_init (void)
 {
   static BOOL init = FALSE;
 
@@ -2879,10 +2515,10 @@ void W32_CALL dbug_init (void)
     return;
   }
   init = TRUE;
-  prev_hook  = usr_init;
-  usr_init   = dbug_cfg_parse;
-  debug_xmit = trace_xmit_pkt;
-  debug_recv = trace_recv_pkt;
+  prev_hook = usr_init;
+  usr_init  = ourinit;
+  _dbugxmit = dbug_send;
+  _dbugrecv = dbug_recv;
 
 #if defined(USE_BSD_API)
   _sock_dbug_init();
@@ -2893,6 +2529,45 @@ void W32_CALL dbug_init (void)
   else memset (&filter, 0, sizeof(filter));
 }
 
+#if defined(USE_STATISTICS)
+static void dbug_dump_arp_cache (int pfx_chr)
+{
+  struct arp_entry ae[100];
+  int    i, num;
+  DWORD  now;
+
+  num = _arp_list_cache (ae, DIM(ae));
+  now = set_timeout (0);
+  (*_printf) (" %c\nARP-cache:\n", pfx_chr);
+
+  for (i = 0; i < num; i++)
+  {
+    const char *remain = "no expiry";
+    char  buf[30];
+
+    if (ae[i].expiry)
+    {
+      if (ae[i].expiry > now)
+      {
+        sprintf (buf, "expires in %s s", time_str(ae[i].expiry-now));
+        remain = buf;
+      }
+      else
+        remain = "timedout";
+    }
+    (*_printf) ("      IP: %-15s -> %s, %s, %s\n",
+                _inet_ntoa(NULL,ae[i].ip), MAC_address(&ae[i].hardware),
+                (ae[i].flags & ARP_FIXED)   ? "Fixed  " :
+                (ae[i].flags & ARP_DYNAMIC) ? "Dynamic" :
+                (ae[i].flags & ARP_PENDING) ? "Pending" : "??     ",
+                remain);
+  }
+  if (num == 0)
+     (*_printf) ("      <Empty>\n");
+  (*_printf) (" \n");
+}
+#endif /* USE_STATISTICS */
+
 
 /**
  * Print ARP-cache and statistics counters to one of the debug-files.
@@ -2901,17 +2576,18 @@ void W32_CALL dbug_init (void)
  * before _eth_release() is called. pkt-drop counters are not reliable
  * once _eth_release() has been called.
  */
-static void W32_CALL dbug_exit (void)
+static void dbug_exit (void)
 {
   int (MS_CDECL *save_printf) (const char*, ...) = _printf;
+  int ch = ' ';
 
   if (!_watt_fatal_error)  /* an assert isn't fatal */
   {
     if (dbg_file.stream && !pcap_mode)
-         _printf = dbug_printf;          /* dump to wattcp.dbg */
+         _printf = dbug_printf;              /* dump to wattcp.dbg */
 #if defined(USE_BSD_API)
     else if (_sock_dbug_active())
-         _printf = _sock_debugf;         /* dump to wattcp.sk */
+         _printf = _sock_debugf, ch = '\n';  /* dump to wattcp.sk */
 #endif
     else _printf = NULL;
 
@@ -2920,10 +2596,7 @@ static void W32_CALL dbug_exit (void)
 #if defined(USE_STATISTICS)
       if (dbg_print_stat)
       {
-      //_arp_debug_dump();    /* Moved from startup to closing */
-        _arp_cache_dump();
-        _arp_gateways_dump();
-        _arp_routes_dump();
+        dbug_dump_arp_cache (ch);
         print_all_stats();
       }
 #endif
@@ -2937,18 +2610,19 @@ static void W32_CALL dbug_exit (void)
   }
   dbug_close();
 
-#if defined(USE_GZIP)
+#if defined(USE_GZIP_COMPR)
   if (use_gzip && !_watt_fatal_error)
   {
     struct stat st;
 
     if (stat(dbg_name,&st) == 0 && st.st_size > 0)
        (*_printf) (" \ngzip compression: %lu raw, %lu compressed (%lu%%)\n",
-                   (u_long)bytes_raw, (u_long)st.st_size,
-                   (u_long)(100 - (100*st.st_size)/bytes_raw));
+                   bytes_raw, (DWORD)st.st_size,
+                   100 - (100*st.st_size)/bytes_raw);
   }
 #endif
 
+  ARGSUSED (ch);
   _printf = save_printf;
 }
 
@@ -2958,10 +2632,43 @@ static void W32_CALL dbug_exit (void)
  *
  * \author Mike Borella <mike_borella@mw.3com.com>
  *
- * Changed for Watt-32 and pcdbug.c by G.Vanem 1998 <gvanem@yahoo.no>
+ * Changed for WatTCP and pcdbug.c by G.Vanem 1998 <giva@bgnett.no>
  *
  * \todo parse the SRV resource record (RFC 2052)
  */
+
+struct DNS_Hdr {
+       WORD  dns_id;
+#if defined(USE_BIGENDIAN)
+       WORD  dns_fl_qr    : 1;
+       WORD  dns_fl_opcode: 4;
+       WORD  dns_fl_aa    : 1;
+       WORD  dns_fl_tc    : 1;
+       WORD  dns_fl_rd    : 1;
+
+       WORD  dns_fl_ra    : 1;
+       WORD  dns_fl_unused: 1;
+       WORD  dns_fl_ad    : 1;
+       WORD  dns_fl_cd    : 1;
+       WORD  dns_fl_rcode : 4;
+#else
+       WORD  dns_fl_rd    : 1;  /* recursion desired */
+       WORD  dns_fl_tc    : 1;  /* truncated message */
+       WORD  dns_fl_aa    : 1;  /* authoritative answer */
+       WORD  dns_fl_opcode: 4;  /* purpose of message */
+       WORD  dns_fl_qr    : 1;  /* response flag */
+       WORD  dns_fl_rcode : 4;  /* response code */
+       WORD  dns_fl_cd    : 1;  /* checking disabled by resolver */
+       WORD  dns_fl_ad    : 1;  /* authentic data from named */
+       WORD  dns_fl_unused: 1;  /* unused bits (MBZ as of 4.9.3a3) */
+       WORD  dns_fl_ra    : 1;  /* recursion available */
+#endif
+       WORD  dns_num_q;
+       WORD  dns_num_ans;
+       WORD  dns_num_auth;
+       WORD  dns_num_add;
+     };
+
 static const char *dns_opcodes[16] = {
             "standard",       /* DNS_OP_QUERY */
             "inverse",        /* DNS_OP_INVERSE */
@@ -3033,8 +2740,6 @@ static __inline const char *dns_query (WORD type)
          return ("AXFR");
     case T_TXT:
          return ("TXT");
-    case T_CAA:
-         return ("CAA");
     case T_WINS:
          return ("WINS");
     case T_WINSR:
@@ -3053,11 +2758,13 @@ static unsigned dns_dump (const BYTE *bp, unsigned length, unsigned dns_len)
 {
   #define CHK_BOGUS(p) if (p > bp+length) goto bogus
 
-  const struct DNS_Header *dns = (const struct DNS_Header*) bp;
+  const struct DNS_Hdr *dns = (const struct DNS_Hdr*) bp;
   const BYTE  *body   = (const BYTE*)bp + sizeof(*dns);
   const BYTE  *end_p  = (const BYTE*)bp + length;
-  const char  *opcode = dns_opcodes [dns->dns_fl_opcode];
-  const char  *rcode  = dns_responses [dns->dns_fl_rcode];
+  const char  *opcode = dns->dns_fl_opcode < DIM(dns_opcodes) ?
+                          dns_opcodes [dns->dns_fl_opcode] : NULL;
+  const char  *rcode  = dns->dns_fl_rcode < DIM(dns_responses) ?
+                          dns_responses [dns->dns_fl_rcode] : NULL;
   int      i, t;
   unsigned len = 0;
 
@@ -3196,7 +2903,7 @@ static const BYTE *dns_resource (const BYTE *p, const BYTE *bp, const BYTE *ep)
     case T_AAAA:     /* AAAA record; ip6 address(es) */
          while (reslen >= sizeof(ip6_address))
          {
-           const char *addr = _inet6_ntoa ((const void*)p);
+           const char *addr = _inet6_ntoa ((const ip6_address*)p);
            dbug_printf ("         IP6 address: %s\n", addr);
            p      += sizeof (ip6_address);
            reslen -= sizeof (ip6_address);
@@ -3249,7 +2956,7 @@ static const BYTE *dns_resource (const BYTE *p, const BYTE *bp, const BYTE *ep)
 
            val = intel (*(DWORD*)p);
            p += 4;
-           dbug_printf ("              serial %lu", (u_long)val);
+           dbug_printf ("              serial %lu", val);
 
            val = intel (*(DWORD*)p);
            p += 4;
@@ -3304,7 +3011,7 @@ static const BYTE *dns_labels (const BYTE *p, const BYTE *bp, const BYTE *ep)
     {
       if (p <= ep)
       {
-        dbug_putc (*p++);
+        fputc (*p++, dbg_file.stream);
         count--;
       }
       else
@@ -3313,9 +3020,9 @@ static const BYTE *dns_labels (const BYTE *p, const BYTE *bp, const BYTE *ep)
         return (p);
       }
     }
-    dbug_putc ('.');
+    fputc ('.', dbg_file.stream);
   }
-  dbug_putc ('\n');
+  fputc ('\n', dbg_file.stream);
   return (p);
 }
 
@@ -3485,7 +3192,7 @@ static unsigned lcp_dump (const BYTE *bp)
                     break;
              }
            }
-           dbug_putc ('>');
+           fputc ('>', dbg_file.stream);
            p += opt_length - 2;
          }
          break;
@@ -3503,7 +3210,7 @@ static unsigned lcp_dump (const BYTE *bp)
          break;
 
     case CODEREJ:
-         dbug_putc ('\n');
+         fputc ('\n', dbg_file.stream);
          lcp_dump (lcp_data);
          break;
 
@@ -3514,7 +3221,7 @@ static unsigned lcp_dump (const BYTE *bp)
     default:
          break;
   }
-  dbug_putc ('\n');
+  fputc ('\n', dbg_file.stream);
   return (len);
 }
 
@@ -3596,7 +3303,7 @@ static unsigned ipcp_dump (const BYTE *bp)
                     break;
              }
            }
-           dbug_putc ('>');
+           fputc ('>', dbg_file.stream);
            p += opt_length - 2;
          }
          break;
@@ -3608,28 +3315,26 @@ static unsigned ipcp_dump (const BYTE *bp)
     default:
          break;
   }
-  dbug_putc ('\n');
+  fputc ('\n', dbg_file.stream);
   return (len);
 }
 #endif  /* USE_PPPOE */
 
 /*
  * Functions for writing dump-file in pcap-format
- * (gzip compressed or non-compressed pcap format).
+ *  (gzip compressed or normal pcap format).
  */
 #define TCPDUMP_MAGIC       0xA1B2C3D4
 #define PCAP_VERSION_MAJOR  2
 #define PCAP_VERSION_MINOR  4
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 struct pcap_file_header {
        DWORD  magic;
        WORD   version_major;
        WORD   version_minor;
-       DWORD  thiszone;        /* GMT to local correction */
+       long   thiszone;        /* GMT to local correction */
        DWORD  sigfigs;         /* accuracy of timestamps */
        DWORD  snap_len;        /* max length saved portion of each pkt */
        DWORD  linktype;        /* data link type (DLT_*) */
@@ -3647,9 +3352,7 @@ struct pcap_pkt_header {
        DWORD          family;  /* protocol family value (for DLT_NULL) */
      };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 static int write_pcap_header (void)
 {
@@ -3667,9 +3370,9 @@ static int write_pcap_header (void)
   pf_hdr.thiszone      = 60 * tz.tz_minuteswest;
   pf_hdr.sigfigs       = 0;
   pf_hdr.snap_len      = _mtu + _pkt_ip_ofs;
-  pf_hdr.linktype      = _pktserial ? 101 : _eth_get_hwtype(NULL, NULL);
+  pf_hdr.linktype      = _pktserial ? 101 : _eth_get_hwtype (NULL, NULL);
 
-#if defined(USE_GZIP)
+#if defined(USE_GZIP_COMPR)
   if (use_gzip)
   {
     rc = gzwrite (dbg_file.gz_stream, &pf_hdr, sizeof(pf_hdr));
@@ -3691,7 +3394,7 @@ static int write_pcap_packet (const void *pkt, BOOL out)
 
   if (out)
   {
-#if (DOSX) && defined(HAVE_UINT64) && defined(__MSDOS__)
+#if (DOSX) && defined(HAVE_UINT64) && !defined(WIN32)
     if (!_eth_last.tx.tstamp.lo ||
         !get_tv_from_tsc (&_eth_last.tx.tstamp, &pc_hdr.ts))
 #endif
@@ -3700,7 +3403,7 @@ static int write_pcap_packet (const void *pkt, BOOL out)
   }
   else
   {
-#if (DOSX) && defined(HAVE_UINT64) && defined(__MSDOS__)
+#if (DOSX) && defined(HAVE_UINT64) && !defined(WIN32)
     if (!_eth_last.rx.tstamp.lo ||
         !get_tv_from_tsc (&_eth_last.rx.tstamp, &pc_hdr.ts))
 #endif
@@ -3710,24 +3413,24 @@ static int write_pcap_packet (const void *pkt, BOOL out)
 
   if (_pktserial)  /* write DLT_NULL header */
   {
-    pc_hdr.len    = (DWORD) (pkt_len + sizeof(pc_hdr.family));
+    pc_hdr.len    = pkt_len + sizeof(pc_hdr.family);
     pc_hdr.family = (ip->ver == 4) ? AF_INET : AF_INET6;
     hlen = sizeof (pc_hdr);
   }
   else
   {
-    pc_hdr.len = (DWORD)pkt_len;
+    pc_hdr.len = pkt_len;
     hlen = sizeof (pc_hdr) - sizeof(pc_hdr.family);
   }
-  pc_hdr.caplen = (DWORD)pkt_len;
+  pc_hdr.caplen = pkt_len;
 
-#if defined(USE_GZIP)
+#if defined(USE_GZIP_COMPR)
   if (use_gzip)
   {
-    rc = gzwrite (dbg_file.gz_stream, &pc_hdr, (unsigned)hlen);
-    bytes_raw += (DWORD) hlen;
-    rc = gzwrite (dbg_file.gz_stream, pkt, (unsigned)pkt_len);
-    bytes_raw += (DWORD) pkt_len;
+    rc = gzwrite (dbg_file.gz_stream, &pc_hdr, hlen);
+    bytes_raw += hlen;
+    rc = gzwrite (dbg_file.gz_stream, pkt, pkt_len);
+    bytes_raw += pkt_len;
   }
   else
 #endif
@@ -3737,168 +3440,4 @@ static int write_pcap_packet (const void *pkt, BOOL out)
   }
   return (rc == 0 ? -1 : (int)rc);
 }
-
-/*
- * This stuff is taken mostly from tests/cpu.c.
- */
-#if defined(PRINT_CPU_INFO)
-
-#if 0 /* Use code in tests/cpu.c instead */
-static const char *i486_model (int model)
-{
-  static const char *models[] = {
-                    "0", "DX", "SX", "DX/2", "4", "SX/2", "6",
-                    "DX/2-WB", "DX/4", "DX/4-WB", "10", "11", "12", "13",
-                    "Am5x86-WT", "Am5x86-WB"
-                  };
-  if (model < DIM(models))
-     return (models[model]);
-  return (NULL);
-}
-
-static const char *i586_model (int model)
-{
-  static const char *models[] = {
-                    "0", "Pentium 60/66", "Pentium 75+", "OverDrive PODP5V83",
-                    "Pentium MMX", NULL, NULL, "Mobile Pentium 75+",
-                    "Mobile Pentium MMX"
-                  };
-  if (model < DIM(models))
-     return (models[model]);
-  return (NULL);
-}
-
-static const char *Cx86_model (int type)
-{
-  int    model;
-  static const char *models[] = {
-                    "unknown", "6x86", "6x86L", "6x86MX", "MII"
-                  };
-  switch (type)
-  {
-    case 5:
-         /* CX8 flag only on 6x86L */
-         model = ((x86_capability & X86_CAPA_CX8) ? 2 : 1);
-         break;
-    case 6:
-         model = 3;
-         break;
-    default:
-         model = 0;
-  }
-  return (models[model]);
-}
-
-static const char *i686_model (int model)
-{
-  static const char *models[] = {
-                    "PPro A-step", "Pentium Pro"
-                  };
-  if (model < DIM(models))
-     return (models[model]);
-  return (NULL);
-}
-
-struct model_info {
-       int         type;
-       const char *names[16];
-     };
-
-static const char *AMD_model (int type, int model)
-{
-  static const struct model_info amd_models[] = {
-    { 4,
-      { NULL, NULL, NULL, "DX/2", NULL, NULL, NULL, "DX/2-WB", "DX/4",
-        "DX/4-WB", NULL, NULL, NULL, NULL, "Am5x86-WT", "Am5x86-WB"
-      }
-    },
-    { 5,
-      { "K5/SSA5 (PR-75, PR-90, PR-100)", "K5 (PR-120, PR-133)",
-        "K5 (PR-166)", "K5 (PR-200)", NULL, NULL,
-        "K6 (166-266)", "K6 (166-300)", "K6-2 (200-450)",
-        "K6-3D-Plus (200-450)", NULL, NULL, NULL, NULL, NULL, NULL
-      }
-    }
-  };
-  int i;
-
-  if (model < 16)
-     for (i = 0; i < DIM(amd_models); i++)
-         if (amd_models[i].type == type)
-            return (amd_models[i].names[model]);
-  return (NULL);
-}
-
-static const char *cpu_get_model (int type, int model)
-{
-  const  char *p = NULL;
-  const  char *vendor = x86_vendor_id;
-  static char buf[12];
-
-  if (!x86_have_cpuid)
-     return ("unknown");
-
-  if (!strncmp(vendor, "Cyrix", 5))
-     p = Cx86_model (type);
-  else if (!strcmp(vendor, "AuthenticAMD"))
-     p = AMD_model (type, model);
-#if 0  /** \todo */
-  else if (!strcmp(vendor, "UMC UMC UMC "))
-     p = UMC_model (type, model);
-  else if (!strcmp(vendor, "NexGenDriven"))
-     p = NexGen_model (type, model);
-  else if (!strcmp(vendor, "CentaurHauls"))
-     p = Centaur_model (type, model);
-  else if (!strcmp(vendor, "RiseRiseRise"))  /* Rise Technology */
-     p = Rise_model (type, model);
-  else if (!strcmp(vendor, "GenuineTMx86"))  /* Transmeta */
-     p = Transmeta_model (type, model);
-  else if (!strcmp(vendor, "Geode by NSC"))  /* National Semiconductor */
-     p = National_model (type, model);
-#endif
-  else   /* Intel */
-  {
-    switch (type & 0x07)  /* mask off extended family bit */
-    {
-      case 4:
-           p = i486_model (model);
-           break;
-      case 5:
-           p = i586_model (model);   /* Pentium I */
-           break;
-      case 6:
-           p = i686_model (model);   /* Pentium II */
-           break;
-      case 7:
-           p = "Pentium 3";
-           break;
-      case 8:
-           p = "Pentium 4";
-           break;
-    }
-  }
-  if (p)
-     return (p);
-  return itoa (model, buf, 10);
-}
-#endif   /* 0 */
-
-static void print_cpu_info (void)
-{
-  uint64 Hz;
-  char   speed [20];
-
-  CheckCpuType();
-
-  Hz = get_cpu_speed();
-  if (Hz)
-       sprintf (speed, "%.3f", (double)Hz/1E6);
-  else strcpy (speed, "??");
-
-  dbug_printf ("CPU: %d86, model: %s, vendor: %s, speed: %s MHz (%d CPU core%s)\n",
-               x86_type, cpu_get_model(x86_type,x86_model),
-               x86_vendor_id[0] ? x86_vendor_id : "unknown", speed,
-               num_cpus, num_cpus > 1 ? "s" : "");
-}
-#endif  /* PRINT_CPU_INFO */
 #endif  /* USE_DEBUG */

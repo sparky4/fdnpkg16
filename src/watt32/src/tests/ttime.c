@@ -2,32 +2,27 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#ifndef __CYGWIN__
 #include <dos.h>
-#endif
 
-#include "wattcp.h"
-#include "misc.h"
-#include "timer.h"
-#include "printk.h"
+#include "../wattcp.h"
+#include "../misc.h"
+#include "../timer.h"
+#include "../getopt.h"
+#include "../printk.h"
 
 #if defined(__DMC__)
   #define dosdate_t  dos_date_t
   #define dostime_t  dos_time_t
 #endif
 
-#ifdef __MSDOS__
 static int use_isr = 0;
-#endif
 
 int test_timers (DWORD msec)
 {
   int i;
 
-#ifdef __MSDOS__
   if (use_isr)
      init_timer_isr();
-#endif
 
   printf ("system ref. (now) = %lu\n"
           "set_timeout(1000) = %lu\n",
@@ -56,18 +51,15 @@ int test_gettod2 (void)
   struct timeval tv, last;
   DWORD  loop = 0;
 
-#ifdef __MSDOS__
   if (use_isr)
      init_timer_isr();
-#endif
 
   while (!kbhit())
   {
     gettimeofday2 (&tv, NULL);
     printf ("tod: %6ld.%06lu", (long)tv.tv_sec, tv.tv_usec);
 
-    usleep (1000000);
-
+    sleep (1);
     if (loop++ > 0)
          printf (", diff: %.6fs\n", timeval_diff(&tv,&last)/1E6);
     else putchar ('\n');
@@ -78,7 +70,6 @@ int test_gettod2 (void)
   return (0);
 }
 
-#ifdef __MSDOS__
 /*
  * test timers around midnight.
  * Set time to 23:59:45, set timer to timeout at 00:00:15.
@@ -142,11 +133,10 @@ int test_rollover (void)
   old.second %= 60;
   old.minute += elapsed / 60;
 
-  _dos_settime (&old);
+  _dos_settime (&old);    
   _dos_setdate (&date);
   return (0);
 }
-#endif  /*  __MSDOS__ */
 
 #ifdef HAVE_UINT64
 const char *get_cpu_wrap_time (void)
@@ -157,14 +147,10 @@ const char *get_cpu_wrap_time (void)
 
 void Usage (void)
 {
-#ifdef __MSDOS__
   puts ("Usage: ttime [-hT] <-r | -g | -t | -i> \n"
         "  -h : don't use hi-resolution timers\n"
         "  -T : use timer ISR\n"
         "  -r : test timer day-rollover\n"
-#else
-  puts ("Usage: ttime <-g | -t | -i> \n"
-#endif
         "  -g : test gettimeofday2()\n"
         "  -t : test general timers\n"
         "  -i : test intel() functions\n");
@@ -188,18 +174,12 @@ int main (int argc, char **argv)
   while ((ch = getopt(argc, argv, "hrgtiT")) != EOF)
     switch (ch)
     {
-#ifdef __MSDOS__
       case 'h':
            hires_timer (0);
            break;
 
       case 'r':
            exit (test_rollover());
-
-      case 'T':
-           use_isr = 1;
-           break;
-#endif
 
       case 'g':
            exit (test_gettod2());
@@ -209,6 +189,10 @@ int main (int argc, char **argv)
 
       case 'i':
            exit (test_intel());
+
+      case 'T':
+           use_isr = 1;
+           break;
 
       default:
            Usage();

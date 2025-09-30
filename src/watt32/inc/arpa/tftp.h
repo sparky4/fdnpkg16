@@ -57,9 +57,7 @@
 #define ERROR   05                      /* error code */
 #define OACK    06                      /* option acknowledgement */
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 struct tftphdr {
        unsigned short   th_opcode;      /* packet type */
@@ -71,9 +69,7 @@ struct tftphdr {
        char             th_data[1];     /* data or error string */
      };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 #define th_block        th_u.tu_block
 #define th_code         th_u.tu_code

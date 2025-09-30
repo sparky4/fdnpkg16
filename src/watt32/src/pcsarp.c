@@ -18,6 +18,7 @@
 
 #include "wattcp.h"
 #include "strings.h"
+#include "language.h"
 #include "netaddr.h"
 #include "misc.h"
 #include "pcdbug.h"
@@ -31,7 +32,7 @@
 
 #if defined(USE_SECURE_ARP)
 /*
- * OpenSSL include path should be in %INCLUDE% or %C_INCLUDE_PATH%.
+ * OpenSSL include path should be in %INCLUDE% and %C_INCLUDE_PATH%.
  */
 #include <openssl/dsa.h>
 #include <openssl/sha.h>
@@ -40,15 +41,15 @@
 #include <openssl/evp.h>
 
 #if defined(USE_DEBUG)
-  #define SARP_DEBUG(level, args)      \
-          do {                         \
-            if (sarp_debug >= level) { \
-               (*_printf) args;        \
-               fflush (stdout);        \
-            }                          \
+  #define SARP_DEBUG(lvl, args)      \
+          do {                       \
+            if (sarp_debug >= lvl) { \
+               (*_printf) args;      \
+               fflush (stdout);      \
+            }                        \
           } while (0)
 #else
-  #define SARP_DEBUG(args, level)  ((void)0)
+  #define SARP_DEBUG(args, lvl) ((void)0)
 #endif
 
 struct host_list {
@@ -59,9 +60,7 @@ struct host_list {
        struct host_list *next;
      };
 
-static void (W32_CALL *prev_cfg_hook) (const char*, const char*);
-static void  W32_CALL  sarp_parse (const char *name, const char *value);
-
+static void (*prev_cfg_hook) (const char*, const char*);
 static char  *ca_keyfile   = NULL;
 static char  *priv_keyfile = NULL;
 static int    sarp_debug   = 0;
@@ -69,6 +68,7 @@ static int    sarp_debug   = 0;
 static struct host_list *known_hosts  = NULL;
 static struct host_list *secure_hosts = NULL;
 
+static void sarp_parse    (const char *name, const char *value);
 static int  sarp_receive  (const struct sarp_Packet *sarp);
 static int  sarp_transmit (struct sarp_Packet *sarp);
 
@@ -85,7 +85,11 @@ int sarp_init (void)
   _sarp_recv_hook = sarp_receive;
   _sarp_xmit_hook = sarp_transmit;
 
-  if (rand && FILE_EXIST(rand))
+#ifdef __DJGPP__
+  if (rand && _chmod(rand,0) !=-1)
+#else
+  if (rand && access(rand,0) == 0)
+#endif
        RAND_load_file (rand, -1);
   else SARP_DEBUG (0, ("Warning: No random seed file found\n"));
   return (0);
@@ -199,7 +203,7 @@ static int set_known_host (const char *value, int value_len)
 /**
  * Parser for "SEC_ARP.xx" keywords in WATTCP.CFG (or SARP.CFG).
  */
-static void W32_CALL sarp_parse (const char *name, const char *value)
+static void sarp_parse (const char *name, const char *value)
 {
   static const struct config_table sarp_cfg[] = {
          { "CA_KEY",      ARG_FUNC, (void*)read_ca_keyfile   },
@@ -247,7 +251,7 @@ static int make_auth_Header (struct sarp_Packet *sarp)
 }
 
 /*
- * Called from _arp_handler() after HW-type and protocol (IPv4) is
+ * Called from _arp_handler() after hw-type and protocol (IPv4) is
  * verified. Must completely replace _arp_handler().
  */
 static int sarp_receive (const struct sarp_Packet *sarp)

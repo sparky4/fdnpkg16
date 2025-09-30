@@ -13,7 +13,7 @@
  *
  */
 
-#if !defined(__DJGPP__) && !defined(__CYGWIN__) /* already have settimeofday() */
+#if !defined(__DJGPP__)  /* allready have settimeofday() */
 
 #include <errno.h>       /* EINVAL */
 #include <sys/wtime.h>   /* time func/types */
@@ -26,35 +26,23 @@ int MS_CDECL settimeofday (struct timeval *tv, ...)
 {
   if (tv)
   {
-    time_t     t = (time_t)tv->tv_sec;
-    struct tm  res;
-    struct tm *rc = localtime_r (&t, &res);
+    time_t t       = (time_t)tv->tv_sec;
+    struct tm *tmp = localtime (&t);
 
-    if (rc && res.tm_year >= 80)
+    if (tmp && tmp->tm_year >= 80)
     {
 #if defined(WIN32)
-      SYSTEMTIME tim;
-
-      tim.wYear         = res.tm_year + 1900;
-      tim.wMonth        = res.tm_mon + 1;
-      tim.wDayOfWeek    = res.tm_wday;
-      tim.wDay          = res.tm_mday;
-      tim.wHour         = res.tm_hour;
-      tim.wMinute       = res.tm_min;
-      tim.wSecond       = res.tm_sec;
-      tim.wMilliseconds = tv->tv_usec / 1000;
-      if (SetLocalTime(&tim))
-         return (0);
+      /* todo */
 #else
       struct dosdate_t newdate;
       struct dostime_t newtime;
 
-      newdate.year    = (WORD)(res.tm_year + 1900);
-      newdate.month   = (BYTE)(res.tm_mon + 1);
-      newdate.day     = (BYTE)(res.tm_mday);
-      newtime.hour    = (BYTE)(res.tm_hour);
-      newtime.minute  = (BYTE)(res.tm_min);
-      newtime.second  = (BYTE)(res.tm_sec);
+      newdate.year    = (WORD)(tmp->tm_year + 1900);
+      newdate.month   = (BYTE)(tmp->tm_mon + 1);
+      newdate.day     = (BYTE)(tmp->tm_mday);
+      newtime.hour    = (BYTE)(tmp->tm_hour);
+      newtime.minute  = (BYTE)(tmp->tm_min);
+      newtime.second  = (BYTE)(tmp->tm_sec);
       newtime.hsecond = (BYTE)(tv->tv_usec / 10000ul);
       if (_dos_setdate(&newdate) == 0  && /* int 21h fxn 2Bh */
           _dos_settime(&newtime) == 0)    /* int 21h fxn 2Dh */
@@ -65,4 +53,4 @@ int MS_CDECL settimeofday (struct timeval *tv, ...)
   SOCK_ERRNO (EINVAL);
   return (-1);
 }
-#endif /* !__DJGPP__ && !__CYGWIN__ */
+#endif /* !__DJGPP__ */

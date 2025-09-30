@@ -36,7 +36,7 @@ static int cp950ext_mbtowc (conv_t conv, ucs4_t * pwc, const unsigned char *s, i
 {
   unsigned char c1 = s[0];
 
-  if (c1 == 0xf9)
+  if ((c1 == 0xf9))
   {
     if (n >= 2)
     {

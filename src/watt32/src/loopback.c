@@ -1,7 +1,7 @@
 /*!\file loopback.c
  *  A simple loopback device.
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -107,7 +107,7 @@ WORD loopback_mode = LBACK_MODE_ENABLE;
 #endif
 
 
-int (W32_CALL *loopback_handler) (in_Header*) = NULL;
+int (*loopback_handler) (in_Header*) = NULL;
 
 static int icmp_loopback (ICMP_PKT   *icmp, unsigned icmp_len);
 static int udp_loopback  (udp_Header *udp,  unsigned udp_len);
@@ -249,9 +249,9 @@ static int udp_loopback (udp_Header *udp, unsigned udp_len)
  *  An example loopback handler for RPC Portmapper (udp port 111)
  *  (Maybe an contradiction in terms to do RPC locally :-)
  *
- *  int (W32_CALL *old_loopback) (const in_Header*) = NULL;
+ *  int (*old_loopback) (const in_Header*) = NULL;
  *
- *  static W32_CALL int pmap_loopback (const in_Header *ip)
+ *  static int pmap_loopback (const in_Header *ip)
  *  {
  *    WORD  hlen = in_GetHdrLen (ip);
  *    const udp_Header *udp = (const udp_Header*) ((BYTE*)ip + hlen);

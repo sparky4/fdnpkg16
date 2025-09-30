@@ -2,9 +2,9 @@
  * BSD socket debugging.
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -37,7 +37,6 @@
  */
 
 #include "socket.h"
-#include "run.h"
 #include "get_xby.h"
 
 #if defined(USE_DEBUG) && defined(USE_BSD_API)  /* Whole file */
@@ -47,81 +46,86 @@
 
 static int sk_scope = 0;  /*!< scope-level (indent printout) */
 
-static void (W32_CALL *prev_hook) (const char*, const char*);
-
+static void (*prev_hook) (const char*, const char*);
 static BOOL   dbg_use_ods  = FALSE;
 static FILE  *dbg_file     = NULL;
 static char   dbg_omode[5] = "w+";           /* max "w+tc" */
 static char   dbg_fname[MAX_PATHLEN+1] = "";
 
-static void W32_CALL bsddbug_exit (void);
-static void          bsddbug_close (void);
-
-#if defined(WIN32)
-static int ods_printf (const char *fmt, va_list arg);
-#endif
+static void bsddbug_exit (void);
+static void bsddbug_close (void);
 
 int MS_CDECL _sock_debugf (const char *fmt, ...)
 {
-  int     len = 0, rc = 0;
+  int     rc, len = 0;
   char    buf[256];
   va_list arg;
-  int     err, errno_save = errno;
+  int     errno_save = errno;
 
-  if (!debug_xmit || !fmt)  /* dbug_init() not called */
+  if (!_dbugxmit || !fmt)  /* dbug_init() not called */
      return (0);
 
 #if defined(WIN32)
   if (dbg_use_ods)
   {
+    char  *p    = buf;
+    size_t left = sizeof(buf);
+
+    if (*fmt == '\n')
+    {
+      p    += _snprintf (p, left, "\n%9s: ", elapsed_str(set_timeout(0)));
+      left -= p - buf;
+      fmt++;
+      if (sk_scope > 0)
+      {
+        p    += _snprintf (p, left, "%*s", SCOPE_INDENT*sk_scope, "");
+        left -= p - buf;
+      }
+    }
     va_start (arg, fmt);
-    rc = ods_printf (fmt, arg);
+    p += _vsnprintf (p, left, fmt, arg);
+    OutputDebugString (buf);
     va_end (arg);
-    return (rc);
+    return (p - buf);
   }
 #endif
 
   if (!dbg_file)
-     return (rc);
+     return (0);
 
   va_start (arg, fmt);
 
   if (*fmt == '\n')
   {
 #if (USE_PRINTK)
-    len = _printk ("\n%9s: ", elapsed_str(set_timeout(0)));
-    if (sk_scope > 0)
-       len += _printk ("%*s", SCOPE_INDENT*sk_scope, "");
-#else
-    len = fprintf (dbg_file, "\n%9s: ", elapsed_str(set_timeout(0)));
-    if (sk_scope > 0)
-       len += fprintf (dbg_file, "%*s", SCOPE_INDENT*sk_scope, "");
-#endif
+    _printk ("\n%9s: ", elapsed_str(set_timeout(0)));
     fmt++;
-    if (*fmt == '\0')
-       return (len);
+    if (sk_scope > 0)
+       _printk ("%*s", SCOPE_INDENT*sk_scope, "");
+#else
+    fprintf (dbg_file, "\n%9s: ", elapsed_str(set_timeout(0)));
+    fmt++;
+    if (sk_scope > 0)
+       fprintf (dbg_file, "%*s", SCOPE_INDENT*sk_scope, "");
+#endif
   }
 
 #if (USE_PRINTK)
   _vsnprintk (buf, sizeof(buf), fmt, arg);
-  rc  = _fputsk (buf, dbg_file);
+  rc = _fputsk (buf, dbg_file);
 #else
   vsprintf (buf, fmt, arg);
-  rc  = fputs (buf, dbg_file);
+  rc = fputs (buf, dbg_file);
 #endif
 
-  err = errno;
   _sock_dbug_flush();
 
   if (rc == EOF)
   {
     TCP_CONSOLE_MSG (1, ("%s (%d): write failed; %s\n",
-                     __FILE__, __LINE__, strerror(err)));
+                     __FILE__, __LINE__, strerror(errno)));
     bsddbug_close();
   }
-  else
-    len += rc;
-
   errno = errno_save;
   va_end (arg);
   return (len);
@@ -146,7 +150,7 @@ void _sock_dbug_flush (void)
 }
 
 /*
- * Called from sock_ini.c if 'debug_xmit' != NULL.
+ * Called from sock_ini.c if '_dbugxmit' != NULL.
  */
 void _sock_dbug_open (void)
 {
@@ -163,7 +167,6 @@ void _sock_dbug_open (void)
   if (!dbg_fname[0])
      return;
 
-  errno = 0;
   dbg_file = fopen_excl (dbg_fname, dbg_omode);
   if (dbg_file)
   {
@@ -185,7 +188,7 @@ void _sock_dbug_open (void)
  */
 static void set_dbg_fname (const char *value)
 {
-  _strlcpy (dbg_fname, value, sizeof(dbg_fname));
+  StrLcpy (dbg_fname, value, sizeof(dbg_fname));
 
   if (!stricmp(dbg_fname,"stderr"))
      dbg_file = stderr;
@@ -199,7 +202,7 @@ static void set_dbg_fname (const char *value)
 
 static void set_dbg_openmode (const char *value)
 {
-  _strlcpy (dbg_omode, value, sizeof(dbg_omode));
+  StrLcpy (dbg_omode, value, sizeof(dbg_omode));
 }
 
 /*
@@ -210,7 +213,7 @@ static void set_dbg_openmode (const char *value)
  *   SK_DEBUG.DEVICE   = <file>
  *   SK_DEBUG.OPENMODE = <mode>
  */
-static void W32_CALL dbug_parse (const char *name, const char *value)
+static void dbug_parse (const char *name, const char *value)
 {
   static const struct config_table cfg[] = {
             { "DEVICE",   ARG_FUNC, (void*)set_dbg_fname    },
@@ -236,9 +239,6 @@ static void show_local_ports_inuse (void)
 {
   WORD port, num = 0;
 
-  if (!dbg_file)
-     return;
-
 #if (USE_PRINTK)
   _printk ("\nLocal ports still in use:\n");
 #else
@@ -257,7 +257,7 @@ static void show_local_ports_inuse (void)
 #if (USE_PRINTK)
       _printk ("%5u%c", port, num % 12 ? ',' : '\n');
 #else
-      fprintf (dbg_file, "%5u%c", port, (num % 12) ? ',' : '\n');
+      fprintf (dbg_file, "%5u%c", port, num % 12 ? ',' : '\n');
 #endif
     }
   }
@@ -266,63 +266,12 @@ static void show_local_ports_inuse (void)
 void bsd_fortify_print (const char *buf)
 {
   if (dbg_file)
-  {
 #if (USE_PRINTK)
-    _fputsk (buf, dbg_file);
+     _fputsk (buf, dbg_file);
 #else
-    fputs (buf, dbg_file);
+     fputs (buf, dbg_file);
 #endif
-  }
 }
-
-#if defined(WIN32)
-/**
- * \todo: Needs to be rewritten to handle line-buffering. !!
- */
-static int ods_printf (const char *fmt, va_list arg)
-{
-  char   buf1[300];
-  char   buf2[400];
-  char  *p1   = buf1;
-  char  *p2   = buf2;
-  size_t left = sizeof(buf1);
-
-  if (*fmt == '\n')
-  {
-    p1   += SNPRINTF (p1, left, "\n%9s: ", elapsed_str(set_timeout(0)));
-    left -= p1 - buf1;
-    fmt++;
-    if (sk_scope > 0)
-    {
-      p1   += SNPRINTF (p1, left, "%*s", SCOPE_INDENT*sk_scope, "");
-      left -= p1 - buf1;
-    }
-  }
-
-  VSNPRINTF (p1, left, fmt, arg);
-
-  for (p1 = buf1, p2 = buf2; *p1 && p2 < buf2 + sizeof(buf2); p1++, p2++)
-  {
-    if (p1[0] == '\n' && p1[-1] != '\r')
-        *p2++ = '\r';
-    *p2 = *p1;
-  }
-
-#if 0
-  if (p2[-2] != '\r' || p2[-1] != '\n')
-     strcpy (p2, "\r\n"), p2 += 2;
-#endif
-
-  *p2++ = '\0';
-  OutputDebugStringA (buf2);
-
-  /* Because of clang:
-   *   warning: Value stored to 'p2' during its initialization is never read
-   */
-  ARGSUSED (p2);
-  return (p2 - buf2);
-}
-#endif  /* WIN32 */
 
 
 #include "nochkstk.h"
@@ -331,16 +280,15 @@ static void bsddbug_close (void)
 {
 #if (USE_PRINTK == 0)
   if (dbg_file && dbg_file != stdout && dbg_file != stderr)
-     FCLOSE (dbg_file);
+     fclose (dbg_file);
 #endif
   dbg_file = NULL;
 }
 
-static void W32_CALL bsddbug_exit (void)
+static void bsddbug_exit (void)
 {
   if (!_watt_fatal_error && dbg_file)
   {
-    DumpEthersCache();
     DumpHostsCache();
 #if defined(USE_IPV6)
     DumpHosts6Cache();

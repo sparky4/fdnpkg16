@@ -30,9 +30,8 @@ static long seq_num = 0;
  * We MUST set 'p->buf_len = -1' to signal a 0-byte UDP packet
  * not 0
  */
-static int W32_CALL sock_recvdaemon (
-           sock_type *s, const void *data, unsigned len,
-           const tcp_PseudoHeader *ph, const udp_Header *udp)
+static int sock_recvdaemon (sock_type *s, const void *data, unsigned len,
+                            const tcp_PseudoHeader *ph, const udp_Header *udp)
 {
   recv_data *r;
   recv_buf  *p;
@@ -120,7 +119,7 @@ static int W32_CALL sock_recvdaemon (
 }
 
 
-int W32_CALL sock_recv_used (const sock_type *s)
+int sock_recv_used (const sock_type *s)
 {
   const recv_data *r;
   const recv_buf  *p;
@@ -152,7 +151,7 @@ int W32_CALL sock_recv_used (const sock_type *s)
 }
 
 
-int W32_CALL sock_recv_init (sock_type *s, void *space, unsigned len)
+int sock_recv_init (sock_type *s, void *space, unsigned len)
 {
   recv_buf  *p = (recv_buf*) space;
   recv_data *r = (recv_data*) s->udp.rx_data;
@@ -162,7 +161,7 @@ int W32_CALL sock_recv_init (sock_type *s, void *space, unsigned len)
   memset (r, 0, s->udp.max_rx_data);  /* clear Rx-buffer */
   memset (p, 0, len);                 /* clear data area */
 
-  s->udp.protoHandler = (ProtoHandler)sock_recvdaemon;
+  s->udp.protoHandler = (ProtoHandler) sock_recvdaemon;
   r->recv_sig         = RECV_USED;
   r->recv_bufs        = (BYTE*) p;
   r->recv_bufnum      = (WORD) (len / sizeof(recv_buf));
@@ -173,8 +172,8 @@ int W32_CALL sock_recv_init (sock_type *s, void *space, unsigned len)
   return (0);
 }
 
-int W32_CALL sock_recv_from (sock_type *s, DWORD *hisip, WORD *hisport,
-                             void *buffer, unsigned len, int peek)
+int sock_recv_from (sock_type *s, void *hisip, WORD *hisport,
+                    void *buffer, unsigned len, int peek)
 {
 #if !defined(USE_UDP_ONLY)
   _tcp_Socket *t;
@@ -207,7 +206,6 @@ int W32_CALL sock_recv_from (sock_type *s, DWORD *hisip, WORD *hisport,
                   break;
 
              case RECV_USED:
-#if defined(__MSDOS__)
                   /* Drop looped packets sent by us (running
                    * under Win32 DOS box using NDIS3PKT or SwsVpkt).
                    */
@@ -217,7 +215,6 @@ int W32_CALL sock_recv_from (sock_type *s, DWORD *hisip, WORD *hisport,
                     p->buf_sig = RECV_UNUSED;
                     continue;
                   }
-#endif
                   if (p->buf_seqnum < seqnum)  /* ignore wraps */
                   {
                     seqnum = p->buf_seqnum;
@@ -270,7 +267,7 @@ int W32_CALL sock_recv_from (sock_type *s, DWORD *hisip, WORD *hisport,
   else
 #endif
   if (hisip)
-     *hisip = p->buf_hisip;
+     *(DWORD*)hisip = p->buf_hisip;
 
   if (hisport)
      *hisport = p->buf_hisport;
@@ -280,7 +277,8 @@ int W32_CALL sock_recv_from (sock_type *s, DWORD *hisip, WORD *hisport,
   return (len);
 }
 
-int W32_CALL sock_recv (sock_type *s, void *buffer, unsigned len)
+
+int sock_recv (sock_type *s, void *buffer, unsigned len)
 {
   return sock_recv_from (s, NULL, NULL, buffer, len, 0);
 }

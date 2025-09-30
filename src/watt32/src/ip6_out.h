@@ -7,8 +7,6 @@
 #include <netinet/in.h> /* struct in6_addr */
 #endif
 
-#if defined(USE_IPV6)
-
 W32_DATA struct in6_addr in6addr_my_ip;
 
 extern const struct in6_addr in6addr_all_1;
@@ -27,6 +25,5 @@ extern int _ip6_output (in6_Header *ip, ip6_address *src_ip,
        _ip6_output(ip, src, dst, next_hdr, data_len, hop_lim, sock, \
                    __FILE__, __LINE__)
 
-#endif  /* USE_IPV6 */
 #endif
 

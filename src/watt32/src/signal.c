@@ -2,9 +2,9 @@
  * Signal handlers for BSD socket API.
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2007 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -52,24 +52,24 @@
  * So leave it alone for the moment.
  */
 #if defined(__DJGPP__)
-  #define USE_SIGMASK  0
+  #define USE_SIGMASK  0 
 #else
   #define USE_SIGMASK  0
 #endif
 
-struct signal_table {
-       void (MS_CDECL *old)(int);
-       int             sig_num;
-       const char     *sig_name;
-       BOOL            caught;  /* we caught this signal */
-       BOOL            exit;    /* exit if app doesn't have a signal-handler */
+struct signal_table {        
+       void      (*old)(int);
+       int         sig_num;
+       const char *sig_name;
+       BOOL        caught;  /* we caught this signal */
+       BOOL        exit;    /* exit if app doesn't have a signal-handler */
      };
 
 static struct signal_table sig_tab[] = {
     { NULL, SIGINT,   "SIGINT",  FALSE, TRUE },
 #if defined(SIGBREAK)
     { NULL, SIGBREAK, "SIGBREAK",FALSE, TRUE }, /* Watcom */
-#endif
+#endif      
 #if defined(SIGQUIT)
     { NULL, SIGQUIT,  "SIGQUIT", FALSE, TRUE },  /* should we trap this? */
 #endif
@@ -78,7 +78,7 @@ static struct signal_table sig_tab[] = {
 #endif
 #if defined(SIGALRM) && 0  /* Should we hook this? */
     { NULL, SIGALRM,  "SIGALRM", FALSE, FALSE }, /* djgpp */
-#endif
+#endif                                           
   };
 
 static int signal_depth = 0; /* Our running signal "depth" */
@@ -93,7 +93,7 @@ static int signal_depth = 0; /* Our running signal "depth" */
  * Our signal catcher. Set 'caught' flag.
  */
 static void MS_CDECL sig_catch (int sig)
-{
+{     
   int i;
 
   for (i = 0; i < DIM(sig_tab); i++)
@@ -129,15 +129,15 @@ int _sock_sig_setup (void)
 
   for (i = 0; i < DIM(sig_tab); i++)
   {
-    struct signal_table *sig = sig_tab + i;
+    int sig = sig_tab[i].sig_num;
 
-    sig->caught = FALSE;
+    sig_tab[i].caught = FALSE;
 
 #if (USE_SIGMASK)
-    sigaddset (&new_mask, sig->sig_num);
+    sigaddset (&new_mask, sig);
     sigprocmask (SIG_SETMASK, &new_mask, &old_mask);
 #else
-    sig->old = signal (sig->sig_num, sig_catch);
+    sig_tab[i].old = signal (sig, sig_catch);
 #endif
   }
   return (0);
@@ -148,17 +148,17 @@ int _sock_sig_setup (void)
  */
 int _sock_sig_pending (void)
 {
-  int i, num = 0;
+  int i, num;
 
 #if (USE_SIGMASK)
   sigset_t pending;
 
   sigpending (&pending);
-  for (i = 0; i < DIM(sig_tab); i++)
-      if (sigismember(&pending, sig_tab[i].sig_num))
+  for (i = num = 0; i < DIM(sig_tab); i++)
+      if (sigismember (&pending, sig_tab[i].sig_num))
          num++;
 #else
-  for (i = 0; i < DIM(sig_tab); i++)
+  for (i = num = 0; i < DIM(sig_tab); i++)
       if (sig_tab[i].caught)
          num++;
 #endif
@@ -180,46 +180,46 @@ int _sock_sig_restore (void)
 
   for (i = 0; i < DIM(sig_tab); i++)
   {
-    struct signal_table *sig = sig_tab + i;
+    int sig = sig_tab[i].sig_num;
 
 #if (USE_SIGMASK)
     sigset_t pending, new_set;
 
     if (sigpending(&pending) == 0 &&
-        sigismember(&pending,sig->sig_num))
+        sigismember(&pending,sig))
     {
       /* The signal became pending while we blocked it.
        * I.e. ^C was pressed, so act on it.
        */
       sigemptyset (&new_set);
-      sigaddset (&new_set, sig->sig_num);
+      sigaddset (&new_set, sig);
 
-      SOCK_DEBUGF ((", raising %s", sig->sig_name));
+      SOCK_DEBUGF ((", raising %s", sig_tab[i].sig_name));
       SOCK_ENTER_SCOPE();
       sigprocmask (SIG_UNBLOCK, &new_set, NULL);
       SOCK_LEAVE_SCOPE();
     }
 #else
-    signal (sig->sig_num, sig->old);
-    if (!sig->caught)
+    signal (sig, sig_tab[i].old);
+    if (!sig_tab[i].caught)
        continue;
 
-    sig->caught = FALSE;
-    if (sig->exit &&
-        (sig->old == SIG_DFL ||
-         sig->old == SIG_IGN ||
-         sig->old == sig_handler_watt))
+    sig_tab[i].caught = FALSE;
+    if (sig_tab[i].exit &&
+        (sig_tab[i].old == SIG_DFL ||
+         sig_tab[i].old == SIG_IGN ||
+         sig_tab[i].old == sig_handler_watt))
     {
       char buf[30];
 
       strcpy (buf, "\nTerminating on ");
-      strcat (buf, sig->sig_name);
-      sock_sig_exit (buf, sig->sig_num);
+      strcat (buf, sig_tab[i].sig_name);
+      sock_sig_exit (buf, sig);
       /* no return */
     }
-    SOCK_DEBUGF ((", raising %s", sig->sig_name));
+    SOCK_DEBUGF ((", raising %s", sig_tab[i].sig_name));
     SOCK_ENTER_SCOPE();
-    raise (sig->sig_num);
+    raise (sig);
     SOCK_LEAVE_SCOPE();
     return (-1);
 #endif
@@ -231,14 +231,12 @@ int _sock_sig_restore (void)
  * Raise SIGPIPE/SIGURG if signal defined (not needed yet).
  * Return -1 with errno = EPIPE.
  */
-int _sock_sig_epipe (const Socket *sock)
+int _sock_sig_epipe (void)
 {
 #if defined(SIGPIPE)
-  if (!sock->msg_nosig)
-     raise (SIGPIPE);
+  raise (SIGPIPE);
 #endif
   SOCK_ERRNO (EPIPE);
-  ARGSUSED (sock);
   return (-1);
 }
 #endif  /* USE_BSD_API */

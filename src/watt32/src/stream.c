@@ -1,9 +1,9 @@
 /*!\file stream.c
  *  sock_fgets(), sock_fputs().
  *
- *  BSD sockets functionality for Watt-32 TCP/IP
+ *  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions

@@ -81,13 +81,7 @@
 #include <sys/wtypes.h>
 #endif
 
-#ifndef __SYS_MBUF_H
-#include <sys/mbuf.h>
-#endif
-
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 struct ip6_hdr {
        union {
@@ -124,9 +118,9 @@ struct ip6_hdr {
 #endif
 
 #if 1
-  /* ECN bits proposed by Sally Floyd */
-  #define IP6TOS_CE               0x01    /* congestion experienced */
-  #define IP6TOS_ECT              0x02    /* ECN-capable transport */
+/* ECN bits proposed by Sally Floyd */
+#define IP6TOS_CE               0x01    /* congestion experienced */
+#define IP6TOS_ECT              0x02    /* ECN-capable transport */
 #endif
 
 /*
@@ -212,9 +206,7 @@ struct ip6_frag {
        u_int32_t ip6f_ident;           /* identification */
      };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 #if BYTE_ORDER == BIG_ENDIAN
 #define IP6F_OFF_MASK           0xfff8  /* mask out offset from _offlg */

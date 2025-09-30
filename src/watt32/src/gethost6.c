@@ -4,7 +4,7 @@
  */
 
 /*
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -48,7 +48,6 @@
 #include "wattcp.h"
 #include "strings.h"
 #include "misc.h"
-#include "run.h"
 #include "timer.h"
 #include "language.h"
 #include "ip6_out.h"
@@ -57,19 +56,18 @@
 #include "netaddr.h"
 #include "bsdname.h"
 #include "bsddbug.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "get_xby.h"
 
 /* \if USE_IPV6 */
 #if defined(USE_BSD_API) && defined(USE_IPV6) /* whole file */
 
-static char             *host6Fname = NULL;
-static FILE             *host6file  = NULL;
-static BOOL              hostClose  = FALSE;
-static struct _hostent6 *host0      = NULL;
+static char             *hostFname = NULL;
+static FILE             *hostFile  = NULL;
+static BOOL              hostClose = FALSE;
+static struct _hostent6 *host0     = NULL;
 
 static BOOL did_lookup = FALSE;   /* tried a DNS lookup */
-static BOOL is_addr    = FALSE;   /* name is simply an IPv6 address */
 
 static BOOL gethostbyname6_internal (const char *name,
                                      const char **alias,
@@ -87,30 +85,27 @@ static struct _hostent6 *add_hostent6 (struct _hostent6 *h,
                                        const void       *addr,
                                        DWORD             ttl);
 
-static void W32_CALL _endhostent6 (void)
-{
-  endhostent6();
-}
 
-void W32_CALL ReadHosts6File (const char *fname)
+void ReadHosts6File (const char *fname)
 {
   static BOOL been_here = FALSE;
 
   if (!fname || !*fname)
      return;
 
-  if (been_here)  /* loading multiple hosts6 files */
+  if (been_here)  /* loading multiple hosts files */
   {
-    free (host6Fname);
-    CloseHost6File();
+    free (hostFname);
+    fclose (hostFile);
+    hostFile = NULL;
   }
 
-  host6Fname = strdup (fname);
-  if (!host6Fname)
+  hostFname = strdup (fname);
+  if (!hostFname)
      return;
 
   sethostent6 (1);
-  if (!host6file)
+  if (!hostFile)
      return;
 
   been_here = TRUE;
@@ -124,10 +119,11 @@ void W32_CALL ReadHosts6File (const char *fname)
     if (!h)
        break;
 
-    h2 = calloc (sizeof(*h2), 1);
+    h2 = (struct _hostent6*) calloc (sizeof(*h2), 1);
     if (!h2)
     {
-      (*_printf) (_LANG("%s too big!\n"), host6Fname);
+      outs (hostFname);
+      outsnl (_LANG(" too big!"));
       break;
     }
     for (i = 0; h->h_aliases[i]; i++)
@@ -149,7 +145,7 @@ void W32_CALL ReadHosts6File (const char *fname)
     const struct _hostent6 *h;
     int   i;
 
-    printf ("\n%s entries:\n", host6Fname);
+    printf ("\n%s entries:\n", hostFname);
     for (h = host0; h; h = h->h_next)
     {
       printf ("address %-40.40s  name %-30.30s  Aliases:",
@@ -162,45 +158,43 @@ void W32_CALL ReadHosts6File (const char *fname)
   }
 #endif
 
-  rewind (host6file);
-  RUNDOWN_ADD (_endhostent6, 256);
+  rewind (hostFile);
+  RUNDOWN_ADD (endhostent6, 256);
 }
 
-const char * W32_CALL GetHosts6File (void)
+const char *GetHosts6File (void)
 {
-  return (host6Fname);
+  return (hostFname);
 }
 
 /*
  * To prevent running out of file-handles, one should close the
  * 'hosts' file before spawning a new shell.
  */
-void W32_CALL CloseHost6File (void)
+void CloseHost6File (void)
 {
-  if (!host6file)
-     return;
-  FCLOSE (host6file);
-  host6file = NULL;
+  fclose (hostFile);
+  hostFile = NULL;
 }
 
-void W32_CALL ReopenHost6File (void)
+void ReopenHost6File (void)
 {
-  ReadHosts6File (host6Fname);
+  ReadHosts6File (hostFname);
 }
 
 /*
- * Return the next (non-commented) line from the host6-file
+ * Return the next (non-commented) line from the host-file
  * Format is:
  *  IPv6-address [=] host-name [alias..] {\n | # ..}
  */
-struct hostent * W32_CALL gethostent6 (void)
+struct hostent *gethostent6 (void)
 {
   struct _hostent6 h;
-  char *tok, *ip, *name, *alias, *tok_buf = NULL;
+  char *tok, *ip, *name, *alias;
   char  buf [2*MAX_HOSTLEN];
   int   i;
 
-  if (!netdb_init() || !host6file)
+  if (!netdb_init() || !hostFile)
   {
     h_errno = NO_RECOVERY;
     return (NULL);
@@ -210,15 +204,15 @@ struct hostent * W32_CALL gethostent6 (void)
 
   while (1)
   {
-    if (!fgets(buf,sizeof(buf),host6file))
+    if (!fgets(buf,sizeof(buf),hostFile))
        return (NULL);
 
     tok = strltrim (buf);
     if (*tok == '#' || *tok == ';' || *tok == '\n')
        continue;
 
-    ip   = strtok_r (tok, " \t", &tok_buf);
-    name = strtok_r (NULL, " \t\n", &tok_buf);
+    ip   = strtok (tok, " \t");
+    name = strtok (NULL, " \t\n");
     if (ip && name && inet_pton(AF_INET6, ip, &h.h_address[0]) == 1)
        break;
   }
@@ -228,30 +222,29 @@ struct hostent * W32_CALL gethostent6 (void)
 
   h.h_num_addr = 1;
   h.h_name = name;
-  alias    = strtok_r (NULL, " \t\n", &tok_buf);
+  alias    = strtok (NULL, " \t\n");
 
   for (i = 0; alias && i < MAX_HOST_ALIASES; i++)
   {
-    static char aliases [MAX_HOST_ALIASES][MAX_HOSTLEN];
+    static char aliases [MAX_NETENT_ALIASES][MAX_HOSTLEN];
 
     if (*alias == '#' || *alias == ';')
        break;
 
-    h.h_aliases[i] = _strlcpy (aliases[i], alias, sizeof(aliases[i]));
-    alias = strtok_r (NULL, " \t\n", &tok_buf);
+    h.h_aliases[i] = StrLcpy (aliases[i], alias, sizeof(aliases[i]));
+    alias = strtok (NULL, " \t\n");
   }
   return fill_hostent6 (&h);
 }
 
 /*------------------------------------------------------------------*/
 
-struct hostent * W32_CALL gethostbyname6 (const char *name)
+struct hostent *gethostbyname6 (const char *name)
 {
   struct _hostent6 h;
   const char *alias;
 
   SOCK_DEBUGF (("\ngethostbyname6: `%s'", name));
-  is_addr = FALSE;
 
   if (gethostbyname6_internal(name, &alias, &h))
   {
@@ -261,9 +254,8 @@ struct hostent * W32_CALL gethostbyname6 (const char *name)
         SOCK_DEBUGF ((" %s,", _inet6_ntoa(&h.h_address[i])));
 
     if (!did_lookup)
-       SOCK_DEBUGF ((" %s", is_addr     ? "" :
-                            h.h_timeout ? "cached" :
-                            "hosts6-file"));
+       SOCK_DEBUGF ((" %s", h.h_timeout ? "cached" : "hosts6-file"));
+
     if (alias)
        SOCK_DEBUGF ((" (alias %s)", alias));
 #endif
@@ -301,7 +293,6 @@ static BOOL gethostbyname6_internal (const char *name, const char **alias,
   {
     ret->h_name = (char*) name;
     memcpy (&ret->h_address[0], &addr, sizeof(ret->h_address[0]));
-    is_addr = TRUE;
     return (TRUE);
   }
 
@@ -320,11 +311,10 @@ static BOOL gethostbyname6_internal (const char *name, const char **alias,
 
       if (IN6_ARE_ADDR_EQUAL(&h->h_address[0], &in6addr_all_1))
          return (FALSE);
-
       *ret = *h;
       return (TRUE);
     }
-    for (i = 0; i < MAX_HOST_ALIASES && h->h_aliases[i]; i++)
+    for (i = 0; h->h_aliases[i] && i < MAX_HOST_ALIASES; i++)
         if (!stricmp(name,h->h_aliases[i]))
         {
           if (h->h_timeout && now > h->h_timeout)
@@ -384,30 +374,32 @@ expired:
 
 /*------------------------------------------------------------------*/
 
-void W32_CALL sethostent6 (int stayopen)
+void sethostent6 (int stayopen)
 {
   hostClose = (stayopen == 0);
-  if (!netdb_init() || !host6Fname)
+  if (!netdb_init() || !hostFname)
      return;
 
-  if (!host6file)
-       FOPEN_TXT (host6file, host6Fname);
-  else rewind (host6file);
+  if (!hostFile)
+       hostFile = fopen (hostFname, "rt");
+  else rewind (hostFile);
 }
 
 /*------------------------------------------------------------------*/
 
-void W32_CALL endhostent6 (void)
+void endhostent6 (void)
 {
   struct _hostent6 *h, *next;
 
   if (_watt_fatal_error)
      return;
 
-  if (host6Fname)
-     free (host6Fname);
-  host6Fname = NULL;
-  CloseHost6File();
+  if (hostFname)
+     free (hostFname);
+  if (hostFile)
+     fclose (hostFile);
+  hostFname = NULL;
+  hostFile  = NULL;
 
   for (h = host0; h; h = next)
   {
@@ -425,7 +417,7 @@ void W32_CALL endhostent6 (void)
 /*
  * Return a 'struct hostent *' for an IPv6 address.
  */
-struct hostent * W32_CALL gethostbyaddr6 (const void *addr)
+struct hostent *gethostbyaddr6 (const void *addr)
 {
   struct _hostent6 h;
 
@@ -541,7 +533,7 @@ static struct hostent *fill_hostent6 (const struct _hostent6 *h)
 
   list[i]         = NULL;
   ret.h_addr_list = list;
-  ret.h_name      = _strlcpy (hostname, h->h_name, sizeof(hostname));
+  ret.h_name      = StrLcpy (hostname, h->h_name, sizeof(hostname));
   ret.h_aliases   = aliases;
   ret.h_addrtype  = AF_INET6;
   ret.h_length    = sizeof (addr[0].s6_addr);
@@ -578,7 +570,7 @@ static struct _hostent6 *add_hostent6 (
   }
   else           /* create a new node */
   {
-    h = calloc (sizeof(*h), 1);
+    h = (struct _hostent6*) calloc (sizeof(*h), 1);
     if (h)
     {
       h->h_next = host0;
@@ -591,7 +583,7 @@ static struct _hostent6 *add_hostent6 (
 
   if (addr != &in6addr_all_1)
      SOCK_DEBUGF ((", CNAME %s, ttl %lus,",
-                   cname ? cname : "<none>", (long unsigned int)real_ttl));
+                   cname ? cname : "<none>", real_ttl));
   if (h)
   {
     const ip6_address *a6list = (const ip6_address*) alist;
@@ -655,7 +647,7 @@ static BOOL ReverseHosts6List (void)
   return (TRUE);
 }
 
-void W32_CALL DumpHosts6Cache (void)
+void DumpHosts6Cache (void)
 {
   struct _hostent6 *h;
   time_t now;
@@ -663,7 +655,7 @@ void W32_CALL DumpHosts6Cache (void)
   if (!ReverseHosts6List())
      return;
 
-  SOCK_DEBUGF ((" \n\nCached IPv6 hosts:                                   "
+  SOCK_DEBUGF ((" \n\nCached IPv6 hosts:                         "
                 "Address                                  TTL       Alias\n"));
   now = time (NULL);
 
@@ -681,7 +673,7 @@ void W32_CALL DumpHosts6Cache (void)
          addr = "::";
     else addr = _inet6_ntoa (&h->h_address[0]);
 
-    SOCK_DEBUGF (("  %-50s %-40s %8s  ", h->h_name, addr,
+    SOCK_DEBUGF (("  %-40s %-40s %8s  ", h->h_name, addr,
                   dT < 0 ? "timedout" : hms_str(h->h_real_ttl)));
 
     for (i = 0; h->h_aliases[i]; i++)
@@ -695,7 +687,7 @@ void W32_CALL DumpHosts6Cache (void)
 
   }
 }
-#endif  /* USE_DEBUG */
+#endif
 
 
 /*------------------------------------------------------------------*/

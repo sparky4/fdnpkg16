@@ -20,6 +20,7 @@ rm *.o
 mv fdnpkg16.exe fdnpkg16/BIN/
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
+cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
 cd fdnpkg16
 cd SOURCE/fdnpkg16/src/
 if [ -e "WATT32" ]; then

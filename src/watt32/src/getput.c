@@ -3,7 +3,7 @@
  *  get/put short/long functions for little-endian platforms.
  */
 
-/*  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+/*  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -31,72 +31,65 @@
  *
  */
 
-#include <arpa/nameser.h>
-#include <resolv.h>
-
 #include "wattcp.h"
 #include "chksum.h"
 #include "misc.h"
 
-#undef GETSHORT
-#undef GETLONG
-#undef PUTSHORT
-#undef PUTLONG
-
 /*
  * Functions for get/put short/long. Pointer is _NOT_ advanced.
  */
-#define GETSHORT(s, cp) {              \
-        u_char *t_cp = (u_char*)(cp);  \
-        (s) = ((u_short)t_cp[0] << 8)  \
-            | ((u_short)t_cp[1]);      \
+#if !defined(USE_BIGENDIAN)
+
+#define GETSHORT(s, cp) {            \
+        BYTE *t_cp = (BYTE*)(cp);    \
+        (s) = ((WORD)t_cp[0] << 8)   \
+            | ((WORD)t_cp[1]);       \
       }
 
-#define GETLONG(l, cp) {               \
-        u_char *t_cp = (u_char*)(cp);  \
-        (l) = ((u_long)t_cp[0] << 24)  \
-            | ((u_long)t_cp[1] << 16)  \
-            | ((u_long)t_cp[2] << 8)   \
-            | ((u_long)t_cp[3]);       \
+#define GETLONG(l, cp) {             \
+        BYTE *t_cp = (BYTE*)(cp);    \
+        (l) = ((DWORD)t_cp[0] << 24) \
+            | ((DWORD)t_cp[1] << 16) \
+            | ((DWORD)t_cp[2] << 8)  \
+            | ((DWORD)t_cp[3]);      \
       }
 
-#define PUTSHORT(s, cp) {              \
-        u_short t_s  = (u_short)(s);   \
-        u_char *t_cp = (u_char*)(cp);  \
-        *t_cp++ = (u_char)(t_s >> 8);  \
-        *t_cp   = (u_char)t_s;         \
+#define PUTSHORT(s, cp) {            \
+        WORD  t_s  = (WORD)(s);      \
+        BYTE *t_cp = (BYTE*)(cp);    \
+        *t_cp++ = (BYTE)(t_s >> 8);  \
+        *t_cp   = (BYTE)t_s;         \
       }
 
-#define PUTLONG(l, cp) {               \
-        u_long  t_l  = (u_long)(l);    \
-        u_char *t_cp = (u_char*)(cp);  \
-        *t_cp++ = (u_char)(t_l >> 24); \
-        *t_cp++ = (u_char)(t_l >> 16); \
-        *t_cp++ = (u_char)(t_l >> 8);  \
-        *t_cp   = (u_char)t_l;         \
+#define PUTLONG(l, cp) {             \
+        DWORD t_l  = (DWORD)(l);     \
+        BYTE *t_cp = (BYTE*)(cp);    \
+        *t_cp++ = (BYTE)(t_l >> 24); \
+        *t_cp++ = (BYTE)(t_l >> 16); \
+        *t_cp++ = (BYTE)(t_l >> 8);  \
+        *t_cp   = (BYTE)t_l;         \
       }
 
-
-u_short W32_CALL _getshort (const u_char *x)   /* in <arpa/nameserv.h> */
+WORD _getshort (const BYTE *x)   /* in <arpa/nameserv.h> */
 {
-  u_short res;
+  WORD res;
   GETSHORT (res, x);
   return (res);
 }
 
-u_long W32_CALL _getlong (const u_char *x)   /* in <arpa/nameserv.h> */
+DWORD _getlong (const BYTE *x)   /* in <arpa/nameserv.h> */
 {
-  u_long res;
+  DWORD res;
   GETLONG (res, x);
   return (res);
 }
 
-void W32_CALL __putshort (u_short var, u_char *ptr)   /* in <resolv.h> */
+void __putshort (WORD var, BYTE *ptr)   /* in <resolv.h> */
 {
   PUTSHORT (var, ptr);
 }
 
-void W32_CALL __putlong (u_long var, u_char *ptr)   /* in <resolv.h> */
+void __putlong (DWORD var, BYTE *ptr)   /* in <resolv.h> */
 {
   PUTLONG (var, ptr);
 }
@@ -109,20 +102,20 @@ void W32_CALL __putlong (u_long var, u_char *ptr)   /* in <resolv.h> */
 #undef htons
 #undef ntohs
 
-unsigned long W32_CALL htonl (unsigned long val)
+DWORD W32_CALL htonl (DWORD val)
 {
   return intel (val);
 }
-unsigned long W32_CALL ntohl (unsigned long val)
+DWORD W32_CALL ntohl (DWORD val)
 {
   return intel (val);
 }
-unsigned short W32_CALL htons (unsigned short val)
+WORD W32_CALL htons (WORD val)
 {
   return intel16 (val);
 }
-unsigned short W32_CALL ntohs (unsigned short val)
+WORD W32_CALL ntohs (WORD val)
 {
   return intel16 (val);
 }
-
+#endif  /* USE_BIGENDIAN */

@@ -6,9 +6,6 @@
  *  inet_network() is Copyright (c) 1983, 1993
  *  The Regents of the University of California.  All rights reserved.
  *
- *  ascii2address() and addr2ascii() are Copyright 1996
- *  Massachusetts Institute of Technology
- *
  *  \version v0.0
  *    \date Jan 11, 1991 \author E. Engelke
  *
@@ -29,37 +26,35 @@
 #include "misc.h"
 #include "strings.h"
 #include "netaddr.h"
-#include "cpumodel.h"
 
 #if defined(USE_BSD_API)
-#include "socket.h"
+  #include <arpa/inet.h>
+  #include <sys/socket.h>
 #endif
 
 /**
  * Convert an IP-address 'ip' into a string.
- *  \retval 'p'.
+ *  \retval 's'.
  *  \note 'ip' is on \b host order.
- * Use 4 buffers in round-robin.
  */
-char * W32_CALL _inet_ntoa (char *s, DWORD ip)
+char *_inet_ntoa (char *s, DWORD ip)
 {
-  static char buf[4][20];
+  static char buf[2][20];
   static int idx = 0;
-  char *p = s;
 
-  if (!p)
+  if (!s)
   {
-    p = buf [idx++];
-    idx &= 3;
+    s = buf [idx];
+    idx ^= 1;
   }
-  itoa ((int)(ip >> 24), p, 10);
-  strcat (p, ".");
-  itoa ((int)(ip >> 16) & 0xFF, strchr(p,'\0'), 10);
-  strcat (p, ".");
-  itoa ((int)(ip >> 8) & 0xFF, strchr(p,'\0'), 10);
-  strcat (p, ".");
-  itoa ((int)(ip & 0xFF), strchr(p,'\0'), 10);
-  return (p);
+  itoa ((int)(ip >> 24), s, 10);
+  strcat (s, ".");
+  itoa ((int)(ip >> 16) & 0xFF, strchr(s,'\0'), 10);
+  strcat (s, ".");
+  itoa ((int)(ip >> 8) & 0xFF, strchr(s,'\0'), 10);
+  strcat (s, ".");
+  itoa ((int)(ip & 0xFF), strchr(s,'\0'), 10);
+  return (s);
 }
 
 /**
@@ -67,7 +62,7 @@ char * W32_CALL _inet_ntoa (char *s, DWORD ip)
  *  \retval address on \b host order.
  *  \retval 0 string isn't a (dotless) address.
  */
-DWORD W32_CALL _inet_addr (const char *s)
+DWORD _inet_addr (const char *s)
 {
   DWORD addr = 0;
 
@@ -84,7 +79,7 @@ DWORD W32_CALL _inet_addr (const char *s)
  *  \retval 0 on error (safer than -1)
  *  \retval IPv4 address (host order)
  */
-DWORD W32_CALL aton (const char *str)
+DWORD aton (const char *str)
 {
   DWORD ip = 0;
   int   i;
@@ -113,7 +108,7 @@ DWORD W32_CALL aton (const char *str)
  * Converts `[dotless]' or `dotless' to 32 bit long (host order)
  *  \retval 0 on error (safer than -1)
  */
-DWORD W32_CALL aton_dotless (const char *str)
+DWORD aton_dotless (const char *str)
 {
   DWORD ip = 0UL;
 
@@ -126,7 +121,7 @@ DWORD W32_CALL aton_dotless (const char *str)
  * Accepts 'a.b.c.d' or '[a.b.c.d]' forms.
  *  \retval TRUE if 'str' is an IPv4 address.
  */
-BOOL W32_CALL isaddr (const char *str)
+BOOL isaddr (const char *str)
 {
   int ch;
 
@@ -146,7 +141,7 @@ BOOL W32_CALL isaddr (const char *str)
  * Accept "[ 0-9\[\]]+". Doesn't accept octal base.
  *  \retval TRUE if 'str' is a dotless address.
  */
-BOOL W32_CALL isaddr_dotless (const char *str, DWORD *ip)
+BOOL isaddr_dotless (const char *str, DWORD *ip)
 {
   char  buf[10] = { 0 };
   int   ch, i = 0;
@@ -197,8 +192,8 @@ char * W32_CALL inet_ntoa (struct in_addr addr)
  * Parse string "ether-addr, ip-addr".
  *
  * DOSX == 0: Assumes 'src' contain only legal hex-codes
- *   and ':' separators (or '-' too for DOSX). Doesn't waste
- *   precious memory using sscanf() if DOSX==0.
+ *   and ':' separators. Doesn't waste precious memory using
+ *   sscanf() if DOSX==0.
  *
  * Read 'src', dump to ethernet buffer ('*p_eth')
  * and return pointer to "ip-addr".
@@ -208,16 +203,11 @@ const char *_inet_atoeth (const char *src, eth_address *p_eth)
   BYTE *eth = (BYTE*)p_eth;
 
 #if (DOSX)
-  int  tmp [sizeof(eth_address)];
-  BOOL ok, colon = (src[2] == ':');
+  int tmp [sizeof(eth_address)];
 
-  ok = colon ? (sscanf(src,"%02x:%02x:%02x:%02x:%02x:%02x",
-                       &tmp[0], &tmp[1], &tmp[2],
-                       &tmp[3], &tmp[4], &tmp[5]) == DIM(tmp)) :
-               (sscanf(src,"%02x-%02x-%02x-%02x-%02x-%02x",
-                       &tmp[0], &tmp[1], &tmp[2],
-                       &tmp[3], &tmp[4], &tmp[5]) == DIM(tmp));
-  if (!ok)
+  if (sscanf(src,"%02x:%02x:%02x:%02x:%02x:%02x",
+              &tmp[0], &tmp[1], &tmp[2],
+              &tmp[3], &tmp[4], &tmp[5]) != DIM(tmp))
      return (NULL);
 
   eth [0] = tmp [0];
@@ -226,7 +216,7 @@ const char *_inet_atoeth (const char *src, eth_address *p_eth)
   eth [3] = tmp [3];
   eth [4] = tmp [4];
   eth [5] = tmp [5];
-  src = strrchr(src, colon ? ':' : '-') + 3;
+  src = strrchr (src, ':') + 3;
 #else
   eth [0] = atox (src-2);      /*   xx:xx:xx:xx:xx:xx */
   eth [1] = atox (src+1);      /* ^src-2              */
@@ -323,7 +313,7 @@ again:
      return (INADDR_NONE);
 
   *pp++ = val;
-  n = (int) (pp - parts);
+  n = pp - parts;
   if (n > 4)
      return (INADDR_NONE);
 
@@ -339,7 +329,7 @@ again:
  * Return the network number from an internet
  * address; handles class A/B/C network #'s.
  */
-u_long W32_CALL inet_netof (struct in_addr addr)
+u_int32_t W32_CALL inet_netof (struct in_addr addr)
 {
   u_long a = ntohl (addr.s_addr);
 
@@ -405,7 +395,7 @@ const char *_inet6_ntoa (const void *ip)
   static int  idx = 0;
   char  *rc = buf [idx++];
 
-  /* inet_ntop() should never return NULL.
+  /* inet_ntop() should never return NULL
    */
   idx &= 3;
   rc = (char*) inet_ntop (AF_INET6, ip, rc, sizeof(buf[0]));
@@ -425,106 +415,17 @@ const ip6_address *_inet6_addr (const char *str)
      return (NULL);
   return (const ip6_address*)ip6;
 }
-
-/*
- * Convert ASCII to network addresses.
- */
-int W32_CALL ascii2addr (int af, const char *ascii, void *result)
-{
-  struct in_addr *ina;
-  char   strbuf [4*sizeof("123")];  /* long enough for V4 only */
-
-  switch (af)
-  {
-    case AF_INET:
-         ina = (struct in_addr*) result;
-         strbuf[0] = '\0';
-         strncat (strbuf, ascii, sizeof(strbuf)-1);
-         if (inet_aton (strbuf, ina))
-            return sizeof (*ina);
-         SOCK_ERRNO (EINVAL);
-         break;
-
-    case AF_LINK:
-         link_addr (ascii, (struct sockaddr_dl*)result);
-         /* oops... no way to detect failure */
-         return sizeof (struct sockaddr_dl);
-
-#if defined(USE_IPV6)
-    case AF_INET6:
-         return inet_pton (AF_INET6, ascii, result);
-#endif
-
-    default:
-         SOCK_ERRNO (EPROTONOSUPPORT);
-         break;
-  }
-  return (-1);
-}
-
-/*-
- * Convert a network address from binary to printable numeric format.
- * This API is copied from INRIA's IPv6 implementation, but it is a
- * bit bogus in two ways:
- *
- *      1) There is no value in passing both an address family and
- *         an address length; either one should imply the other,
- *         or we should be passing sockaddrs instead.
- *      2) There should by contrast be /added/ a length for the buffer
- *         that we pass in, so that programmers are spared the need to
- *         manually calculate (read: ``guess'') the maximum length.
- *
- * Flash: the API is also the same in the NRL implementation, and seems to
- * be some sort of standard, so we appear to be stuck with both the bad
- * naming and the poor choice of arguments.
- */
-char * W32_CALL addr2ascii (int af, const void *addrp, int len, char *buf)
-{
-  static char staticbuf[64];    /* 64 for AF_LINK > 16 for AF_INET */
-
-  if (!buf)
-     buf = staticbuf;
-
-  switch (af)
-  {
-    case AF_INET:
-         if (len != sizeof (struct in_addr))
-         {
-           SOCK_ERRNO (ENAMETOOLONG);
-           return (NULL);
-         }
-         strcpy (buf, inet_ntoa (*(const struct in_addr *) addrp));
-         break;
-
-    case AF_LINK:
-         if (len != sizeof (struct sockaddr_dl))
-         {
-           SOCK_ERRNO (ENAMETOOLONG);
-           return (NULL);
-         }
-         strcpy (buf, link_ntoa ((const struct sockaddr_dl *) addrp));
-         break;
-
-    default:
-         SOCK_ERRNO (EPROTONOSUPPORT);
-         return (NULL);
-  }
-  return (buf);
-}
 #endif  /* USE_BSD_API */
 
 
-BOOL W32_CALL priv_addr (DWORD ip)
+#ifdef NOT_USED
+BOOL priv_addr (DWORD ip)
 {
-  /**
-   * \brief Check if 'ip' is a private addresses in the
-   *        "black-hole range" (ref. RFC-1918):
-   *
+  /*
+   * private addresses in the "blackhole range" (ref. RFC-1918):
    *   10.0.0.0    - 10.255.255.255
    *   172.16.0.0  - 172.31.255.255
    *   192.168.0.0 - 192.168.255.255
-   *
-   *  \todo: rewrite using mask_len().
    */
   if (ip >= aton("10.0.0.0") && ip <= aton("10.255.255.255"))
      return (TRUE);
@@ -541,83 +442,33 @@ BOOL W32_CALL priv_addr (DWORD ip)
 /*
  * Lev Walkin <vlm@lionet.info> provided these handy mask-checking
  * macros/routines.
- *
- * Masklen to mask convertor.
+ */
+
+/* Masklen to mask convertor.
  */
 #define MLEN2MASK(mlen) ((mlen) ? (((DWORD)-1) << (32 - (mlen))) : 0)
 
-/*
- * Get the number of 0-bits of a mask.
- * E.g. 255.255.255.0 -> 8
+/* Determine number of bits set in an IP mask.
  */
-int mask_len (DWORD mask)
-{
-  int len = 0;
-
-  mask = ~mask;
-  while (mask & 1)
-  {
-    len++;
-    mask >>= 1;
-  }
-  return (len);
-}
-
-#if defined(HAVE_POPCOUNT)
-  #if defined(__GNUC__)
-    /*
-     * gcc 4.4.1 (?) have the '__builtin_popcount' instruction.
-     */
-    #define POPCOUNT(x)  __builtin_popcount (x)
-  #elif defined(_MSC_VER)
-    /*
-     * MSVC >= 1500 have the '_mm_popcnt_u32' inline instruction.
-     */
-    #define POPCOUNT(x)  _mm_popcnt_u32 (x)
-  #else
-    #error Help!!
-  #endif
-#endif
-
-/*
- * Determine number of bits set in an IPv4 mask.
- */
-static DWORD bit_set (DWORD v)
-{
-  DWORD m;
-#if defined(HAVE_POPCOUNT)
-  static int have_popcnt = -1;
-
-  if (have_popcnt == -1)
-     have_popcnt = (x86_have_cpuid && (x86_capability & X86_CAPA_MMX));
-  if (have_popcnt)
-     return  POPCOUNT(v);
-
-  /* Fall through */
-#endif
-
-  m = v;
-  m = (m & 0x55555555) + ((m & 0xAAAAAAAA) >> 1);
-  m = (m & 0x33333333) + ((m & 0xCCCCCCCC) >> 2);
-  m = (m & 0x0F0F0F0F) + ((m & 0xF0F0F0F0) >> 4);
-  m = (m & 0x00FF00FF) + ((m & 0xFF00FF00) >> 8);
-  m = (m & 0x0000FFFF) + ((m & 0xFFFF0000) >> 16);
-  return (m);
-}
+#define BITSSET(v) ( {                                         \
+        DWORD __n = v;                                         \
+        __n = (__n & 0x55555555) + ((__n & 0xaaaaaaaa) >> 1);  \
+        __n = (__n & 0x33333333) + ((__n & 0xcccccccc) >> 2);  \
+        __n = (__n & 0x0f0f0f0f) + ((__n & 0xf0f0f0f0) >> 4);  \
+        __n = (__n & 0x00ff00ff) + ((__n & 0xff00ff00) >> 8);  \
+        __n = (__n & 0x0000ffff) + ((__n & 0xffff0000) >> 16); \
+        __n; } )
 
 /*
  * Check the mask for correctness.
  */
 int check_mask (DWORD mask)
 {
-  DWORD v = bit_set (mask);
-  return (MLEN2MASK(v) == mask);
+  return MLEN2MASK (BITSSET(mask)) == mask;
 }
 
-#if defined(USE_BSD_API)
 /*
  * The string-based version of above function.
- * Inside 'USE_BSD_API' since inet_aton() is needed.
  */
 int check_mask2 (const char *mask)
 {
@@ -625,8 +476,8 @@ int check_mask2 (const char *mask)
 
   if (inet_aton(mask,&imask) != 1)
      return (-1);
-  return check_mask (ntohl(imask.s_addr));
+  return check_mask (imask.s_addr);
 }
-#endif  /* USE_BSD_API */
+#endif
 
 

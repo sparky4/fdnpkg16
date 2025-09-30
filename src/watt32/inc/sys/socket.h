@@ -71,6 +71,18 @@
  * Definitions related to sockets: types, address families, options.
  */
 
+/* The following constants should be used for the second parameter,
+   the "how" field, of `shutdown'.  */
+enum
+{
+  SHUT_RD = 0,          /* Further receives are disallowed */
+#define SHUT_RD         SHUT_RD
+  SHUT_WR,              /* Further sends are disallowed */
+#define SHUT_WR         SHUT_WR
+  SHUT_RDWR             /* Further sends and receives are disallowed */
+#define SHUT_RDWR       SHUT_RDWR
+};
+
 /*
  * This is used instead of -1, since the socket type is signed.
  */
@@ -118,9 +130,8 @@
 #define SO_ERROR        0x1007          /* get error status and clear */
 #define SO_TYPE         0x1008          /* get socket type */
 
-W32_CLANG_PACK_WARN_OFF()
 
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /*
  * Structure used for manipulating linger option.
@@ -140,7 +151,6 @@ struct linger {
  */
 #define AF_UNSPEC       0               /* unspecified */
 #define AF_UNIX         1               /* local to host (pipes, portals) */
-#define AF_LOCAL        1               /* POSIX name for AF_UNIX */
 #define AF_INET         2               /* internetwork: UDP, TCP, etc. */
 #define AF_IMPLINK      3               /* arpanet imp addresses */
 #define AF_PUP          4               /* pup protocols: e.g. BSP */
@@ -170,8 +180,8 @@ struct linger {
  * is called struct osockaddr in 4.4BSD
  */
 struct sockaddr {
-       sa_family_t sa_family;              /* address family */
-       char        sa_data[14];            /* up to 14 bytes of direct address */
+       u_short sa_family;              /* address family */
+       char    sa_data[14];            /* up to 14 bytes of direct address */
      };
 
 /*
@@ -216,10 +226,6 @@ struct sockproto {
  * Maximum queue length specifiable by listen.
  */
 #define SOMAXCONN       32
-
-/*
- * Flags for send(), sendto(), recv() and recvfrom():
- */
 #define MSG_OOB         0x1             /* process out-of-band data */
 #define MSG_PEEK        0x2             /* peek at incoming message */
 #define MSG_DONTROUTE   0x4             /* send without using routing tables */
@@ -227,7 +233,6 @@ struct sockproto {
 #define MSG_TRUNC       0x10            /* data discarded before delivery */
 #define MSG_CTRUNC      0x20            /* control data lost before delivery */
 #define MSG_WAITALL     0x40            /* wait for full request or error */
-#define MSG_NOSIGNAL    0x80            /* don't raise SIGPIPE on reset */
 
 #define MSG_MAXIOVLEN   16
 
@@ -247,7 +252,7 @@ struct cmsghdr {
 
 struct msghdr {
        char         *msg_name;         /* Contains an optional address. */
-       socklen_t     msg_namelen;      /* len of optional address */
+       int           msg_namelen;      /* len of optional address */
        struct iovec *msg_iov;          /* scatter/gather array. */
        int           msg_iovlen;       /* number of elements in msg_iov */
        char         *msg_accrights;    /* does not apply to IP - not changed */
@@ -256,18 +261,16 @@ struct msghdr {
 
 /* CMSG_DATA clashes with <wincrypt.h>
  */
-#if (defined(WIN32) || defined(_WIN32)) && !defined(__CYGWIN__) && \
+#if (defined(WIN32) || defined(_WIN32)) && \
     !defined(_WINDOWS_H) && !defined(_INC_WINDOWS) && !defined(__windows_h__)
   #error Include <windows.h> before this point.
 #endif
 
-/* given pointer to 'struct cmsghdr', return pointer to data
- */
+/* given pointer to struct adatahdr, return pointer to data */
 #undef  CMSG_DATA
-#define CMSG_DATA(cmsg)   ((u_char *)((cmsg) + 1))
+#define CMSG_DATA(cmsg)         ((u_char *)((cmsg) + 1))
 
-/* given pointer to 'struct msghdr', return pointer to next 'msghdr'
- */
+/* given pointer to struct adatahdr, return pointer to next adatahdr */
 #define CMSG_NXTHDR(mhdr, cmsg) \
         (((caddr_t)(cmsg) + (cmsg)->cmsg_len + sizeof(struct cmsghdr) > \
             (mhdr)->msg_control + (mhdr)->msg_controllen) ? \
@@ -279,55 +282,35 @@ struct msghdr {
 /* "Socket"-level control message types: */
 #define SCM_RIGHTS      0x01            /* access rights (array of int) */
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 __BEGIN_DECLS
 
-W32_FUNC int W32_CALL accept (int, struct sockaddr *, socklen_t *);
-W32_FUNC int W32_CALL bind (int, const struct sockaddr *, socklen_t);
-W32_FUNC int W32_CALL closesocket (int s);
-W32_FUNC int W32_CALL connect (int, const struct sockaddr *, socklen_t);
-W32_FUNC int W32_CALL ioctlsocket (int s, long cmd, char *argp);
-W32_FUNC int MS_CDECL fcntlsocket (int s, int cmd, ...);
+W32_FUNC int    W32_CALL accept (int, struct sockaddr *, int *);
+W32_FUNC int    W32_CALL bind (int, const struct sockaddr *, int);
+W32_FUNC int    W32_CALL closesocket (int s);
+W32_FUNC int    W32_CALL connect (int, const struct sockaddr *, int);
+W32_FUNC int    W32_CALL ioctlsocket (int s, long cmd, char *argp);
+W32_FUNC int    MS_CDECL fcntlsocket (int s, int cmd, ...);
 
-W32_FUNC int W32_CALL getdomainname (char *name, size_t len);
-W32_FUNC int W32_CALL setdomainname (const char *name, size_t len);
+W32_FUNC int    W32_CALL getdomainname (char *name, int len);
+W32_FUNC int    W32_CALL setdomainname (const char *name, int len);
+W32_FUNC int    W32_CALL gethostname (char *name, int len);
+W32_FUNC int    W32_CALL sethostname (const char *name, int len);
 
-W32_FUNC int W32_CALL getpeername (int, struct sockaddr *, socklen_t *);
-W32_FUNC int W32_CALL getsockname (int, struct sockaddr *, socklen_t *);
-W32_FUNC int W32_CALL getsockopt (int, int, int, void *, socklen_t *);
-W32_FUNC int W32_CALL listen (int, int);
-W32_FUNC int W32_CALL recv (int, void *, int, int);
-W32_FUNC int W32_CALL recvfrom (int, void *, int, int, struct sockaddr *, socklen_t *);
-W32_FUNC int W32_CALL recvmsg (int, struct msghdr *, int);
-W32_FUNC int W32_CALL send (int, const void *, int, int);
-W32_FUNC int W32_CALL sendto (int, const void *, int, int, const struct sockaddr *, socklen_t);
-W32_FUNC int W32_CALL sendmsg (int, const struct msghdr *, int);
-
-W32_FUNC int W32_CALL setsockopt (int, int, int, const void *, socklen_t);
-W32_FUNC int W32_CALL shutdown (int, int);
-W32_FUNC int W32_CALL socket (int, int, int);
-
-#ifdef __DJGPP__
-  W32_FUNC int W32_CALL gethostname (char *name, int len);
-#else
-  W32_FUNC int W32_CALL gethostname (char *name, size_t len);
-#endif
-
-#if defined(__CYGWIN__)
-  /*
-   * CygWin's <unistd.h> doesn't agree with other vendors here.
-   */
-  W32_FUNC long   W32_CALL gethostid (void);
-  W32_FUNC long   W32_CALL sethostid (u_long ip);
-  W32_FUNC int    W32_CALL sethostname (const char *name, size_t len);
-#else
-  W32_FUNC u_long W32_CALL gethostid (void);
-  W32_FUNC u_long W32_CALL sethostid (u_long ip);
-  W32_FUNC int    W32_CALL sethostname (const char *name, int len);
-#endif
+W32_FUNC u_long W32_CALL gethostid (void);
+W32_FUNC u_long W32_CALL sethostid (u_long ip);
+W32_FUNC int    W32_CALL getpeername (int, struct sockaddr *, int *);
+W32_FUNC int    W32_CALL getsockname (int, struct sockaddr *, int *);
+W32_FUNC int    W32_CALL getsockopt (int, int, int, void *, int *);
+W32_FUNC int    W32_CALL listen (int, int);
+W32_FUNC int    W32_CALL recv (int, void *, int, int);
+W32_FUNC int    W32_CALL recvfrom (int, void *, int, int, struct sockaddr *, int *);
+W32_FUNC int    W32_CALL send (int, const void *, int, int);
+W32_FUNC int    W32_CALL sendto (int, const void *, int, int, const struct sockaddr *, int);
+W32_FUNC int    W32_CALL setsockopt (int, int, int, const void *, int);
+W32_FUNC int    W32_CALL shutdown (int, int);
+W32_FUNC int    W32_CALL socket (int, int, int);
 
 __END_DECLS
 

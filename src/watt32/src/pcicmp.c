@@ -22,6 +22,7 @@
 #include "pcqueue.h"
 #include "pcconfig.h"
 #include "pcpkt.h"
+#include "pcping.h"
 #include "sock_ini.h"
 #include "netaddr.h"
 #include "ip4_out.h"
@@ -68,7 +69,7 @@ const char *icmp_unreach_str [16] = {
 
 /* code-strings for type ICMP_REDIRECT
  */
-const char *icmp_redirect_str [4] = {
+const char *icmp_redirect_str [4] = { 
       __LANG("Redirect for Network"),
       __LANG("Redirect for Host"),
       __LANG("Redirect for TOS and Network"),
@@ -79,12 +80,10 @@ const char *icmp_redirect_str [4] = {
  */
 const char *icmp_exceed_str [2] = {
       __LANG("TTL exceeded in transit"),
-      __LANG("Fragment reassembly time exceeded")
+      __LANG("Frag ReAsm time exceeded")
     };
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /*!\struct _pkt
  */
@@ -94,9 +93,7 @@ struct _pkt {
        in_Header  data;
      };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 /*!\struct do_redirect
  */
@@ -389,7 +386,7 @@ void icmp_handler (const in_Header *ip, BOOL broadcast)
 
   DEBUG_RX (NULL, ip);
 
-  if (block_icmp)   /* application is handling ICMP on it's own; exit now */
+  if (block_icmp)   /* application is handling ICMP; not needed */
      return;
 
   len    = in_GetHdrLen (ip);
@@ -469,7 +466,7 @@ void icmp_handler (const in_Header *ip, BOOL broadcast)
                 _udp_cancel (orig_ip, ICMP_UNREACH, code, msg, &next_mtu);
 
              /** \todo Handle cancelling raw sockets */
-#if defined(USE_BSD_API) && 0
+#if defined(USE_BSD_API) && 0  
              else
               _raw_cancel (orig_ip, ICMP_UNREACH, code, msg);
 #endif
@@ -544,12 +541,12 @@ void icmp_handler (const in_Header *ip, BOOL broadcast)
          }
          return;
 
-    case ICMP_ROUTERADVERT:  /** \todo !! */
+    case ICMP_ROUTERADVERT:  /* todo !! */
          msg = _LANG (icmp_type_str[ICMP_ROUTERADVERT]);
          icmp_print (1, msg, ip->source);
          return;
 
-    case ICMP_ROUTERSOLICIT: /** \todo !! */
+    case ICMP_ROUTERSOLICIT: /* todo !! */
          msg = _LANG (icmp_type_str[ICMP_ROUTERSOLICIT]);
          icmp_print (1, msg, ip->source);
          return;

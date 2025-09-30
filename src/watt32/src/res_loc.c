@@ -61,14 +61,14 @@
  * format.  Does not contain conversion to/from decimal degrees;
  * divide or multiply by 60*60*1000 for that.
  *
- * Adapted for Watt-32 by Gisle Vanem 1997
+ * Adapted for WatTCP by Gisle Vanem 1997
  */
 
 #include "resolver.h"
 
 #if defined(USE_BIND)
 
-static unsigned long power_of_ten[10] = {
+static unsigned long poweroften[10] = {
                      1, 10, 100, 1000, 10000, 100000,
                      1000000,10000000,100000000,1000000000
                    };
@@ -80,16 +80,16 @@ static const char *precsize_ntoa (BYTE prec)
 {
   static char retbuf[sizeof("90000000.00")];
 
-  int    mantissa = (int)((prec >> 4) & 0x0f) % 10;
-  int    exponent = (int)((prec >> 0) & 0x0f) % 10;
-  u_long value    = mantissa * power_of_ten[exponent];
+  int   mantissa = (int)((prec >> 4) & 0x0f) % 10;
+  int   exponent = (int)((prec >> 0) & 0x0f) % 10;
+  DWORD value    = mantissa * poweroften[exponent];
 
-  sprintf (retbuf, "%lu.%.2lu", value / 100, value % 100);
+  sprintf (retbuf,"%lu.%.2lu", value / 100, value % 100);
   return (retbuf);
 }
 
 /*
- * converts ASCII size/precision X * 10**Y(cm) to 0xXY. moves pointer.
+ * converts ascii size/precision X * 10**Y(cm) to 0xXY. moves pointer.
  */
 static BYTE precsize_aton (char **strptr)
 {
@@ -116,10 +116,10 @@ static BYTE precsize_aton (char **strptr)
   cmval = (mval * 100) + cmval;
 
   for (exponent = 0; exponent < 9; exponent++)
-      if (cmval < power_of_ten[exponent+1])
+      if (cmval < poweroften[exponent+1])
          break;
 
-  mantissa = cmval / power_of_ten[exponent];
+  mantissa = cmval / poweroften[exponent];
   if (mantissa > 9)
       mantissa = 9;
 
@@ -129,7 +129,7 @@ static BYTE precsize_aton (char **strptr)
 }
 
 /*
- * Converts ASCII lat/long to unsigned encoded 32-bit number
+ * Converts ascii lat/lon to unsigned encoded 32-bit number
  */
 static DWORD latlon2ul (char **latlonstrptr, int *which)
 {
@@ -184,7 +184,7 @@ static DWORD latlon2ul (char **latlonstrptr, int *which)
 
 fndhemi:
 
-  switch (toupper((int)*cp))
+  switch (toupper(*cp))
   {
     case 'N':
     case 'E':
@@ -203,7 +203,7 @@ fndhemi:
          break;
   }
 
-  switch (toupper((int)*cp))
+  switch (toupper(*cp))
   {
     case 'N':
     case 'S':
@@ -234,7 +234,7 @@ fndhemi:
  * Converts a zone file representation in a string to an RDATA
  * on-the-wire representation.
  */
-int W32_CALL loc_aton (const char *ascii, u_char *binary)
+int loc_aton (const char *ascii, u_char *binary)
 {
   char *cp, *maxcp;
   BYTE *bcp;
@@ -243,9 +243,9 @@ int W32_CALL loc_aton (const char *ascii, u_char *binary)
   int   altmeters = 0;
   int   altfrac   = 0;
   int   altsign   = 1;
-  BYTE  hp        = 0x16;   /* default = 1E6 cm = 10000.00m = 10km */
-  BYTE  vp        = 0x13;   /* default = 1E3 cm = 10.00m           */
-  BYTE  siz       = 0x12;   /* default = 1E2 cm = 1.00m            */
+  BYTE  hp        = 0x16;   /* default = 1e6 cm = 10000.00m = 10km */
+  BYTE  vp        = 0x13;   /* default = 1e3 cm = 10.00m           */
+  BYTE  siz       = 0x12;   /* default = 1e2 cm = 1.00m            */
   int   which1    = 0;
   int   which2    = 0;
 
@@ -352,12 +352,12 @@ int W32_CALL loc_aton (const char *ascii, u_char *binary)
  * Takes an on-the-wire LOC RR and prints it in zone file
  * (human readable) format.
  */
-char * W32_CALL loc_ntoa (const u_char *binary, char *ascii)
+char *loc_ntoa (const u_char *binary, char *ascii)
 {
   static char  tmpbuf[255*3];
   const  DWORD referencealt = 100000UL * 100UL;
   const  BYTE *rcp;
-  char   *cp0, *cp;
+  char  *cp, *sizestr, *hpstr, *vpstr;
 
   int   latdeg,  latmin,  latsec,  latsecfrac;
   int   longdeg, longmin, longsec, longsecfrac;
@@ -370,8 +370,8 @@ char * W32_CALL loc_ntoa (const u_char *binary, char *ascii)
 
   rcp = binary;
   if (ascii)
-       cp0 = cp = ascii;
-  else cp0 = cp = tmpbuf;
+       cp = ascii;
+  else cp = tmpbuf;
 
   versionval = *rcp++;
 
@@ -438,17 +438,20 @@ char * W32_CALL loc_ntoa (const u_char *binary, char *ascii)
   altfrac   = altval % 100;
   altmeters = (altval / 100) * altsign;
 
-  cp += sprintf (cp,
-                 "%d %.2d %.2d.%.3d %c %d %.2d %.2d.%.3d %c %d.%.2dm",
-                 latdeg, latmin, latsec, latsecfrac, northsouth,
-                 longdeg, longmin, longsec, longsecfrac, eastwest,
-                 altmeters, altfrac);
+  sizestr = strdup (precsize_ntoa(sizeval));
+  hpstr   = strdup (precsize_ntoa(hpval));
+  vpstr   = strdup (precsize_ntoa(vpval));
 
-  cp += sprintf (cp, " %sm", precsize_ntoa(sizeval));
-  cp += sprintf (cp, " %sm", precsize_ntoa(hpval));
-  cp += sprintf (cp, " %sm", precsize_ntoa(vpval));
+  sprintf (cp,
+           "%d %.2d %.2d.%.3d %c %d %.2d %.2d.%.3d %c %d.%.2dm %sm %sm %sm",
+           latdeg, latmin, latsec, latsecfrac, northsouth,
+           longdeg, longmin, longsec, longsecfrac, eastwest,
+           altmeters, altfrac, sizestr, hpstr, vpstr);
+  free (sizestr);
+  free (hpstr);
+  free (vpstr);
 
-  return (cp0);
+  return (cp);
 }
 #endif /* USE_BIND */
 

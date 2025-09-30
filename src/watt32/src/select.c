@@ -2,9 +2,9 @@
  * BSD select().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -109,8 +109,8 @@ static __inline Socket *setup_select (int s, BOOL first_loop)
  * is smaller than 512*, select_s() could trash the fd_set's
  * on output.
  */
-int W32_CALL select_s (int nfds, fd_set *readfds, fd_set *writefds,
-                       fd_set *exceptfds, struct timeval *timeout)
+int select_s (int nfds, fd_set *readfds, fd_set *writefds,
+              fd_set *exceptfds, struct timeval *timeout)
 {
   fd_set tmp_read  [NUM_SOCK_FDSETS];
   fd_set tmp_write [NUM_SOCK_FDSETS];
@@ -129,7 +129,7 @@ int W32_CALL select_s (int nfds, fd_set *readfds, fd_set *writefds,
   unsigned total_ex = 0;
 #endif
 
-  SOCK_DEBUGF (("\nselect_s: n=0-%d, %c%c%c", num_fd-1,
+  SOCK_DEBUGF (("\nselect: n=0-%d, %c%c%c", num_fd-1,
                 readfds   ? 'r' : '-',
                 writefds  ? 'w' : '-',
                 exceptfds ? 'x' : '-'));
@@ -163,7 +163,7 @@ int W32_CALL select_s (int nfds, fd_set *readfds, fd_set *writefds,
     }
 
     SOCK_DEBUGF ((", timeout %lu.%06lds",
-                  (u_long)timeout->tv_sec, timeout->tv_usec));
+                  (DWORD)timeout->tv_sec, timeout->tv_usec));
   }
   else
     SOCK_DEBUGF ((", timeout undef"));
@@ -467,7 +467,7 @@ static __inline int sock_signalled (Socket *socket, int mask)
 #endif
 }
 
-#if defined(__MSDOS__)
+#if !defined(WIN32)
 /*
  * Check if a standard handle is ready.
  * This should return TRUE if handle is redirected.
@@ -476,7 +476,7 @@ static BOOL handle_ready (int hnd)
 {
   union REGS regs;
 
-#if defined(__HIGHC__) || defined(__DMC__)
+#if defined(__HIGHC__)
   regs.x.ax = 0x4406;
   regs.x.bx = hnd;
 #else
@@ -590,7 +590,7 @@ static int write_select (int s, Socket *socket)
   if (s == STDIN_FILENO)
      return (0);
 
-  /* SOCK_PACKET, SOCK_RAW and SOCK_DGRAM sockets are always writable
+  /* SOCK_PACKET, SOCK_RAW and SOCK_DGRAM sockets are always writeable
    */
   if (socket->so_type == SOCK_PACKET ||
       socket->so_type == SOCK_RAW    ||
@@ -640,18 +640,20 @@ static int exc_select (int s, Socket *socket)
 
 
 /*
- * A small test program (for djgpp/Watcom/HighC/DMC)
+ * A small test program (for djgpp/Watcom/DMC)
  */
 #if defined(TEST_PROG)
 
-#include <time.h>
-
-#ifndef __CYGWIN__
-#include <conio.h>
-#endif
-
-#ifndef _MSC_VER
 #include <unistd.h>
+#include <conio.h>
+
+#if defined(__WATCOMC__)
+  #include "getopt.h"
+
+  #define usleep(us)      delay((us)/1000)
+  #define uclock()        clock()
+  #define UCLOCKS_PER_SEC CLOCKS_PER_SEC
+  #define uclock_t        clock_t
 #endif
 
 void usage (const char *argv0)
@@ -728,10 +730,8 @@ int main (int argc, char **argv)
            break;
 
       case 'i':
-#ifdef MSDOS
            init_timer_isr();
            use_isr = TRUE;
-#endif
            break;
 
       case 's':
@@ -761,15 +761,11 @@ int main (int argc, char **argv)
 
   sock_init();
 
-  printf ("select-wait %.3f sec, select-size %d, debug %d, ",
-          sel_wait, sel_size, debug);
-
-#if defined(MSDOS)
-  printf ("has_8254 %d, uses_int8 %d\n", has_8254, use_isr);
+  printf ("select-wait %.3f sec, select-size %d, debug %d, "
+          "has_8254 %d, uses_int8 %d\n"
+          "Press 'q' to quit\n", sel_wait, sel_size, debug,
+          has_8254, use_isr);
   hires_timer (use_8254);
-#endif
-
-  puts ("Press 'q' to quit");
 
   while (1)
   {
@@ -804,8 +800,6 @@ int main (int argc, char **argv)
          break;
     }
   }
-  ARGSUSED (use_8254);
-  ARGSUSED (use_isr);
   return (0);
 }
-#endif  /* TEST_PROG */
+#endif

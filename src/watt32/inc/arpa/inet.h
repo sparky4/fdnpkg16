@@ -61,8 +61,8 @@
 
 __BEGIN_DECLS
 
-W32_FUNC int            W32_CALL ascii2addr   (int, const char *, void *);
-W32_FUNC char          *W32_CALL addr2ascii   (int, const void *, int, char *);
+W32_FUNC int            ascii2addr   (int, const char *, void *);
+W32_FUNC char          *addr2ascii   (int, const void *, int, char *);
 
 W32_FUNC struct in_addr W32_CALL inet_makeaddr (u_long, u_long);
 W32_FUNC u_long         W32_CALL inet_addr     (const char*);

@@ -7,9 +7,9 @@
  * - wintr_init()     - call once
  * - wintr_shutdown() - called automatically
  * - wintr_enable()   - enable interrupt based calls
- * - wintr_disable()  - disable interrupt based calls (default)
+ * - wintr_disable()  - diable interrupt based calls (default)
  * - (*wintr_chain)() - a place to chain in your own calls, must live
- *                      point to a function with at least a 1K stack
+ *                      within something like 1K stack
  */
 
 #include <stdio.h>
@@ -20,7 +20,6 @@
 #include "strings.h"
 #include "language.h"
 #include "misc.h"
-#include "run.h"
 #include "pctcp.h"
 #include "wdpmi.h"
 #include "x32vm.h"
@@ -32,12 +31,12 @@
   #include <mw/exc.h>  /* _dx_alloc_rmode_wrapper_iret() */
 #endif
 
-#if defined(__MSDOS__)
+#if !defined(WIN32)
 
 #define TIMER_INTR  0x08
 #define STK_SIZE    1024
 
-void (W32_CALL *wintr_chain)(void) = NULL;
+void (*wintr_chain)(void) = NULL;
 
 static BOOL on_isr8;
 
@@ -171,7 +170,7 @@ void wintr_disable (void)
     setitimer (ITIMER_REAL, &tim, NULL);
   }
 
-#elif defined(WATCOM386) && (DOSX & DOS4GW)
+#elif defined (WATCOM386) && (DOSX & DOS4GW)
   static void (__interrupt __far *oldint)();
 
   static void __interrupt __far NewTimer (void)
@@ -373,5 +372,5 @@ static BOOL DOS_is_idle (void)
   return (crit == 0 && indos == 0);
 }
 #endif
-#endif  /* __MSDOS__ */
+#endif
 

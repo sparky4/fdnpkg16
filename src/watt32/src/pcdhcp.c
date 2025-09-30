@@ -5,7 +5,7 @@
  *  if no WATTCP.CFG file is found.
  */
 
-/*  Copyright (c) 1997-2007 Gisle Vanem <gvanem@yahoo.no>
+/*  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -75,13 +75,14 @@
 #include <ctype.h>
 #include <errno.h>
 
+#define DHCP_IMPLEMENTATION
+
 #include "wattcp.h"
 #include "strings.h"
 #include "language.h"
 #include "misc.h"
-#include "run.h"
 #include "timer.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "netaddr.h"
 #include "bsdname.h"
 #include "ip4_out.h"
@@ -103,11 +104,7 @@
 
 #define BROADCAST_FLAG  intel16 (0x8000) /* network order (LSB=1) */
 
-/* This was 284, but D-Link 614+ router ACKs are too small
- */
-#define DHCP_MIN_SIZE  280
-
-BOOL DHCP_did_gratuitous_arp = FALSE;
+BOOL dhcp_did_gratuitous_arp = FALSE;
 
 static WattDHCPConfigFunc config_func = NULL;
 
@@ -138,7 +135,7 @@ static time_t renewal_timeout;
 static time_t rebind_timeout;
 static time_t lease_timeout;
 static DWORD  send_timeout;
-static BOOL   trace_on = TRUE;
+static BOOL   trace_on = FALSE;
 
 static char       config_file [MAX_VALUELEN+1] = "";
 static sock_type *sock = NULL;
@@ -186,6 +183,7 @@ static void  DHCP_state_REQUESTING (int event);
 static void  DHCP_state_SELECTING (int event);
 static void  DHCP_state_REBINDING (int event);
 
+static void  dhcp_fsm         (void);
 static void  dhcp_options_add (const BYTE *opt, unsigned max);
 static void  dhcp_set_timers  (void);
 static void  change_ip_addr   (void);
@@ -193,10 +191,8 @@ static BYTE *put_request_list (BYTE *opt, int filled);
 static int   write_config     (void);
 static void  erase_config     (void);
 
-static void  W32_CALL dhcp_fsm (void);
-
-#define DHCP_SEND(end) sock_fastwrite (sock, (const BYTE*)&dhcp_out,  /* structure to send */ \
-                                       end - (BYTE*)&dhcp_out)        /* length of structue */
+#define DHCP_SEND(end) \
+        sock_fastwrite (sock, (const BYTE*)&dhcp_out, end - (BYTE*)&dhcp_out)
 
 #if defined(USE_DEBUG)
   #define TRACE(x)      do { if (trace_on) (*_printf) x; } while (0)
@@ -229,10 +225,10 @@ static const char *period (DWORD sec)
   DWORD  hours = sec / 3600UL;
 
   if (sec < 60UL)
-       sprintf (buf, "%lus", (u_long)sec);
+       sprintf (buf, "%lus", sec);
   else if (sec < 3600UL)
-       sprintf (buf, "%lu:%02lu", (u_long)(sec/60), (u_long)(sec % 60));
-  else sprintf (buf, "%lu:%02lu:%02lu", (u_long)hours, (u_long)(sec/60-hours*60), (u_long)(sec % 60));
+       sprintf (buf, "%lu:%02lu", sec/60, sec % 60);
+  else sprintf (buf, "%lu:%02lu:%02lu", hours, sec/60-hours*60, sec % 60);
   return (buf);
 }
 #endif
@@ -370,8 +366,6 @@ static int DHCP_request (BOOL renew)
   }
 
   *opt++ = DHCP_OPT_END;
-  TRACE (("DHCP req: renew(%d) dst(%s)\n",
-          renew, INET_NTOA(sock->udp.hisaddr)));
   return DHCP_SEND (opt);
 }
 
@@ -403,7 +397,7 @@ static int DHCP_release_decline (int msg_type, const char *msg)
     len = min (len, 255);
     len = min (len, (size_t)(end-opt-3));
     *opt++ = DHCP_OPT_MSG;
-    *opt++ = (BYTE)len;
+    *opt++ = len;
     memcpy (opt, msg, len);
     opt += len;
   }
@@ -421,14 +415,17 @@ static int DHCP_release_decline (int msg_type, const char *msg)
 static BOOL DHCP_arp_check (DWORD my_ip)
 {
   eth_address eth;
+  DWORD bcast_ip;
 
   if (_pktserial)
      return (TRUE);
 
-  /* ARP broadcast to announce our new IP.
+  bcast_ip = my_ip | ~sin_mask;
+
+  /* ARP broadcast to announce our new IP
    */
-  _arp_reply (NULL, my_ip, my_ip | ~sin_mask);
-  DHCP_did_gratuitous_arp = TRUE;
+  _arp_reply (NULL, intel(bcast_ip), intel(my_ip));
+  dhcp_did_gratuitous_arp = TRUE;
 
   if (!arp_check_ip)
      return (TRUE);
@@ -511,8 +508,8 @@ static int DHCP_offer (const struct dhcp *in)
                if (len == 0)
                {
                  nameserver = ip;
-                 _add_server (&last_nameserver, def_nameservers,
-                              DIM(def_nameservers), ip);
+                 _add_server (&last_nameserver,
+                              MAX_NAMESERVERS, def_nameservers, ip);
                }
                dns_added = TRUE;
                TRACE (("DNS:       %s\n", INET_NTOA(ip)));
@@ -522,13 +519,12 @@ static int DHCP_offer (const struct dhcp *in)
 
 #if defined(USE_BSD_API)
       case DHCP_OPT_LOG_SRV:
-           if (!syslog_host_name[0] &&  /* not already set */
+           if (!syslog_hostName[0] &&   /* not already set */
                opt[1] % 4 == 0)         /* length = n * 4 */
            {
              ip = intel (*(DWORD*)(opt+2));   /* select 1st host */
-             _strlcpy (syslog_host_name, _inet_ntoa(NULL,ip),
-                       sizeof(syslog_host_name));
-             TRACE (("Syslog:    %s\n", syslog_host_name));
+             StrLcpy (syslog_hostName, _inet_ntoa(NULL,ip), sizeof(syslog_hostName));
+             TRACE (("Syslog:    %s\n", syslog_hostName));
            }
            break;
 
@@ -596,9 +592,7 @@ static int DHCP_offer (const struct dhcp *in)
            break;
 
       case DHCP_OPT_TCP_KEEPALIVE_INTERVAL:
-#if !defined(USE_UDP_ONLY)
            tcp_keep_intvl = intel (*(DWORD*)(opt+2));
-#endif
            break;
 
       case DHCP_OPT_OVERLOAD:
@@ -627,7 +621,6 @@ static int DHCP_offer (const struct dhcp *in)
              len  = opt[1];
              serv = tftp_set_server ((const char*)(opt+2), len);
              TRACE (("TFTP-serv: `%s'\n", serv));
-             ARGSUSED (serv);
            }
            break;
 
@@ -637,7 +630,6 @@ static int DHCP_offer (const struct dhcp *in)
              len  = opt[1];
              file = tftp_set_boot_fname ((const char*)(opt+2), len);
              TRACE (("BOOT-file: `%s'\n", file));
-             ARGSUSED (file);
            }
            break;
 #endif
@@ -705,7 +697,7 @@ static int DHCP_is_nack (void)
  * \note Send release if we are configured \b and remaining lease
  *       is below minimum lease (DHCP_MIN_LEASE = 10 sec).
  */
-void W32_CALL DHCP_release (BOOL force)
+void DHCP_release (BOOL force)
 {
   if (force)
   {
@@ -725,7 +717,7 @@ void W32_CALL DHCP_release (BOOL force)
       DHCP_release_decline (DHCP_RELEASE, NULL);
     }
   }
-  DAEMON_DEL (dhcp_fsm);
+  delwattcpd (dhcp_fsm);
   if (sock)
   {
     sock_close (sock);
@@ -737,7 +729,7 @@ void W32_CALL DHCP_release (BOOL force)
 /**
  * Return current DHCP server address.
  */
-DWORD W32_CALL DHCP_get_server (void)
+DWORD DHCP_get_server (void)
 {
   return (dhcp_server);
 }
@@ -747,8 +739,8 @@ DWORD W32_CALL DHCP_get_server (void)
  */
 static sock_type *dhcp_open (const char *msg, BOOL use_broadcast)
 {
-  udp_Socket *sock = malloc (sizeof(*sock));
-  DWORD       host;
+  struct _udp_Socket *sock = malloc (sizeof(*sock));
+  DWORD   host;
 
   if (!sock)
   {
@@ -773,21 +765,19 @@ static sock_type *dhcp_open (const char *msg, BOOL use_broadcast)
     free (sock);
     sock = NULL;
   }
-  TRACE (("DHCP open: bc(%d) srvr(%s)\n",
-          use_broadcast, INET_NTOA(dhcp_server)));
-  return (sock_type*)sock;   /* sock is free'd in DHCP_exit() */
+  return (sock_type*)sock;
 }
 
 /**
  * Add MAC address of DHCP sever to our ARP cache.
  */
-static void store_DHCP_server_MAC (void)
+static void arp_add_server (void)
 {
   if ((_pktdevclass == PDCLASS_ETHER || _pktdevclass == PDCLASS_TOKEN) &&
       memcmp(sock->udp.his_ethaddr, _eth_brdcast, sizeof(_eth_brdcast)))
   {
     const eth_address *eth = (const eth_address*) sock->udp.his_ethaddr;
-    _arp_cache_add (dhcp_server, eth, TRUE);
+    _arp_add_cache (dhcp_server, eth, TRUE);
   }
 }
 
@@ -846,7 +836,7 @@ static void DHCP_state_REQUESTING (int event)
       DHCP_offer (&dhcp_in);  /* parse options in the ack too */
       configured = 1;         /* we are (re)configured */
       if (dhcp_server)
-         store_DHCP_server_MAC();
+         arp_add_server();
       dhcp_set_timers();
       send_timeout = 0UL;
       DHCP_state   = DHCP_state_BOUND;
@@ -993,7 +983,7 @@ static void DHCP_state_REBOOTING (int event)
 /**
  * DHCP state machine: the event driver.
  */
-static void W32_CALL dhcp_fsm (void)
+static void dhcp_fsm (void)
 {
   if (sock_dataready(sock))
   {
@@ -1077,8 +1067,8 @@ int DHCP_do_boot (void)
   _mtu = ETH_MAX_DATA;
   discover_loops = 0;
 
-  erase_config();           /* delete old configuration */
-  DAEMON_ADD (dhcp_fsm);    /* add "background" daemon */
+  erase_config();         /* delete old configuration */
+  addwattcpd (dhcp_fsm);  /* add "background" daemon */
 
   /* kick start DISCOVER message
    */
@@ -1090,7 +1080,6 @@ int DHCP_do_boot (void)
 
   while (DHCP_state != DHCP_state_BOUND)
   {
-    if (DHCP_state != DHCP_state_INIT) printf("%d %s\n", discover_loops, state_name());
     tcp_tick (NULL);
     if (discover_loops >= max_retries)  /* retries exhaused */
        break;
@@ -1172,20 +1161,22 @@ static void dhcp_set_timers (void)
  */
 static void change_ip_addr (void)
 {
-  _udp_Socket *udp;
   _tcp_Socket *tcp;
+  _udp_Socket *udp;
 
   if (my_ip_addr == old_ip_addr)
      return;
 
-#if !defined(USE_UDP_ONLY)
   for (tcp = _tcp_allsocs; tcp; tcp = tcp->next)
-      if (tcp->myaddr)
-          tcp->myaddr = my_ip_addr;
-#endif
+  {
+    if (tcp->myaddr)
+        tcp->myaddr = my_ip_addr;
+  }
   for (udp = _udp_allsocs; udp; udp = udp->next)
-      if (udp->myaddr)
-          udp->myaddr = my_ip_addr;
+  {
+    if (udp->myaddr)
+        udp->myaddr = my_ip_addr;
+  }
 }
 
 /**
@@ -1198,20 +1189,19 @@ static int set_request_list (char *options)
   int    num       = 0;
   int    maxreq    = 312 - 27; /* sizeof(dh_opt) - min size of rest */
   BYTE  *list, *start, *tok, *end;
-  char  *tok_buf = NULL;
 
-  if (init || (list = calloc(maxreq,1)) == NULL)
+  if (init || (list = (BYTE*)calloc(maxreq,1)) == NULL)
      return (0);
 
-  init  = TRUE;
+  init  = 1;
   start = list;
   end   = start + maxreq - 1;
-  tok   = (BYTE*) strtok_r (options, ", \t", &tok_buf);
+  tok   = (BYTE*) strtok (options, ", \t");
 
   while (tok && list < end)
   {
     *list = ATOI ((const char*)tok);
-    tok   = (BYTE*) strtok_r (NULL, ", \t", &tok_buf);
+    tok   = (BYTE*) strtok (NULL, ", \t");
 
     /* If request list start with Pad option ("DHCP.REQ_LIST=0"),
      * disable options all-together.
@@ -1247,7 +1237,7 @@ static BYTE *put_request_list (BYTE *opt, int filled)
   {
     size = min (size, 255);
     *opt++ = DHCP_OPT_PARAM_REQUEST;
-    *opt++ = (BYTE)size;
+    *opt++ = size;
     memcpy (opt, request_list.data, size);
     opt += size;
   }
@@ -1323,7 +1313,7 @@ static int set_vend_class (const char *value)
 
 /*-------------------------------------------------------------------*/
 
-static void (W32_CALL *prev_hook) (const char*, const char*) = NULL;
+static void (*prev_hook) (const char*, const char*) = NULL;
 
 /* Absolute times for expiry of lease, renewal and rebind
  * read from user (config_func) or transient config file.
@@ -1337,7 +1327,7 @@ static time_t cfg_dhcp_rebind;
  * Matches all "\c DHCP.xx" values from \c WATTCP.CFG file and
  * make appropriate actions.
  */
-static void W32_CALL DHCP_cfg_hook (const char *name, const char *value)
+static void DHCP_cfg_hook (const char *name, const char *value)
 {
   static const struct config_table dhcp_cfg[] = {
              { "REQ_LIST", ARG_FUNC,   (void*)set_request_list },
@@ -1360,7 +1350,7 @@ static void W32_CALL DHCP_cfg_hook (const char *name, const char *value)
 /**
  * Free allocated memory.
  */
-static void W32_CALL DHCP_exit (void)
+static void DHCP_exit (void)
 {
   if (_watt_fatal_error)
      return;
@@ -1372,7 +1362,7 @@ static void W32_CALL DHCP_exit (void)
      DO_FREE (request_list.data);
 
 #if defined(USE_BSD_API)
-  syslog_host_name[0] = '\0';
+  syslog_hostName[0] = '\0';
 #endif
 }
 
@@ -1387,7 +1377,7 @@ void DHCP_init (void)
 }
 
 /**
- * Functions called by config-file parser while reading c:/W32DHCP.TMP.
+ * Functions called by config-file parser while reading C:\W32DHCP.TMP.
  */
 static void set_my_ip (const char *value)
 {
@@ -1418,7 +1408,7 @@ static void set_nameserv (const char *value)
 {
   TRACE (("DHCP: using previous nameserv %s\n", value));
   nameserver = aton (value);
-  _add_server (&last_nameserver, def_nameservers, DIM(def_nameservers), nameserver);
+  _add_server (&last_nameserver, MAX_NAMESERVERS, def_nameservers, nameserver);
 }
 
 static void set_server (const char *value)
@@ -1462,25 +1452,22 @@ static void set_rebind (const char *value)
 static BOOL eval_timers (void)
 {
   time_t now = time (NULL);
-#if defined(USE_DEBUG)
-  char ct_buf[30];
-#endif
 
-  TRACE (("DHCP: IP-lease expires  %s", ctime_r(&cfg_dhcp_iplease,ct_buf)));
-  TRACE (("DHCP: rebinding expires %s", ctime_r(&cfg_dhcp_rebind,ct_buf)));
-  TRACE (("DHCP: renewal expires   %s", ctime_r(&cfg_dhcp_renewal,ct_buf)));
+  TRACE (("DHCP: IP-lease expires at  %s", ctime(&cfg_dhcp_iplease)));
+  TRACE (("DHCP: rebinding expires at %s", ctime(&cfg_dhcp_rebind)));
+  TRACE (("DHCP: renewal expires at   %s", ctime(&cfg_dhcp_renewal)));
 
   if (cfg_dhcp_iplease < now)
        dhcp_iplease = DHCP_MIN_LEASE;
-  else dhcp_iplease = (DWORD)(cfg_dhcp_iplease - now);
+  else dhcp_iplease = cfg_dhcp_iplease - now;
 
   if (cfg_dhcp_renewal < now)
        dhcp_renewal = dhcp_iplease / 2;
-  else dhcp_renewal = (DWORD)(cfg_dhcp_renewal - now);
+  else dhcp_renewal = cfg_dhcp_renewal - now;
 
   if (cfg_dhcp_rebind < now)
        dhcp_rebind = dhcp_iplease * 7 / 8;
-  else dhcp_rebind = (DWORD)(cfg_dhcp_rebind  - now);
+  else dhcp_rebind = cfg_dhcp_rebind  - now;
 
   discover_loops = 0;
 
@@ -1516,24 +1503,22 @@ static BOOL eval_timers (void)
  * on next run to avoid doing DHCP boot/release for every program.
  */
 static const struct config_table transient_cfg[] = {
-           { "DHCP.LEASE",    ARG_FUNC,   (void*)set_lease       },
-           { "DHCP.RENEW",    ARG_FUNC,   (void*)set_renew       },
-           { "DHCP.REBIND",   ARG_FUNC,   (void*)set_rebind      },
-           { "DHCP.MY_IP",    ARG_FUNC,   (void*)set_my_ip       },
-           { "DHCP.NETMASK",  ARG_FUNC,   (void*)set_netmask     },
-           { "DHCP.GATEWAY",  ARG_FUNC,   (void*)set_gateway     },
-           { "DHCP.NAMESERV", ARG_FUNC,   (void*)set_nameserv    },
-           { "DHCP.SERVER",   ARG_FUNC,   (void*)set_server      },
-           { "DHCP.DOMAIN",   ARG_FUNC,   (void*)set_domain      },
-           { "DHCP.HOSTNAME", ARG_STRCPY, (void*)hostname        },
+           { "DHCP.LEASE",    ARG_FUNC,   (void*)set_lease        },
+           { "DHCP.RENEW",    ARG_FUNC,   (void*)set_renew        },
+           { "DHCP.REBIND",   ARG_FUNC,   (void*)set_rebind       },
+           { "DHCP.MY_IP",    ARG_FUNC,   (void*)set_my_ip        },
+           { "DHCP.NETMASK",  ARG_FUNC,   (void*)set_netmask      },
+           { "DHCP.GATEWAY",  ARG_FUNC,   (void*)set_gateway      },
+           { "DHCP.NAMESERV", ARG_FUNC,   (void*)set_nameserv     },
+           { "DHCP.SERVER",   ARG_FUNC,   (void*)set_server       },
+           { "DHCP.DOMAIN",   ARG_FUNC,   (void*)set_domain       },
+           { "DHCP.HOSTNAME", ARG_STRCPY, (void*)hostname         },
 #if defined(USE_BSD_API)
-           { "DHCP.LOGHOST",  ARG_STRCPY, (void*)&syslog_host_name },
+           { "DHCP.LOGHOST",  ARG_STRCPY, (void*)&syslog_hostName },
 #endif
-           { "DHCP.DEF_TTL",  ARG_ATOI,   (void*)&_default_ttl   },
-#if !defined(USE_UDP_ONLY)
-           { "DHCP.TCP_KEEP", ARG_ATOI,   (void*)&tcp_keep_intvl },
-#endif
-           { NULL,            0,          NULL                   }
+           { "DHCP.DEF_TTL",  ARG_ATOI,   (void*)&_default_ttl    },
+           { "DHCP.TCP_KEEP", ARG_ATOI,   (void*)&tcp_keep_intvl  },
+           { NULL,            0,          NULL                    }
          };
 
 /*
@@ -1543,7 +1528,7 @@ static const char *get_config_file (void)
 {
   if (config_file[0])
      return (config_file);
-  return expand_var_str ("$(TEMP)\\W32DHCP.TMP");
+  return ExpandVarStr ("$(TEMP)\\W32DHCP.TMP");
 }
 
 /*
@@ -1562,7 +1547,7 @@ static int std_read_config (void)
   WFILE file;
   const char *fname = get_config_file();
 
-  if (!FOPEN_TXT(file, fname))
+  if (!FOPEN(file, fname))
   {
     TRACE (("`%s' not found\n", fname));
     return (0);
@@ -1589,10 +1574,13 @@ static int std_write_config (void)
   time_t tim, now = time (NULL);
   int    rc  = 0;
   const  char *fname = get_config_file();
-  char   ct_buf [30];
 
-  if (!FILE_EXIST(fname))  /* file not found, create */
-  {
+#ifdef __DJGPP__
+  if (_chmod(fname,0) == -1)
+#else
+  if (access(fname,0) != 0)
+#endif
+  { /* file not found, create */
     file = fopen (fname, "w+t");
     if (!file)
        goto fail;
@@ -1608,26 +1596,31 @@ static int std_write_config (void)
   }
   else
   {
-    file = fopen (fname, "at");
+#if defined(WIN32)
+    SetFileAttributes (fname, FILE_ATTRIBUTE_NORMAL);
+#else
+    _dos_setfileattr (fname, _A_NORMAL);
+#endif
+    file = fopen (fname, "at");  /* append to file */
     if (!file)
        goto fail;
   }
 
-  rc += fprintf (file, "# This file saved at %.20s\n#\n", ctime_r(&now,ct_buf)+4);
+  rc += fprintf (file, "# This file saved at %s#\n", ctime(&now));
 
   tim = dhcp_iplease + now;
-  rc += fprintf (file, "DHCP.LEASE    = %-20lu # lease expires  %.20s\n",
-                 (u_long)tim, ctime_r(&tim,ct_buf)+4);
+  rc += fprintf (file, "DHCP.LEASE    = %-20lu # lease expires at  %s",
+                 (DWORD)tim, ctime(&tim));
 
   tim = dhcp_renewal + now;
-  rc += fprintf (file, "DHCP.RENEW    = %-20lu # renew expires  %.20s\n",
-                 (u_long)tim, ctime_r(&tim,ct_buf)+4);
+  rc += fprintf (file, "DHCP.RENEW    = %-20lu # renew expires at  %s",
+                 (DWORD)tim, ctime(&tim));
 
   tim = dhcp_rebind + now;
   rc += fprintf (file,
-                 "DHCP.REBIND   = %-20lu # rebind expires %.20s\n"
+                 "DHCP.REBIND   = %-20lu # rebind expires at %s"
                  "DHCP.MY_IP    = %-20s # assigned ip-address\n",
-                 (u_long)tim, ctime_r(&tim,ct_buf)+4, _inet_ntoa(buf,my_ip_addr));
+                 (DWORD)tim, ctime(&tim), _inet_ntoa(buf,my_ip_addr));
 
   rc += fprintf (file, "DHCP.NETMASK  = %-20s # assigned netmask\n",
                  _inet_ntoa(buf,sin_mask));
@@ -1648,20 +1641,18 @@ static int std_write_config (void)
                  def_domain);
 
 #if defined(USE_BSD_API)
-  if (syslog_host_name[0])
+  if (syslog_hostName[0])
      rc += fprintf (file, "DHCP.LOGHOST  = %-20s # assigned syslog host\n",
-                    syslog_host_name);
+                    syslog_hostName);
 #endif
 
   rc += fprintf (file, "DHCP.DEF_TTL  = %-20d # default TTL\n",
                  _default_ttl);
 
-#if !defined(USE_UDP_ONLY)
   rc += fprintf (file, "DHCP.TCP_KEEP = %-20d # TCP keepalive interval\n",
                  tcp_keep_intvl);
-#endif
 
-  FCLOSE ((int)(file));
+  fclose (file);
   return (rc);
 
 fail:
@@ -1703,7 +1694,7 @@ static int usr_read_config (void)
 
   TRACE (("DHCP: using previous nameserv %s\n", INET_NTOA(cfg.nameserver)));
   nameserver = cfg.nameserver;
-  _add_server (&last_nameserver, def_nameservers, DIM(def_nameservers), nameserver);
+  _add_server (&last_nameserver, MAX_NAMESERVERS, def_nameservers, nameserver);
 
   TRACE (("DHCP: using previous server   %s\n", INET_NTOA(cfg.server)));
   dhcp_server = cfg.server;
@@ -1712,19 +1703,17 @@ static int usr_read_config (void)
   cfg_dhcp_renewal = cfg.renewal;
   cfg_dhcp_rebind  = cfg.rebind;
 
-  _default_ttl = cfg.default_ttl;
-#if !defined(USE_UDP_ONLY)
+  _default_ttl   = cfg.default_ttl;
   tcp_keep_intvl = cfg.tcp_keep_intvl;
-#endif
 
-  _strlcpy (hostname, cfg._hostname, sizeof(hostname));
+  StrLcpy (hostname, cfg.hostname, sizeof(hostname));
 
   TRACE (("DHCP: using previous domain   %s\n", cfg.domain));
   setdomainname (cfg.domain, strlen(cfg.domain)+1);
 
 #if defined(USE_BSD_API)
   if (cfg.loghost[0])
-     _strlcpy (syslog_host_name, cfg.loghost, sizeof(syslog_host_name));
+     StrLcpy (syslog_hostName, cfg.loghost, sizeof(syslog_hostName));
 #endif
 
   return (1);
@@ -1736,25 +1725,23 @@ static int usr_write_config (void)
   time_t             now = time (NULL);
 
   memset (&cfg, 0, sizeof(cfg));
-  cfg.my_ip       = my_ip_addr;
-  cfg.netmask     = sin_mask;
-  cfg.gateway     = router;
-  cfg.nameserver  = nameserver;
-  cfg.server      = dhcp_server;
-  cfg.iplease     = (DWORD)now + dhcp_iplease;
-  cfg.renewal     = (DWORD)now + dhcp_renewal;
-  cfg.rebind      = (DWORD)now + dhcp_rebind;
-  cfg.default_ttl = _default_ttl;
-#if !defined(USE_UDP_ONLY)
+  cfg.my_ip          = my_ip_addr;
+  cfg.netmask        = sin_mask;
+  cfg.gateway        = router;
+  cfg.nameserver     = nameserver;
+  cfg.server         = dhcp_server;
+  cfg.iplease        = now + dhcp_iplease;
+  cfg.renewal        = now + dhcp_renewal;
+  cfg.rebind         = now + dhcp_rebind;
+  cfg.default_ttl    = _default_ttl;
   cfg.tcp_keep_intvl = tcp_keep_intvl;
-#endif
 
-  _strlcpy (cfg._hostname, hostname, sizeof(cfg._hostname));
-  _strlcpy (cfg.domain, def_domain, sizeof(cfg.domain));
+  StrLcpy (cfg.hostname, hostname, sizeof(cfg.hostname));
+  StrLcpy (cfg.domain, def_domain, sizeof(cfg.domain));
 
 #if defined(USE_BSD_API)
-  if (syslog_host_name[0])
-     _strlcpy (cfg.loghost, syslog_host_name, sizeof(cfg.loghost));
+  if (syslog_hostName[0])
+     StrLcpy (cfg.loghost, syslog_hostName, sizeof(cfg.loghost));
 #endif
 
   return (*config_func) (DHCP_OP_WRITE, &cfg);
@@ -1773,7 +1760,7 @@ static void erase_config (void)
  * Open and parse transient configuration from 'config_file' or call
  * user-defined function to read transient configuration.
  */
-int W32_CALL DHCP_read_config (void)
+int DHCP_read_config (void)
 {
   cfg_read = FALSE;
 
@@ -1812,7 +1799,7 @@ static int write_config (void)
 /**
  * Sets up an application hook for doing DHCP operations (DHCP_config_op)
  */
-WattDHCPConfigFunc W32_CALL DHCP_set_config_func (WattDHCPConfigFunc fn)
+WattDHCPConfigFunc dhcp_set_config_func (WattDHCPConfigFunc fn)
 {
   WattDHCPConfigFunc old_fn = config_func;
   config_func = fn;

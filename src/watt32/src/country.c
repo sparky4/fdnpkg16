@@ -4,7 +4,7 @@
  */
 
 /*
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
  *
  *  These funtions are meant to:
  *   1) automatic detection and selection of language for the _LANG()
- *      function.  But not use yet.
+ *      function.  But not yet.
  *   2) obtaining the active codepage for IDNA/ACE conversion stuff.
  */
 
@@ -46,7 +46,7 @@
 #include "powerpak.h"
 #include "misc.h"
 
-#if defined(__MSDOS__)
+#if !defined(WIN32)
 
 static char country_info[35];  /* not used yet */
 
@@ -122,5 +122,5 @@ int GetCodePage (void)
      return (0);
   return (WORD)reg.r_bx;
 }
-#endif    /* __MSDOS__ */
+#endif    /* !WIN32 */
 

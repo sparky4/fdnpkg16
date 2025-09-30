@@ -53,10 +53,6 @@ const char * W32_CALL inet_ntop (int af, const void *src, char *dst, size_t size
   }
 }
 
-const char * W32_CALL _w32_inet_ntop (int af, const void *src, char *dst, size_t size)
-{
-  return inet_ntop (af, src, dst, size);
-}
 
 /**
  * Convert from presentation format (which usually means ASCII printable)
@@ -83,10 +79,6 @@ int W32_CALL inet_pton (int af, const char *src, void *dst)
   }
 }
 
-int W32_CALL _w32_inet_pton (int af, const char *src, void *dst)
-{
-  return inet_pton (af, src, dst);
-}
 
 /**
  * Format an IPv4 address, more or less like inet_ntoa().
@@ -126,24 +118,24 @@ static const char *inet_ntop6 (const u_char *src, char *dst, size_t size)
    */
   char  tmp [sizeof("ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255")];
   char *tp;
-  int   i;
   struct {
     long base;
     long len;
   } best, cur;
   u_long words [IN6ADDRSZ / INT16SZ];
+  int    i;
 
   /* Preprocess:
    *  Copy the input (bytewise) array into a wordwise array.
    *  Find the longest run of 0x00's in src[] for :: shorthanding.
    */
-  memset (words, '\0', sizeof(words));
+  memset (words, 0, sizeof(words));
   for (i = 0; i < IN6ADDRSZ; i++)
       words[i/2] |= (src[i] << ((1 - (i % 2)) << 3));
 
   best.base = -1;
-  cur.base  = -1;
   best.len  = 0;
+  cur.base  = -1;
   cur.len   = 0;
   for (i = 0; i < (IN6ADDRSZ / INT16SZ); i++)
   {
@@ -160,7 +152,6 @@ static const char *inet_ntop6 (const u_char *src, char *dst, size_t size)
       cur.base = -1;
     }
   }
-
   if ((cur.base != -1) && (best.base == -1 || cur.len > best.len))
      best = cur;
 

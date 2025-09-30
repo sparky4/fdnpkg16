@@ -17,9 +17,7 @@
 #define HW_TYPE_APPLETALK  8   /* Not at all supported */
 #define HW_TYPE_FDDI       10  /* Not really supported */
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>  /* align structs on byte boundaries */
+#include <sys/packon.h>  /* align structs on byte boundaries */
 
 /*!\struct eth_Header
  *
@@ -43,12 +41,12 @@ typedef struct eth_Packet {
 
 /*!\struct vlan_Header
  *
- * The 802.1Q VLAN header (on Ethernet).
+ * The 802.1Q VLAN header.
  */
 typedef struct vlan_Header {
         eth_address  destination;
         eth_address  source;
-        WORD         proto;        /* 0x8100 */
+        WORD         proto;
         WORD         tci;
         WORD         encap_proto;
       } vlan_Header;
@@ -58,8 +56,8 @@ typedef struct vlan_Header {
  * The 802.1Q VLAN header with data.
  */
 typedef struct vlan_Packet {
-        vlan_Header head;                  /* 18 */
-        BYTE        data [VLAN_MAX_DATA];  /* 1496 */
+        vlan_Header head;
+        BYTE        data [VLAN_MAX_DATA];
       } vlan_Packet;
 
 
@@ -208,38 +206,49 @@ typedef union link_Packet {
         struct vlan_Packet   vlan;  /* not supported */
       } link_Packet;
 
-#include <sys/pack_off.h>           /* restore default packing */
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>            /* restore default packing */
 
 struct _eth_last_info {
        struct {
          unsigned          size;    /* frame-size of last Rx */
-         struct ulong_long tstamp;  /* timestamp of last Tx */
+         struct ulong_long tstamp;  /* timestamp of last Tx (not Win32) */
        } tx;
        struct {
          unsigned          size;    /* frame-size of last Rx */
-         struct ulong_long tstamp;  /* timestamp of last Rx 1st upcall */
+         struct ulong_long tstamp;  /* timestamp of last Rx 1st upcall (not Win32) */
        } rx;
      };
 
 extern struct _eth_last_info _eth_last;
 
-extern BOOL        _ip_recursion, _eth_is_init;
-extern BOOL        _eth_ndis3pkt, _eth_winpcap, _eth_npcap, _eth_win10pcap, _eth_airpcap, _eth_SwsVpkt, _eth_wanpacket;
-extern BYTE        _eth_mac_len;
-extern const char *_eth_not_init;
+extern BOOL       _ip_recursion, _eth_is_init;
+extern BOOL       _eth_ndis3pkt, _eth_SwsVpkt;
+extern BYTE       _eth_mac_len;
+extern const char _eth_not_init[];
 
-extern mac_address _eth_addr;        /* Current MAC-address (not AX-25) */
-extern mac_address _eth_real_addr;   /* MAC-addr before _eth_set_addr() */
-extern mac_address _eth_loop_addr;   /* CF:00:00:00:00:00 */
-extern mac_address _eth_brdcast;     /* FF:FF:FF:FF:FF:FF */
+W32_DATA mac_address _eth_addr;        /* Current MAC-address (not AX-25) */
+W32_DATA mac_address _eth_real_addr;   /* MAC-addr before _eth_set_addr() */
+W32_DATA mac_address _eth_loop_addr;   /* CF:00:00:00:00:00 */
+W32_DATA mac_address _eth_brdcast;     /* FF:FF:FF:FF:FF:FF */
+
+W32_DATA void *(*_eth_recv_hook) (WORD *type);
+W32_DATA int   (*_eth_recv_peek) (void *mac_buf);
+W32_DATA int   (*_eth_xmit_hook) (const void *mac_buf, unsigned len);
+
+W32_FUNC int   _eth_init         (void);
+W32_FUNC void  _eth_release      (void);
+W32_FUNC int   _eth_send         (WORD len, const void *sock, const char *file, unsigned line);
+W32_FUNC int   _eth_set_addr     (const void *addr);
+W32_FUNC void *_eth_formatpacket (const void *mac_dest, WORD mac_type);
+W32_FUNC void  _eth_free         (const void *pkt);
+W32_FUNC void *_eth_arrived      (WORD *type, BOOL *brdcast);
+W32_FUNC BYTE  _eth_get_hwtype   (BYTE *hwtype, BYTE *hwlen);
 
 #if defined(USE_MULTICAST)
-  #include "pcigmp.h"
+  #include "pcmulti.h"
 
-  BOOL _eth_join_mcast_group  (const struct MultiCast *mc);
-  BOOL _eth_leave_mcast_group (const struct MultiCast *mc);
+  W32_FUNC BOOL _eth_join_mcast_group  (const struct MultiCast *mc);
+  W32_FUNC BOOL _eth_leave_mcast_group (const struct MultiCast *mc);
 #endif
 
 /*
@@ -247,30 +256,27 @@ extern mac_address _eth_brdcast;     /* FF:FF:FF:FF:FF:FF */
  * an IP packet. For Ethernet:
  *
  *     struct eth_Packet {
- *            BYTE  dest [6];    <-  -14
- *            BYTE  src  [6];    <-   -8
+ *      -14-> BYTE  dest [6];
+ *       -8-> BYTE  src  [6];
  *            WORD  type;
- *            BYTE  data [1500]; <-  ip
+ *       ip-> BYTE  data [1500];
  *          };
  *
  * For Token-Ring:
  *     struct tok_Packet {
- *            BYTE  AC, FC;            <-  -22
+ *      -22-> BYTE  AC, FC;
  *            BYTE  dest [6];
- *            BYTE  src  [6];          <-  -14
+ *      -14-> BYTE  src  [6];
  *            BYTE  DSAP, SSAP, ctrl;
  *            BYTE  org [3];
  *            WORD  type;
- *            BYTE  data [1500];       <-  ip
+ *       ip-> BYTE  data [1500];
  *
  * These macros and functions should never be called for serial protocols
  * except that it doesn't hurt to use MAC_SRC() for all driver classes.
  */
 
-#if defined(NOT_USED)
-  /* Slower, but safer method. The ATTR_NORETURN() is for the cases
-   * where these used functions are used wrongly. In which case we exit().
-   */
+#if defined(USE_DEBUG) && 0  /* slower, but safer method */
   extern void *_eth_mac_hdr (const in_Header *ip)  ATTR_NORETURN();
   extern void *_eth_mac_dst (const in_Header *ip)  ATTR_NORETURN();
   extern void *_eth_mac_src (const in_Header *ip)  ATTR_NORETURN();

@@ -1,9 +1,9 @@
- /*!\file getserv.c
+/*!\file getserv.c
  *
  *  Simple BSD-like services functions.
  */
 
-/*  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+/*  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -41,7 +41,6 @@
 #include "wattcp.h"
 #include "strings.h"
 #include "misc.h"
-#include "run.h"
 #include "language.h"
 #include "netaddr.h"
 #include "pcconfig.h"
@@ -80,23 +79,18 @@ static __inline struct servent *fill_servent (const struct _servent *s)
   static char *aliases [MAX_SERV_ALIASES+1];
 
   memcpy (&aliases, s->s_aliases, sizeof(aliases));
-  ret.s_name    = _strlcpy (name, s->s_name, sizeof(name));
-  ret.s_proto   = _strlcpy (prot, s->s_proto, sizeof(prot));
+  ret.s_name    = StrLcpy (name, s->s_name, sizeof(name));
+  ret.s_proto   = StrLcpy (prot, s->s_proto, sizeof(prot));
   ret.s_aliases = aliases;
   ret.s_port    = s->s_port;
   h_errno       = NETDB_SUCCESS;
   return (&ret);
 }
 
-static void W32_CALL _endservent (void)
-{
-  endservent();
-}
-
 /*
  * Read the \i services file and build linked-list.
  */
-void W32_CALL ReadServFile (const char *fname)
+void ReadServFile (const char *fname)
 {
   static BOOL been_here = FALSE;
 
@@ -106,7 +100,7 @@ void W32_CALL ReadServFile (const char *fname)
   if (been_here)  /* loading multiple services files */
   {
     free (servFname);
-    FCLOSE (servFile);
+    fclose (servFile);
     servFile = NULL;
   }
   servFname = strdup (fname);
@@ -128,10 +122,11 @@ void W32_CALL ReadServFile (const char *fname)
     if (!s)
        break;
 
-    s2 = calloc (sizeof(*s2), 1);
+    s2 = (struct _servent*) calloc (sizeof(*s2), 1);
     if (!s2)
     {
-      (*_printf) (_LANG("%s too big!\n"), servFname);
+      outs (servFname);
+      outsnl (_LANG(" too big!"));
       return;
     }
     for (i = 0; s->s_aliases[i]; i++)
@@ -148,13 +143,13 @@ void W32_CALL ReadServFile (const char *fname)
     SET_HASH (s2);
   }
   rewind (servFile);
-  RUNDOWN_ADD (_endservent, 255);
+  RUNDOWN_ADD (endservent, 255);
 }
 
 /*
  * Return name of \i /etc/services file.
  */
-const char * W32_CALL GetServFile (void)
+const char *GetServFile (void)
 {
   return (servFname);
 }
@@ -162,16 +157,16 @@ const char * W32_CALL GetServFile (void)
 /*
  * Close the \i /etc/services file.
  */
-void W32_CALL CloseServFile (void)
+void CloseServFile (void)
 {
-  FCLOSE (servFile);
+  fclose (servFile);
   servFile = NULL;
 }
 
 /*
  * Reopen the \i /etc/services file.
  */
-void W32_CALL ReopenServFile (void)
+void ReopenServFile (void)
 {
   ReadServFile (servFname);
 }
@@ -181,7 +176,7 @@ void W32_CALL ReopenServFile (void)
 struct servent * W32_CALL getservent (void)
 {
   static struct _servent s;
-  char  *name, *proto, *alias, *tok_buf = NULL;
+  char  *name, *proto, *alias;
   WORD   port;
   int    i;
 
@@ -214,12 +209,12 @@ struct servent * W32_CALL getservent (void)
      *    discard         9/udp           sink null
      */
 
-    name = strtok_r (tok, " \t", &tok_buf);
-    tok  = strtok_r (NULL, "/ \t\n", &tok_buf);
+    name = strtok (tok, " \t");
+    tok  = strtok (NULL, "/ \t\n");
     if (!tok)
        continue;
     port  = intel16 (atoi(tok));
-    proto = strtok_r (NULL, " \t\n", &tok_buf);
+    proto = strtok (NULL, " \t\n");
     if (name && port && proto &&
         (!stricmp(proto,"udp") || !stricmp(proto,"tcp")))
        break;
@@ -233,7 +228,7 @@ struct servent * W32_CALL getservent (void)
   s.s_proto = proto;
   s.s_port  = port;
 
-  alias = strtok_r (NULL, " \t\n", &tok_buf);
+  alias = strtok (NULL, " \t\n");
 
   for (i = 0; alias && i < MAX_SERV_ALIASES; i++)
   {
@@ -242,8 +237,8 @@ struct servent * W32_CALL getservent (void)
     if (*alias == '#' || *alias == ';')
        break;
 
-    s.s_aliases[i] = _strlcpy (aliases[i], alias, sizeof(aliases[i]));
-    alias = strtok_r (NULL, " \t\n", &tok_buf);
+    s.s_aliases[i] = StrLcpy (aliases[i], alias, sizeof(aliases[i]));
+    alias = strtok (NULL, " \t\n");
   }
   return fill_servent (&s);
 }
@@ -310,7 +305,7 @@ void W32_CALL setservent (int stayopen)
      return;
 
   if (!servFile)
-       FOPEN_TXT (servFile, servFname);
+       servFile = fopen (servFname, "rt");
   else rewind (servFile);
 }
 
@@ -326,7 +321,7 @@ void W32_CALL endservent (void)
   if (servFname)
      free (servFname);
   if (servFile)
-     FCLOSE (servFile);
+     fclose (servFile);
   servFname = NULL;
   servFile  = NULL;
 

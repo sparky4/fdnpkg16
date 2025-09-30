@@ -1,6 +1,6 @@
 /*!\file fortify.h
  *
- * V2.2 - All C & C++ source files to be fortified should include this file
+ * V2.2 - All C & C++ source files to be fortified should #include this file
  */
 
 /*
@@ -53,6 +53,7 @@
 #undef free
 #undef strdup
 
+
 #if (defined(_MSC_VER) && (_MSC_VER <= 600)) || defined(__CCDL__)
   /*
    * MSC <= 6.0 has a identifier length of 32. Don't bother
@@ -66,58 +67,55 @@
 
 /* Ensure the configuration parameters have sensible defaults */
 #ifndef FORTIFY_STORAGE
-  #define FORTIFY_STORAGE
+    #define FORTIFY_STORAGE
 #endif
 
 #ifndef FORTIFY_ALIGNMENT
-  #define FORTIFY_ALIGNMENT                    sizeof(double)
+    #define FORTIFY_ALIGNMENT                    sizeof(double)
 #endif
 
 #ifndef FORTIFY_BEFORE_SIZE
-  #define FORTIFY_BEFORE_SIZE                  32
+    #define FORTIFY_BEFORE_SIZE                  32
 #endif
-
 #ifndef FORTIFY_BEFORE_VALUE
-  #define FORTIFY_BEFORE_VALUE                 0xA3
+    #define FORTIFY_BEFORE_VALUE                 0xA3
 #endif
 
 #ifndef FORTIFY_AFTER_SIZE
-  #define FORTIFY_AFTER_SIZE                   32
+    #define FORTIFY_AFTER_SIZE                   32
 #endif
 
 #ifndef FORTIFY_AFTER_VALUE
-  #define FORTIFY_AFTER_VALUE                  0xA5
+    #define FORTIFY_AFTER_VALUE                  0xA5
 #endif
 
 #ifndef FORTIFY_FILL_ON_ALLOCATE_VALUE
-  #define FORTIFY_FILL_ON_ALLOCATE_VALUE       0xA7
+    #define FORTIFY_FILL_ON_ALLOCATE_VALUE       0xA7
 #endif
 
 #ifndef FORTIFY_FILL_ON_DEALLOCATE_VALUE
-  #define FORTIFY_FILL_ON_DEALLOCATE_VALUE     0xA9
+    #define FORTIFY_FILL_ON_DEALLOCATE_VALUE     0xA9
 #endif
 
-#if 0
-  #ifndef FORTIFY_LOCK
+#ifndef FORTIFY_LOCK
     #define FORTIFY_LOCK()
-  #endif
+#endif
 
-  #ifndef FORTIFY_UNLOCK
+#ifndef FORTIFY_UNLOCK
     #define FORTIFY_UNLOCK()
-  #endif
 #endif
 
 #ifndef FORTIFY_CHECKSUM_VALUE
-  #define FORTIFY_CHECKSUM_VALUE               0x0AD0
+    #define FORTIFY_CHECKSUM_VALUE               0x0AD0
 #endif
 
 #ifndef FORTIFY_DELETE_STACK_SIZE
-  #define FORTIFY_DELETE_STACK_SIZE            256
+    #define FORTIFY_DELETE_STACK_SIZE    256
 #endif
 
 #ifndef FORTIFY_NEW_HANDLER_FUNC
-  typedef void (*Fortify_NewHandlerFunc)(void);
-  #define FORTIFY_NEW_HANDLER_FUNC Fortify_NewHandlerFunc
+    typedef void (*Fortify_NewHandlerFunc)(void);
+    #define FORTIFY_NEW_HANDLER_FUNC Fortify_NewHandlerFunc
 #endif
 
 /*
@@ -125,22 +123,22 @@
  */
 
 #ifdef __GNUG__
-  /* GCC configuration */
-  #define FORTIFY_PROVIDE_ARRAY_NEW
-  #define FORTIFY_PROVIDE_ARRAY_DELETE
+    /* GCC configuration */
+    #define FORTIFY_PROVIDE_ARRAY_NEW
+    #define FORTIFY_PROVIDE_ARRAY_DELETE
 #endif
 
 #ifdef __HIGHC__
-  /* Metaware HighC configuration */
-  #define FORTIFY_PROVIDE_ARRAY_NEW
-  #define FORTIFY_PROVIDE_ARRAY_DELETE
+    /* Metaware HighC configuration */
+    #define FORTIFY_PROVIDE_ARRAY_NEW
+    #define FORTIFY_PROVIDE_ARRAY_DELETE
 #endif
 
 #ifdef __BC45__
-  /* Borland C++ 4.5 configuration */
-  #define FORTIFY_PROVIDE_ARRAY_NEW
-  #define FORTIFY_PROVIDE_ARRAY_DELETE
-  #define FORTIFY_FAIL_ON_ZERO_MALLOC
+    /* Borland C++ 4.5 configuration */
+    #define FORTIFY_PROVIDE_ARRAY_NEW
+    #define FORTIFY_PROVIDE_ARRAY_DELETE
+    #define FORTIFY_FAIL_ON_ZERO_MALLOC
 #endif
 
 #ifdef __SASC
@@ -187,9 +185,7 @@ unsigned long Fortify_GetCurrentAllocation(const char *file, unsigned long line)
 void          Fortify_SetAllocationLimit(unsigned long Limit, const char *file, unsigned long line);
 int           Fortify_SetFailRate(int Percent);
 void          Fortify_Disable(const char *file, unsigned long line);
-void          Fortify_Enable (const char *file, unsigned long line);
 int           Fortify_SetAllocateFailRate (int Percent);
-
 Fortify_OutputFuncPtr Fortify_SetOutputFunc(Fortify_OutputFuncPtr Output);
 
 /* Fortify versions of the ANSI C memory allocation functions */
@@ -200,7 +196,7 @@ void  Fortify_free(void *uptr, const char *file, unsigned long line);
 
 /* Fortify versions of some non-ANSI C memory allocation functions */
 #ifdef FORTIFY_STRDUP
-  char *Fortify_strdup(const char *oldStr, const char *file, unsigned long line);
+    char *Fortify_strdup(const char *oldStr, const char *file, unsigned long line);
 #endif
 
 
@@ -259,56 +255,55 @@ void  Fortify_free(void *uptr, const char *file, unsigned long line);
 
     /* Fortify versions of some non-ANSI C memory allocation functions */
     #ifdef FORTIFY_STRDUP
-      #define strdup(ptr)                  Fortify_strdup(ptr, __FILE__, __LINE__)
+        #define strdup(ptr)                Fortify_strdup(ptr, __FILE__, __LINE__)
     #endif
 
-    #if defined(WIN32) && defined(FORTIFY_GLOBAL_REPLACE)
-      #include <windowsx.h>
+    #if (defined(_WIN32) || defined(WIN32)) && defined(FORTIFY_GLOBAL_REPLACE)
 
-      void *Fortify_GlobalAlloc (UINT flags, DWORD size, const char *file, DWORD line);
-      BOOL  Fortify_GlobalFree (void *ptr, const char *file, DWORD line);
+        void *Fortify_GlobalAlloc (UINT flags, DWORD size, const char *file, DWORD line);
+        BOOL  Fortify_GlobalFree (void *ptr, const char *file, DWORD line);
 
-      #undef  GlobalAllocPtr
-      #define GlobalAllocPtr(flags, size) \
-                             Fortify_GlobalAlloc (flags, size, __FILE__, __LINE__)
-      #undef  GlobalFreePtr
-      #define GlobalFreePtr(ptr) \
-                            Fortify_GlobalFree (ptr, __FILE__, __LINE__)
+        #undef  GlobalAllocPtr
+        #define GlobalAllocPtr(flags, size) \
+                               Fortify_GlobalAlloc(flags, size, __FILE__, __LINE__)
+        #undef  GlobalFreePtr
+        #define GlobalFreePtr(ptr) \
+                              Fortify_GlobalFree (ptr, __FILE__, __LINE__)
     #endif
 
     /* Fortify versions of new and delete */
     #ifdef __cplusplus
-      #define Fortify_New                new (__FILE__, __LINE__)
-      #define Fortify_Delete             for (gbl_FortifyMagic = 1,                  \
-                                             Fortify_PreDelete(__FILE__, __LINE__);  \
-                                             gbl_FortifyMagic; Fortify_PostDelete()) \
-                                             gbl_FortifyMagic = 0, delete
-      #define new                        Fortify_New
-      #define delete                     Fortify_Delete
+        #define Fortify_New                new(__FILE__, __LINE__)
+        #define Fortify_Delete             for(gbl_FortifyMagic = 1, \
+                                               Fortify_PreDelete(__FILE__, __LINE__); \
+                                               gbl_FortifyMagic; Fortify_PostDelete()) \
+                                                       gbl_FortifyMagic = 0, delete
+        #define new                        Fortify_New
+        #define delete                     Fortify_Delete
     #endif
 
 #else /* Define the special fortify functions away to nothing */
 
-  #define Fortify_CheckAllMemory()       ((void)0)
-  #define Fortify_ListAllMemory()        ((void)0)
-  #define Fortify_DumpAllMemory()        ((void)0)
-  #define Fortify_CheckPointer(ptr)      1
-  #define Fortify_LabelPointer(ptr,str)  ((void)0)
-  #define Fortify_SetOutputFunc(func)    ((void)0)
-  #define Fortify_SetMallocFailRate(p)   ((void)0)
-  #define Fortify_EnterScope()           ((void)0)
-  #define Fortify_LeaveScope()           ((void)0)
-  #define Fortify_OutputStatistics()     ((void)0)
-  #define Fortify_GetCurrentAllocation() ((void)0)
-  #define Fortify_SetAllocationLimit(x)  ((void)0)
-  #define Fortify_Disable()              ((void)0)
+    #define Fortify_CheckAllMemory()       ((void)0)
+    #define Fortify_ListAllMemory()        ((void)0)
+    #define Fortify_DumpAllMemory()        ((void)0)
+    #define Fortify_CheckPointer(ptr)      1
+    #define Fortify_LabelPointer(ptr,str)  ((void)0)
+    #define Fortify_SetOutputFunc(func)    ((void)0)
+    #define Fortify_SetMallocFailRate(p)   ((void)0)
+    #define Fortify_EnterScope()           ((void)0)
+    #define Fortify_LeaveScope()           ((void)0)
+    #define Fortify_OutputStatistics()     ((void)0)
+    #define Fortify_GetCurrentAllocation() ((void)0)
+    #define Fortify_SetAllocationLimit(x)  ((void)0)
+    #define Fortify_Disable()              ((void)0)
 
-  #ifdef __cplusplus
-    #define Fortify_New                    new
-    #define Fortify_Delete                 delete
-  #endif
+    #ifdef __cplusplus
+        #define Fortify_New                    new
+        #define Fortify_Delete                 delete
+    #endif
 
-#endif  /* USE_FORTIFY */
-#endif  /* __FORTIFY_C__ */
-#endif  /* __FORTIFY_H__ */
-#endif  /* _MSC_VER <= 6.0 || __CCDL__ */
+#endif /* USE_FORTIFY */
+#endif /* __FORTIFY_C__ */
+#endif /* __FORTIFY_H__ */
+#endif /* _MSC_VER <= 6.0 || __CCDL__ */

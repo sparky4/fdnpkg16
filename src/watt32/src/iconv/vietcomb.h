@@ -27,10 +27,13 @@
  * 0x0300, 0x0301, 0x0303, 0x0309, 0x0323. */
 
 /* Composition tables for each of the relevant combining characters. */
-static const struct {
+static const struct
+{
   unsigned short base;
   unsigned short composed;
-} viet_comp_table_data[] = {
+}
+viet_comp_table_data[] =
+{
 #define viet_comp_table0300_idx 0
 #define viet_comp_table0300_len 31
   {
@@ -650,11 +653,13 @@ static const struct {
   {
   0x01B0, 0x1EF1}
 ,};
-
-static const struct {
+static const struct
+{
   unsigned int len;
   unsigned int idx;
-} viet_comp_table[] = {
+}
+viet_comp_table[] =
+{
   {
   viet_comp_table0300_len, viet_comp_table0300_idx}
   ,

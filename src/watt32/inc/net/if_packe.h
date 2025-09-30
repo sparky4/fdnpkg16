@@ -2,8 +2,8 @@
  *
  * Linux compatability header.
  */
-#ifndef __LINUX_IF_PACKE_H
-#define __LINUX_IF_PACKE_H
+#ifndef __LINUX_IF_PACKET_H
+#define __LINUX_IF_PACKET_H
 
 struct sockaddr_pkt
 {
@@ -105,4 +105,4 @@ struct packet_mreq
 #define PACKET_MR_PROMISC    1
 #define PACKET_MR_ALLMULTI   2
 
-#endif  /* __LINUX_IF_PACKE_H */
+#endif

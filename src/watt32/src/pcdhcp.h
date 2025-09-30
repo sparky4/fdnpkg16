@@ -6,6 +6,7 @@
 #define DHCP_MAGIC_COOKIE  0x63538263   /* magic cookie */
 #define DHCP_MIN_LEASE     10           /* 10s min. lease */
 
+
 enum DHCP_MsgTypes {
      DHCP_DISCOVER = 1,
      DHCP_OFFER,
@@ -118,9 +119,7 @@ struct DHCP_list {
        unsigned  size;
      };
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>   /**< align structs on byte boundaries */
+#include <sys/packon.h>
 
 /*!\struct dhcp
  *
@@ -152,11 +151,54 @@ struct dhcp  {
        BYTE  dh_opt[312];   /* DHCP options area (minimum 308 bytes)      */
      };
 
-#include <sys/pack_off.h>   /**< restore default packing */
 
-W32_CLANG_PACK_WARN_DEF()
+/* This was 284, but D-Link 614+ router ACKs are too small
+ */
+#define DHCP_MIN_SIZE  280
 
-extern int  DHCP_do_boot (void);
-extern void DHCP_init (void);
+/* Structure passed to an application hook set by
+ * dhcp_set_config_func()
+ */
+struct DHCP_config {
+       DWORD  my_ip;
+       DWORD  netmask;
+       DWORD  gateway;
+       DWORD  nameserver;
+       DWORD  server;
+       DWORD  iplease;
+       DWORD  renewal;
+       DWORD  rebind;
+       DWORD  tcp_keep_intvl;
+       BYTE   default_ttl;
+       char   hostname [MAX_HOSTLEN+1];
+       char   domain [MAX_HOSTLEN+1];
+       char   loghost [MAX_HOSTLEN+1];  /* Only used if USE_BSD_API */
+     };
+
+#include <sys/packoff.h>
+
+enum DHCP_config_op {
+     DHCP_OP_READ  = 0,
+     DHCP_OP_WRITE = 1,
+     DHCP_OP_ERASE = 2
+   };
+
+extern
+#ifndef DHCP_IMPLEMENTATION
+const
+#endif
+BOOL dhcp_did_gratuitous_arp;  /* the only public variable in pcdhcp.c */
+
+typedef int (*WattDHCPConfigFunc) (enum DHCP_config_op op,
+                                   struct DHCP_config *cfg);
+
+extern WattDHCPConfigFunc dhcp_set_config_func (WattDHCPConfigFunc fn);
+
+extern   int   DHCP_do_boot (void);
+extern   void  DHCP_init (void);
+
+W32_FUNC void  DHCP_release (BOOL force);
+W32_FUNC int   DHCP_read_config (void);
+W32_FUNC DWORD DHCP_get_server (void);
 
 #endif

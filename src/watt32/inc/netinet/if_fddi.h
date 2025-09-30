@@ -43,9 +43,7 @@
 #ifndef __NETINET_IF_FDDI_H
 #define __NETINET_IF_FDDI_H
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /*
  * Structure of an 100Mb/s FDDI header.
@@ -56,9 +54,7 @@ struct  fddi_header {
         u_char  fddi_shost[6];
 };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 #define FDDIIPMTU               4352
 #define FDDIMTU                 4470

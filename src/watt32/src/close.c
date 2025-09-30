@@ -3,9 +3,9 @@
  */
 
 /*
- *  BSD sockets functionality for Watt-32 TCP/IP
+ *  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -43,11 +43,11 @@
 static int close_dgram  (Socket *socket);
 static int close_stream (Socket *socket);
 
-int W32_CALL close_s (int s)
+int close_s (int s)
 {
   Socket *socket = _socklist_find (s);
 
-  SOCK_PROLOGUE (socket, "\nclose_s:%d", s);
+  SOCK_PROLOGUE (socket, "\nclose:%d", s);
 
   socket->so_error = 0;
 

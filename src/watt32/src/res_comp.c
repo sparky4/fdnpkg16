@@ -70,8 +70,8 @@ static int dn_find (u_char *, u_char *, u_char **, u_char **);
  * 'exp_dn' is a pointer to a buffer of size 'length' for the result.
  * Return size of compressed name or -1 if there was an error.
  */
-int W32_CALL dn_expand (const u_char *msg, const u_char *eom_orig,
-                        const u_char *comp_dn, char *exp_dn, int length)
+int dn_expand (const u_char *msg, const u_char *eom_orig,
+               const u_char *comp_dn, char *exp_dn, int length)
 {
   const u_char *cp;
   char *dn, *eom;
@@ -160,8 +160,8 @@ int W32_CALL dn_expand (const u_char *msg, const u_char *eom_orig,
  * If 'dnptr' is NULL, we don't try to compress names. If 'lastdnptr'
  * is NULL, we don't update the list.
  */
-int W32_CALL dn_comp (const char *exp_dn, u_char *comp_dn, int length,
-                      u_char **dnptrs, u_char **lastdnptr)
+int dn_comp (const char *exp_dn, u_char *comp_dn, int length,
+             u_char **dnptrs, u_char **lastdnptr)
 {
   u_char  *cp, *dn;
   u_char **cpp, **lpp, *eob;
@@ -255,7 +255,7 @@ int W32_CALL dn_comp (const char *exp_dn, u_char *comp_dn, int length,
 /*
  * Skip over a compressed domain name. Return the size or -1.
  */
-int W32_CALL __dn_skipname (const u_char *comp_dn, const u_char *eom)
+int __dn_skipname (const u_char *comp_dn, const u_char *eom)
 {
   const u_char *cp = comp_dn;
 

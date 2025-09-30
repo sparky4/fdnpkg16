@@ -14,7 +14,9 @@
 
 #include "crc32.h"     /* all CRC32 related stuff */
 #include "fdnpkg16.h"  /* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
+#ifndef USE_EXTERNAL_MTCP
 #include "http.h"
+#endif
 #include "helpers.h"   /* slash2backslash(), strtolower() */
 #include "fileexst.h"
 #include "kprintf.h"
@@ -303,7 +305,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       sprintf(command, "@echo off\nhtget -o %s %s", zipfile, fname);
 #endif
 #ifdef DEBUG
+#ifdef USE_EXTERNAL_MTCP
       printf("Downloading: \n%s\n", *command);
+#endif
 #endif
 #ifdef USE_EXTERNAL_MTCP
 //0000      htgetres = system(command);

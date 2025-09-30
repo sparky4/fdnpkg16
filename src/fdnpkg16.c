@@ -29,14 +29,19 @@
 #include <strings.h>  /* strcasecmp() */
 #include <unistd.h>   /* unlink() */
 
+#include "fdnpkg16.h" /* this file */
 #include "helpers.h"  /* various helper functions */
+#ifndef USE_EXTERNAL_MTCP
 #include "http.h"     /* http_get() */
+#endif
 #include "kitten.h"   /* required for kitten subsystem */
 #include "kprintf.h"  /* kitten_printf() */
 #include "libgz.h"    /* ungz() */
 #include "libunzip.h" /* zip_freelist()... */
 #include "loadconf.h" /* loadconf() */
+#ifndef USE_EXTERNAL_MTCP
 #include "net.h"      /* net_init() */
+#endif
 #include "pkgdb.h"    /* createdb(), findpkg()... */
 #include "pkgsrch.h"  /* pkgsrch() */
 #include "pkginst.h"  /* pkginstall() */
@@ -48,9 +53,11 @@
 /* #define DEBUG */ /* uncomment this to enable debug mode */
 
 
-unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 16k
+//unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 16k
 
+#ifndef USE_EXTERNAL_MTCP
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */
+#endif
 
 static void printhelp(void) {
   puts("FDNPKG16 v" PVER " Copyright (C) " PDATE " Mateusz Viste && sparky4");
@@ -73,8 +80,10 @@ static void printhelp(void) {
   kitten_puts(1, 19, " clearcache        - clear FDNPKG16's local cache");
   kitten_puts(1, 8,  " license           - print out the license of this program");
   puts("");
+#ifndef USE_EXTERNAL_MTCP
   kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
   puts(wattcpVersion());
+#endif
 }
 
 
@@ -163,6 +172,7 @@ int main(int argc, char **argv) {
   enum actions action = ACTION_HELP;
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
+  int netinitres;
 #ifdef USE_EXTERNAL_MTCP
   char command[512];
   FILE *batch_file;
@@ -363,10 +373,18 @@ int main(int argc, char **argv) {
   for (x = 0; x < repolistcount; x++) {
     if (detect_localpath(repolist[x]) == 0) {
 #ifdef USE_EXTERNAL_MTCP
-      if (system("dhcp") != 0) {
-#else
-      if (net_init() != 0) {
-#endif
+#ifdef DEBUG
+      printf("mtcp is used\n");
+#endif /* #ifdef DEBUG */
+      netinitres = system("dhcp");
+#else /* #ifdef USE_EXTERNAL_MTCP */
+#ifdef DEBUG
+      printf("wattcp32 is used\n");
+#endif /* #ifdef DEBUG */
+      netinitres = net_init();
+#endif /* #ifdef USE_EXTERNAL_MTCP */
+      if (netinitres != 0) {
+        printf("netinitres returned: %d\n", netinitres);
         kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
         QUIT(0)
       }
@@ -419,7 +437,9 @@ int main(int argc, char **argv) {
             sprintf(command, "@echo off\nhtget -o %s %s", tempfilegz, repoindex);
 #endif
 #ifdef DEBUG
+#ifdef USE_EXTERNAL_MTCP
             printf("Downloading: %s\n", command);
+#endif
 #endif
 #ifdef USE_EXTERNAL_MTCP
 //0000            htgetres = system(command);

@@ -2,9 +2,9 @@
  * BSD socket().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP.
+/*  BSD sockets functionality for Waterloo TCP/IP.
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -39,11 +39,11 @@
 #include "socket.h"
 #include "pcdbug.h"
 #include "pcicmp6.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 
 #if defined(USE_BSD_API)
 
-#if defined(__DJGPP__)
+#ifdef __DJGPP__
   #include <sys/resource.h>
   #include <sys/fsext.h>
   #include <unistd.h>
@@ -53,11 +53,6 @@
 
   /* in fsext.c */
   extern int _fsext_demux (__FSEXT_Fnumber func, int *rv, va_list _args);
-
-#elif defined(__CYGWIN__)
-  #include <cygwin/version.h>
-
-  extern long _get_osfhandle (int);   /* in cygwin1.dll (no prototype) */
 #endif
 
 static int     sk_block = 0;          /* sock_daemon() semaphore */
@@ -149,30 +144,27 @@ static fd_set inuse [NUM_SOCK_FDSETS];  /* MAX_SOCKETS/8 = 625 bytes */
 
 static int sock_alloc_fd (char **err)
 {
-  int fd;
+  static char errbuf[100];
+  int    fd;
 
   *err = NULL;
+  errbuf[0] = '\0';
 
 #if defined(__DJGPP__) && defined(USE_FSEXT)
+  fd = __FSEXT_alloc_fd (_fsext_demux);
+
+  if (fd < 0)
   {
-    static char err_buf[100];
+    sprintf (errbuf, "FSEXT_alloc_fd() failed; %s", strerror(errno));
+    *err = errbuf;
+    return (-1);
+  }
 
-    err_buf[0] = '\0';
-    fd = __FSEXT_alloc_fd (_fsext_demux);
-
-    if (fd < 0)
-    {
-      sprintf (err_buf, "FSEXT_alloc_fd() failed; %s", strerror(errno));
-      *err = err_buf;
-      return (-1);
-    }
-
-    if (FD_ISSET(fd,&inuse[0]))
-    {
-      sprintf (err_buf, "Reusing existing socket %d", fd);
-      *err = err_buf;
-      return (-1);
-    }
+  if (FD_ISSET(fd,&inuse[0]))
+  {
+    sprintf (errbuf, "Reusing existing socket %d", fd);
+    *err = errbuf;
+    return (-1);
   }
 
 #if (DJGPP_MINOR >= 4) && 0
@@ -185,8 +177,7 @@ static int sock_alloc_fd (char **err)
   }
 #endif
 
-#else  /* __DJGPP__ && USE_FSEXT */
-
+#else
   for (fd = SK_FIRST; fd < sk_last; fd++)
       if (!FD_ISSET(fd,&inuse[0]) &&  /* not marked as in-use */
           !_socklist_find(fd))        /* don't use a dying socket */
@@ -206,7 +197,7 @@ static int sock_alloc_fd (char **err)
   /* No vacant bits in 'inuse' array. djgpp (and DOS) could theoretically
    * return a file-handle > 'MAX_SOCKETS-1'.
    */
-  *err = (char*) "No more sockets";
+  *err = "No more sockets";
   return (-1);
 }
 
@@ -253,12 +244,6 @@ int _sock_set_rcv_buf (sock_type *s, size_t len)
 {
   len = min (len+8,USHRT_MAX);  /* add room for head/tail markers */
   return sock_setbuf (s, (BYTE*)malloc(len), len);
-
-  /* Note: the ret-val from above malloc() is freed below.
-   * Normally via tcp_daemon(). The freeing can take some time.
-   * Hence reports about memory leaks (from e.g. MSVC debug-builds)
-   * are not so important.
-   */
 }
 
 /**
@@ -302,7 +287,7 @@ static __inline Socket *sk_list_del (int s)
 }
 
 /**
- * Hack function if user application needs to use Wattcp core functions
+ * Hack function if user app needs to use Wattcp core functions
  * for BSD sockets. Must *not* modify return value in any way.
  */
 const sock_type *__get_sock_from_s (int s, int proto)
@@ -372,7 +357,7 @@ BOOL _sock_set_normal_rx_mode (const Socket *_this)
   BOOL  rc = TRUE;
 
 #if defined(USE_MULTICAST)
-  if (num_mcast_active() > 0)
+  if (num_multicast_active() > 0)
      return (rc);
 #endif
 
@@ -485,7 +470,7 @@ static void sock_packet_del (Socket *sock)
 /*
  * Receiver for SOCK_PACKET sockets
  */
-static int W32_CALL sock_packet_peek (const union link_Packet *pkt)
+static int sock_packet_peek (const union link_Packet *pkt)
 {
   Socket *sock, *last = NULL;
 
@@ -497,7 +482,7 @@ static int W32_CALL sock_packet_peek (const union link_Packet *pkt)
         size_t len;
 
 #if defined(USE_DEBUG)
-        if (!pktq_check(q))
+        if (!pktq_check (q))
         {
           TCP_CONSOLE_MSG (0, ("%s(%u): SOCK_PACKET queue munged, "
                            "fd %d\n", __FILE__, __LINE__, sock->fd));
@@ -508,7 +493,7 @@ static int W32_CALL sock_packet_peek (const union link_Packet *pkt)
         if (pktq_in_index(q) == q->out_index)   /* no room */
         {
           q->num_drop++;
-          TCP_CONSOLE_MSG (0, ("SOCK_PACKET drops %lu\n", (u_long)q->num_drop));
+          TCP_CONSOLE_MSG (0, ("SOCK_PACKET drops %lu\n", q->num_drop));
           continue;
         }
 
@@ -536,8 +521,6 @@ static char get_pkt_type_eth (const eth_Header *eth)
 {
   if (!memcmp(&_eth_addr,&eth->destination,_eth_mac_len))
      return (PACKET_HOST);
-  if (!memcmp(&_eth_addr,&eth->source,_eth_mac_len))
-     return (PACKET_OUTGOING);
   if (!memcmp(&eth->destination,&_eth_brdcast,_eth_mac_len))
      return (PACKET_BROADCAST);
   if ((eth->destination[0] & 1) == 1)
@@ -549,8 +532,6 @@ static char get_pkt_type_fddi (const fddi_Header *fddi)
 {
   if (!memcmp(&_eth_addr,&fddi->destination,_eth_mac_len))
      return (PACKET_HOST);
-  if (!memcmp(&_eth_addr,&fddi->source,_eth_mac_len))
-     return (PACKET_OUTGOING);
   if (!memcmp(&fddi->destination,&_eth_brdcast,_eth_mac_len))
      return (PACKET_BROADCAST);
   if ((fddi->destination[0] & 1) == 1)
@@ -562,8 +543,6 @@ static char get_pkt_type_tok (const tok_Header *tok)
 {
   if (!memcmp(&_eth_addr,&tok->destination,_eth_mac_len))
      return (PACKET_HOST);
-  if (!memcmp(&_eth_addr,&tok->source,_eth_mac_len))
-     return (PACKET_OUTGOING);
   if (!memcmp(&tok->destination,&_eth_brdcast,_eth_mac_len))
      return (PACKET_BROADCAST);
   if ((tok->destination[0] & 1) == 1)
@@ -599,7 +578,7 @@ static char get_pkt_type (const union link_Packet *pkt)
  * \todo This should loop until some packet is received.
  */
 unsigned sock_packet_receive (Socket *sock, void *buf, unsigned len,
-                              struct sockaddr *from, size_t *fromlen)
+                              struct sockaddr *from, int *fromlen)
 {
   struct pkt_ringbuf     *q;
   struct sock_packet_buf *rx;
@@ -615,7 +594,7 @@ unsigned sock_packet_receive (Socket *sock, void *buf, unsigned len,
   len = min (len, rx->rx_len);
   memcpy (buf, rx->rx_buf, len);
 
-  if (from && fromlen)  /**\todo should check fromlen is large enough */
+  if (from && fromlen)
   {
     struct sockaddr_ll *sa = (struct sockaddr_ll*) from;
     BYTE   hw_type, hw_len;
@@ -771,7 +750,7 @@ Socket *_sock_del_fd (int fd, const char *file, unsigned line)
   DO_FREE (sock->bcast_pool);
   DO_FREE (sock->packet_pool);
 
-  /* Check for any remaining IPv6/PACKET sockets.
+  /* Check if any remaining IPv6/PACKET sockets.
    */
   if ((sock->so_family == AF_INET6 || sock->so_type == SOCK_PACKET) &&
       _pkt_rxmode > RXMODE_BROADCAST && /* current Rx-mode not broadcast */
@@ -836,10 +815,10 @@ static void *sock_find_tcp (const _tcp_Socket *tcp)
 /**
  * Check `sockaddr*' passed to bind/connect.
  */
-int _sock_chk_sockaddr (Socket *socket, const struct sockaddr *sa, socklen_t len)
+int _sock_chk_sockaddr (Socket *socket, const struct sockaddr *sa, int len)
 {
-  socklen_t sa_len = (socket->so_family == AF_INET6) ? sizeof(struct sockaddr_in6) :
-                                                       sizeof(struct sockaddr_in);
+  int sa_len = (socket->so_family == AF_INET6) ? sizeof(struct sockaddr_in6) :
+                                                 sizeof(struct sockaddr_in);
   if (!sa || len < sa_len)
   {
     SOCK_DEBUGF ((", EINVAL"));
@@ -935,7 +914,7 @@ static int sock_raw4_recv (const in_Header *ip)
      return (0);
 
   /* Should SOCK_RAW allow packets not destined to us *and* not
-   * broadcast? Yes for now.
+   * broadcast?
    */
 #if 0
   {
@@ -963,7 +942,7 @@ static int sock_raw4_recv (const in_Header *ip)
     raw = find_free_raw_sock (sock);
     if (!raw)
     {
-#if 1 /* Maybe user didn't bother to read it. Ignore it. */
+#if 0 /* maybe user didn't bother to read it. Ignore it. */
       SOCK_DEBUGF (("\n  socket:%d, dropped raw (IP4), proto %d, id %04X",
                     sock->fd, ip->proto, ntohs(ip->identification)));
 #endif
@@ -1086,7 +1065,7 @@ static void do_keepalive (Socket *sock)
 static void * MS_CDECL socket_op_demux (enum BSD_SOCKET_OPS op, ...)
 {
   const _tcp_Socket *tcp;
-  void   *rc   = NULL;
+  void   *rc = NULL;
   Socket *sock;
   va_list args;
 
@@ -1110,7 +1089,7 @@ static void * MS_CDECL socket_op_demux (enum BSD_SOCKET_OPS op, ...)
            SOCK_DEBUGF (("\n  TCP-reset:%d", sock->fd));
            if (tcp->rx_datalen == 0)
            {
-             sock->so_state |= (SS_CONN_REFUSED | SS_CANTSENDMORE | SS_CANTRCVMORE);
+             sock->so_state |= SS_CONN_REFUSED|SS_CANTSENDMORE|SS_CANTRCVMORE;
              sock->close_time  = time (NULL);
              sock->linger_time = TCP_LINGERTIME/40;  /* 3 sec */
            }
@@ -1119,21 +1098,21 @@ static void * MS_CDECL socket_op_demux (enum BSD_SOCKET_OPS op, ...)
            SOCK_DEBUGF (("\n  TCP-reset for unknown socket??"));
          break;
 
-    case BSO_SYN_CALLBACK:     /* filtering SYNs in _sock_append() */
+    case BSO_SYN_CALLBACK:  /* filtering SYNs in _sock_append() */
          if (tcp_syn_hook)
-              rc = IntToPtr ((*tcp_syn_hook) (va_arg(args,_tcp_Socket**)));
-         else rc = IntToPtr (1);        /* ret-val doesn't matter */
+              rc = (void*) (*tcp_syn_hook) (va_arg(args,_tcp_Socket**));
+         else rc = (void*) 1;   /* ret-val doesn't matter */
          break;
 
     case BSO_IP4_RAW:
          if (ip4_raw_hook)
-            rc = IntToPtr ((*ip4_raw_hook) (va_arg(args,const in_Header*)));
+            rc = (void*) (*ip4_raw_hook) (va_arg(args,const in_Header*));
          break;
 
     case BSO_IP6_RAW:
 #if defined(USE_IPV6)
          if (ip6_raw_hook)
-            rc = IntToPtr ((*ip6_raw_hook) (va_arg(args,const in6_Header*)));
+            rc = (void*) (*ip6_raw_hook) (va_arg(args,const in6_Header*));
 #endif
          break;
 
@@ -1184,7 +1163,8 @@ static Socket *tcp_sock_daemon (Socket *sock)
   else if (state == tcp_StateESTAB)        /* established tcp session */
   {
     sock->so_state |=  SS_ISCONNECTED;
-    sock->so_state &= ~(SS_ISCONNECTING | SS_ISDISCONNECTING);
+    sock->so_state &= ~SS_ISCONNECTING;
+    sock->so_state &= ~SS_ISDISCONNECTING;
   }
   else if (state >= tcp_StateTIMEWT)             /* dying tcp session */
   {
@@ -1253,7 +1233,7 @@ static Socket *udp_sock_daemon (Socket *sock)
  * Called every DAEMON_PERIOD (500 msec) to perform cleanup of
  * bound SOCK_STREAM and SOCK_DGRAM sockets still in use.
  */
-static void W32_CALL sock_daemon (void)
+static void sock_daemon (void)
 {
   Socket *sock, *next = NULL;
 
@@ -1379,7 +1359,7 @@ static void sock_fortify_exit (void)
 
     SOCK_DEBUGF (("\n%2d: inuse %d, type %s, watt-sock %08lX",
                   sock->fd, FD_ISSET(sock->fd,&inuse[0]) ? 1 : 0,
-                  type, (DWORD_PTR)wsock));
+                  type, (DWORD)wsock));
 
     tcp = sock->tcp_sock;
     if (tcp)
@@ -1404,84 +1384,50 @@ static void sock_fortify_exit (void)
 /**
  * Return version string of current compiler.
  */
-static const char *vendor_version (const char **vendor)
+static const char *vendor_version (void)
 {
   static char buf[10];
-  const char *v = NULL;
 
 #if defined(__DJGPP__)
   sprintf (buf, "%d.%02d", __DJGPP__, __DJGPP_MINOR__);
-  v = "__DJGPP__";
-
 #elif defined(__DMC__)
   sprintf (buf, "%X.%X", __DMC__ >> 8, __DMC__ & 0xFF);
-  v = "__DMC__";
-
 #elif defined(__WATCOMC__)
   sprintf (buf, "%d.%d", __WATCOMC__/100, __WATCOMC__ % 100);
-  v = "__WATCOMC__";
-
 #elif defined(__BORLANDC__)
   sprintf (buf, "%X.%X", __BORLANDC__ >> 8, __BORLANDC__ & 0xFF);
-  v = "__BORLANDC__";
-
 #elif defined(__TURBOC__)
   sprintf (buf, "%X.%X", (__TURBOC__ >> 8) - 1, __TURBOC__ & 0xFF);
-  v = "__TURBOC__";
-
-#elif defined(__clang__)
-  sprintf (buf, "%d.%d", __clang_major__, __clang_minor__);
-  v = "__clang__";
-
 #elif defined(_MSC_VER)
   sprintf (buf, "%d.%d", _MSC_VER/100, _MSC_VER % 100);
-  v = "_MSC_VER";
-
-#elif defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR)
-  /* __MINGW64_VERSION_[MAJOR|MINOR] is defined through _mingw.h in MinGW-W64 */
-  sprintf (buf, "%d.%d", __MINGW64_VERSION_MAJOR, __MINGW64_VERSION_MINOR);
-  v = "__MINGW64__";
-
-#elif defined(__MINGW32__)       /* mingw.org MinGW. MingW-RT-4+ defines '__MINGW_MAJOR_VERSION' */
-  #if defined(__MINGW_MAJOR_VERSION)
-    sprintf (buf, "%d.%d", __MINGW_MAJOR_VERSION, __MINGW_MINOR_VERSION);
-  #else
-    sprintf (buf, "%d.%d", __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
-  #endif
-  v = "__MINGW32__";
-
-#elif defined(__CYGWIN__)   /* this should be dead code for CygWin */
-  sprintf (buf, "%d.%d", CYGWIN_VERSION_DLL_MAJOR, CYGWIN_VERSION_DLL_MINOR);
-  v = "__CYGWIN__";
-
+#elif defined(__MINGW32__)
+  sprintf (buf, "%d.%d", __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
 #elif defined(__CCDL__)
   sprintf (buf, "%d.%d", __CCDL__/100, __CCDL__ % 100);
-  v = "__CCDL__";
-
 #else
   buf[0] = '\0';
 #endif
-
-  if (vendor)
-     *vendor = v;
   return (buf);
 }
 
 /**
  * Check that ./util/xx_err.exe is built with same version
- * we're using here. Print a warning if there's a mismatch.
+ * we're using here. Print a warning of there's a mis-match.
  */
 static void check_errno_version (void)
 {
-  const char *ven, *ver = vendor_version (&ven);
+  const char *ver = vendor_version();
 
   if (*ver && strcmp(ver,ERRNO_VENDOR_VERSION))
   {
-    (*_printf) ("\nWarning: %%WATT_ROOT%%\\inc\\sys\\*.err was created "
-                "with a different compiler\nversion (%s vs %s, %s). "
-                "Rebuilt %%WATT_ROOT%%\\util\\*_err.exe and "
-                "Watt-32 library to avoid subtle bugs.\n",
-                ERRNO_VENDOR_VERSION, ver, ven);
+    char *root = getenv ("WATT_ROOT");
+
+    if (!root)
+       root = "$(WATT_ROOT)";
+    (*_printf) ("\nWarning: %s\\inc\\sys\\*.err was created with a "
+                "different compiler\n"
+                "version (%s vs %s). Rebuilt %s\\util\\*_err.exe and "
+                "Watt-32 library.\n", root, ERRNO_VENDOR_VERSION, ver, root);
     BEEP();
   }
 }
@@ -1509,7 +1455,7 @@ static BOOL init_sockets (void)
   pull_neterr_module = 0;
 
   _watt_do_exit = 0;
-  sk_result = (watt_sock_init(0,0,0) == 0);
+  sk_result = (watt_sock_init(0,0) == 0);
   if (!sk_result)
      return (FALSE);
 
@@ -1534,7 +1480,7 @@ static BOOL init_sockets (void)
   memset (&inuse[0], 0, sizeof(inuse));
   memset (&sk_hashes, 0, sizeof(sk_hashes));
 
-  DAEMON_ADD (sock_daemon);
+  addwattcpd (sock_daemon);
 
 #if defined(USE_FORTIFY) && defined(USE_DEBUG)
   Fortify_EnterScope();
@@ -1545,7 +1491,7 @@ static BOOL init_sockets (void)
 }
 
 /**
- * Returns a pointer to the Socket structure associated with socket 's'.
+ * Returns a pointer to the Socket structure assoiated with socket 's'.
  * If socket `s' was not found, NULL is returned.
  */
 Socket *_socklist_find (int s)
@@ -1760,44 +1706,6 @@ static int set_proto (int type, BOOL is_ip6, int *proto)
   return (0);
 }
 
-/*
- * Return a friendly name for 'proto'.
- */
-#if defined(USE_DEBUG)
-static const char *proto_name (int proto)
-{
-  static const struct search_list proto_names[] = {
-                  { IPPROTO_IP,     "IPPROTO_IP"     },
-                  { IPPROTO_ICMP,   "IPPROTO_ICMP"   },
-                  { IPPROTO_IGMP,   "IPPROTO_IGMP"   },
-                  { IPPROTO_GGP,    "IPPROTO_GGP"    },
-                  { IPPROTO_IPIP,   "IPPROTO_IPIP"   },
-                  { IPPROTO_TCP,    "IPPROTO_TCP"    },
-                  { IPPROTO_EGP,    "IPPROTO_EGP"    },
-                  { IPPROTO_IGRP,   "IPPROTO_IGRP"   },
-                  { IPPROTO_PUP,    "IPPROTO_PUP"    },
-                  { IPPROTO_UDP,    "IPPROTO_UDP"    },
-                  { IPPROTO_IDP,    "IPPROTO_IDP"    },
-                  { IPPROTO_TP,     "IPPROTO_TP"     },
-                  { IPPROTO_XTP,    "IPPROTO_XTP"    },
-                  { IPPROTO_RSVP,   "IPPROTO_RSVP"   },
-                  { IPPROTO_ESP,    "IPPROTO_ESP"    },
-                  { IPPROTO_AH,     "IPPROTO_AH"     },
-                  { IPPROTO_ICMPV6, "IPPROTO_ICMPV6" },
-                  { IPPROTO_NONE,   "IPPROTO_NONE"   },
-                  { IPPROTO_EON,    "IPPROTO_EON"    },
-                  { IPPROTO_ENCAP,  "IPPROTO_ENCAP"  },
-                  { IPPROTO_PIM,    "IPPROTO_PIM"    },
-                  { IPPROTO_VRRP,   "IPPROTO_VRRP"   },
-                  { IPPROTO_SCTP,   "IPPROTO_SCTP"   },
-                  { IPPROTO_DIVERT, "IPPROTO_DIVERT" },
-                  { IPPROTO_RAW,    "IPPROTO_RAW"    },
-                  { IPPROTO_MAX,    "IPPROTO_MAX"    },
-                };
-  return list_lookup (proto, proto_names, DIM(proto_names));
-}
-#endif
-
 /**
  * socket().
  *  \arg family   The protocol family. Supports the AF_INET, AF_INET6,
@@ -1810,11 +1718,11 @@ static const char *proto_name (int proto)
  */
 int W32_CALL socket (int family, int type, int protocol)
 {
-  Socket     *sock = NULL;
-  char       *err  = NULL;
-  const char *fam;
-  int         s;
-  BOOL        is_ip6;
+  Socket *sock = NULL;
+  char   *err  = NULL;
+  char   *fam;
+  int     s;
+  BOOL    is_ip6;
 
   if (!init_sockets())
   {
@@ -1852,7 +1760,7 @@ int W32_CALL socket (int family, int type, int protocol)
     /* protocol ignored; could be ETH_P_ALL */
   }
 
-  if (type == SOCK_RAW && (protocol < IPPROTO_IP || protocol >= IPPROTO_MAX))
+  if (type == SOCK_RAW && (protocol < IPPROTO_IP || protocol > IPPROTO_RAW))
   {
     SOCK_DEBUGF (("\nsocket: invalid SOCK_RAW proto (%d)", protocol));
     SOCK_ERRNO (EINVAL);
@@ -1872,16 +1780,16 @@ int W32_CALL socket (int family, int type, int protocol)
   switch (type)
   {
     case SOCK_STREAM:
-         SOCK_DEBUGF (("\nsocket: fam:AF_INET%s type:STREAM, proto %s, %d",
-                       fam, proto_name(protocol), s));
+         SOCK_DEBUGF (("\nsocket: fam:AF_INET%s type:STREAM, proto %d, %d",
+                       fam, protocol, s));
          break;
     case SOCK_DGRAM:
-         SOCK_DEBUGF (("\nsocket: fam:AF_INET%s type:DGRAM, proto %s, %d",
-                       fam, proto_name(protocol), s));
+         SOCK_DEBUGF (("\nsocket: fam:AF_INET%s type:DGRAM, proto %d, %d",
+                       fam, protocol, s));
          break;
     case SOCK_RAW:
-         SOCK_DEBUGF (("\nsocket: fam:AF_INET%s type:RAW, proto %s, %d",
-                       fam, proto_name(protocol), s));
+         SOCK_DEBUGF (("\nsocket: fam:AF_INET%s type:RAW, proto %d, %d",
+                       fam, protocol, s));
          break;
     case SOCK_PACKET:
          SOCK_DEBUGF (("\nsocket: fam:AF_UNSPEC type:PACKET, %d", s));
@@ -1907,7 +1815,7 @@ int W32_CALL socket (int family, int type, int protocol)
   if (type == SOCK_PACKET)
   {
     sock->old_eth_peek = _eth_recv_peek;
-    _eth_recv_peek = (int (W32_CALL*)(void*)) sock_packet_peek;
+    _eth_recv_peek = (int (*)(void*)) sock_packet_peek;
   }
 
   _bsd_socket_hook = socket_op_demux;
@@ -1999,8 +1907,8 @@ static int icmp_callback (sock_type *s, BYTE icmp_type, BYTE icmp_code)
   if (icmp_type < DIM(icmp_type_str))
      type_str = icmp_type_str [icmp_type];
 
-  SOCK_DEBUGF (("\n  icmp_callback (s=%" ADDR_FMT ", IP-proto %s, %s, code %d)",
-                ADDR_CAST(s), ip_proto_str(s->udp.ip_type), type_str, icmp_code));
+  SOCK_DEBUGF (("\n  icmp_callback (s=%08lX, IP-proto %s, %s, code %d)",
+                (DWORD)s, ip_proto_str(s->udp.ip_type), type_str, icmp_code));
 
   if (icmp_type == ICMP_UNREACH || icmp_type == ICMP_PARAMPROB)
   {
@@ -2282,10 +2190,8 @@ int W32_CALL socketpair (int family, int type, int protocol, int usockvec[2])
    */
   if ((s2 = socket (family, type, protocol)) < 0)
   {
-    int err = -errno;
-
     close_s (s1);
-    return (err);
+    return (-EINVAL);
   }
 
   sock2 = socklist_find (s2);

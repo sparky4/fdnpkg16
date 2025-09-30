@@ -2,9 +2,9 @@
  * BSD accept().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -56,7 +56,8 @@ static int  dup_bind   (Socket *socket, Socket **clone, int idx);
 static int  alloc_addr (Socket *socket, Socket  *clone);
 static void listen_free(Socket *socket, int idx);
 
-int W32_CALL accept (int s, struct sockaddr *addr, socklen_t *addrlen)
+
+int W32_CALL accept (int s, struct sockaddr *addr, int *addrlen)
 {
   Socket  *socket, *clone = NULL;
   volatile DWORD   timeout;
@@ -101,8 +102,8 @@ int W32_CALL accept (int s, struct sockaddr *addr, socklen_t *addrlen)
 
   if (addr && addrlen)
   {
-    socklen_t sa_len = is_ip6 ? sizeof(struct sockaddr_in6) :
-                                sizeof(struct sockaddr_in);
+    int sa_len = is_ip6 ? sizeof(struct sockaddr_in6) :
+                          sizeof(struct sockaddr_in);
     if (*addrlen < sa_len)
     {
       SOCK_DEBUGF ((", EFAULT"));
@@ -230,24 +231,22 @@ int W32_CALL accept (int s, struct sockaddr *addr, socklen_t *addrlen)
   clone->so_state   &= ~(SS_ISLISTENING | SS_ISCONNECTING);
   clone->so_options &= ~SO_ACCEPTCONN;
 
-#if 1
   /* Prevent a PUSH on first segment sent.
    */
   sock_noflush ((sock_type*)clone->tcp_sock);
-#endif
 
 #if defined(USE_IPV6)
   if (is_ip6)
   {
     struct sockaddr_in6 *ra = (struct sockaddr_in6*)clone->remote_addr;
 
-    SOCK_DEBUGF (("\nremote %s (%u)",
+    SOCK_DEBUGF (("\nremote %s (%d)",
                   _inet6_ntoa (&ra->sin6_addr), ntohs(ra->sin6_port)));
     ARGSUSED (ra);
   }
   else
 #endif
-    SOCK_DEBUGF (("\nremote %s (%u)",
+    SOCK_DEBUGF (("\nremote %s (%d)",
                   inet_ntoa (clone->remote_addr->sin_addr),
                   ntohs (clone->remote_addr->sin_port)));
 
@@ -292,9 +291,9 @@ accept_fail:
 
 
 /*
- * Duplicate a SOCK_STREAM 'sock' to '*newconn'. Doesn't set
+ * Duplicate a SOCK_STREAM 'socket' to '*newconn'. Doesn't set
  * local/remote addresses. Transfer TCB from listen-queue[idx] of
- * 'sock' to TCB of 'clone'.
+ * 'socket' to TCB of 'clone'.
  */
 static int dup_bind (Socket *sock, Socket **newconn, int idx)
 {
@@ -338,7 +337,7 @@ static int alloc_addr (Socket *socket, Socket *clone)
   int  sa_len = is_ip6 ? sizeof(struct sockaddr_in6) :
                          sizeof(struct sockaddr_in);
 
-  clone->local_addr = SOCK_CALLOC (sa_len);
+  clone->local_addr = (struct sockaddr_in*) SOCK_CALLOC (sa_len);
   if (!clone->local_addr)
   {
     SOCK_DEBUGF ((", ENOMEM"));
@@ -346,7 +345,7 @@ static int alloc_addr (Socket *socket, Socket *clone)
     return (0);
   }
 
-  clone->remote_addr = SOCK_CALLOC (sa_len);
+  clone->remote_addr = (struct sockaddr_in*) SOCK_CALLOC (sa_len);
   if (!clone->remote_addr)
   {
     SOCK_DEBUGF ((", ENOMEM"));
@@ -385,7 +384,6 @@ static int alloc_addr (Socket *socket, Socket *clone)
     clone->remote_addr->sin_port   = htons (clone->tcp_sock->hisport);
     clone->remote_addr->sin_addr   = peer;
   }
-  ARGSUSED (is_ip6);
   return (1);
 }
 
@@ -413,7 +411,7 @@ static void listen_free (Socket *socket, int idx)
  * TCB on input ('orig') must still be listening for further connections
  * on the same port as specified in call to _TCP_listen().
  *
- * \todo Implement SYN-cookies. Ref. <http://cr.yp.to/syncookies.html>
+ * \todo Implement SYN-cookies. \ref http://cr.yp.to/syncookies.html
  */
 int _sock_append (_tcp_Socket **tcp)
 {
@@ -422,7 +420,7 @@ int _sock_append (_tcp_Socket **tcp)
   Socket      *sock = NULL;   /* associated socket for 'orig' */
   int          i;
 
-  /* Lookup BSD-socket for TCB
+  /* Lookup BSD-socket for WatTcp TCB
    */
   if (!_bsd_socket_hook ||
       (sock = (*_bsd_socket_hook)(BSO_FIND_SOCK,orig)) == NULL)

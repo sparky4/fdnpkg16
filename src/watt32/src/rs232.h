@@ -16,6 +16,9 @@
 #define _w32_RS232_H
 
 #if defined(USE_RS232_DBG)
+  extern int            trace2com_init (WORD portAddress, DWORD baudRate);
+  extern int MS_CDECL __trace2com (const char *fmt, ...)  ATTR_PRINTF (1,2);
+
   #define SIO_TRACE(p)  __trace2com p
 #else
   #define SIO_TRACE(p)  ((void)0)

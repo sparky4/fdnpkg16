@@ -5,159 +5,24 @@
  *  This program must be compiled using compiler environment
  *  for each vendor.
  *
- *  G. Vanem <gvanem@yahoo.no - Jan 1999
+ *  G. Vanem <giva@bgnett.no - Jan 1999
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <io.h>
 #include <fcntl.h>
-#include <time.h>
+#include <errno.h>
 
-#if defined(_MSC_VER) && defined(_VCRUNTIME_H) && !defined(_CRT_NO_POSIX_ERROR_CODES) && 0
-  #error "Add '-D_CRT_NO_POSIX_ERROR_CODES' to your CFLAGS."
-#endif
+#define __SYS_WERRNO_H    /* prevent including <sys/werrno.h> */
 
-#if defined(__MSDOS__) || defined(WIN32) || defined(_WIN32)
-  #include <io.h>
-#else /* assume building on unix for cross compilations (BROKEN!) */
-  #include <sys/types.h>
-  #include <unistd.h>
-#endif
-
-/*
- * Generating a mw64_err.exe for MinGW64 is a major hassle. Since:
- *  1) cannot run a x86-64 program on Win32.
- *  2) cannot use a mingw32-hosted environment that emulates mingw64.
- *
- * Hence we need to run 'i686-w64-mingw32-gcc' to build mw64_err.exe.
- * This MUST be the same gcc version as the 'x86_64-w64-mingw32-gcc'
- * that we're building for. Check with 'x86_64-w64-mingw32-gcc -v'.
- */
-#if defined(MAKE_MINGW64_ERRNOS) && 0
-  #define __MINGW64__
-#else
-  #include <errno.h>
-#endif
-
-#if defined(__CYGWIN__)
-  /*
-   * Since CygWin's <sys/errno.h> provided all the errno-values
-   * we need, there is no need to use util/errno.c to create new
-   * one for CygWin. Simply pull in <sys/errno.h>.
-   */
-  #error This program is not needed on CygWin
-#endif
-
-#if defined(__MSDOS__) || defined(WIN32) || defined(_WIN32) || defined(__DOS__)
-  #include <sys/wtypes.h>     /* fd_set, FD_SET() */
-#endif
+#include <sys/socket.h>
 
 #if defined(_MSC_VER) && (_MSC_VER <= 700)
-  #define OLD_MSC
+#define OLD_MSC
 #endif
-
-#if defined(_MSC_VER) && (_MSC_VER >= 1400) && 0
- /*
-  * Not sure about the above MSVC version, but recent versions of MSVC's
-  * <errno.h> has this for it's "POSIX SUPPLEMENT":
-  *   #define EADDRINUSE  100
-  *   ...
-  * But strerror() for these (above 100) always return "Unknown error".
-  * Not a very good "POSIX SUPPLEMENT". Hence we #undef them here.
-  *
-  * This doesn't work; have to define with same value, but add a sensible strerror().
-  *
-  * One option would be to define '_CRT_NO_POSIX_ERROR_CODES' everywhere when
-  * compiling with MSVC and the Windows-Kit. But that sounds a bit extreme.
-  */
-  #undef EADDRINUSE
-  #undef EADDRNOTAVAIL
-  #undef EAFNOSUPPORT
-  #undef EALREADY
-  #undef EBADMSG
-  #undef ECANCELED
-  #undef ECONNABORTED
-  #undef ECONNREFUSED
-  #undef ECONNRESET
-  #undef EDESTADDRREQ
-  #undef EHOSTUNREACH
-  #undef EIDRM
-  #undef EINPROGRESS
-  #undef EISCONN
-  #undef ELOOP
-  #undef EMSGSIZE
-  #undef ENETDOWN
-  #undef ENETRESET
-  #undef ENETUNREACH
-  #undef ENOBUFS
-  #undef ENODATA
-  #undef ENOLINK
-  #undef ENOMSG
-  #undef ENOPROTOOPT
-  #undef ENOSR
-  #undef ENOSTR
-  #undef ENOTCONN
-  #undef ENOTRECOVERABLE
-  #undef ENOTSOCK
-  #undef ENOTSUP
-  #undef EOPNOTSUPP
-  #undef EOTHER
-  #undef EOVERFLOW
-  #undef EOWNERDEAD
-  #undef EPROTO
-  #undef EPROTONOSUPPORT
-  #undef EPROTOTYPE
-  #undef ETIME
-  #undef ETIMEDOUT
-  #undef ETXTBSY
-  #undef EWOULDBLOCK
-#endif
-
-#if defined(MAKE_MINGW64_ERRNOS) && 0
-  #define EPERM        1
-  #define ENOENT       2
-  #define ENOFILE      ENOENT
-  #define ESRCH        3
-  #define EINTR        4
-  #define EIO          5
-  #define ENXIO        6
-  #define E2BIG        7
-  #define ENOEXEC      8
-  #define EBADF        9
-  #define ECHILD       10
-  #define EAGAIN       11
-  #define ENOMEM       12
-  #define EACCES       13
-  #define EFAULT       14
-  #define EBUSY        16
-  #define EEXIST       17
-  #define EXDEV        18
-  #define ENODEV       19
-  #define ENOTDIR      20
-  #define EISDIR       21
-  #define ENFILE       23
-  #define EMFILE       24
-  #define ENOTTY       25
-  #define EFBIG        27
-  #define ENOSPC       28
-  #define ESPIPE       29
-  #define EROFS        30
-  #define EMLINK       31
-  #define EPIPE        32
-  #define EDOM         33
-  #define EDEADLK      36
-  #define EDEADLOCK    EDEADLK
-  #define ENAMETOOLONG 38
-  #define ENOLCK       39
-  #define ENOSYS       40
-  #define ENOTEMPTY    41
-  #define EINVAL       22
-  #define ERANGE       34
-  #define EILSEQ       42
-#endif   /* MAKE_MINGW64_ERRNOS */
-
 
 static int    print_errno   = 0;
 static int    print_errlist = 0;
@@ -166,10 +31,10 @@ static int    last_errno    = 0;
 static fd_set errno_set;
 static const  char *prog_name;
 
-static void process (void);
+static void process  (void);
 static void prologue (void);
 static void epilogue (void);
-static void add_errno (int errnum, const char *errnum_str, const char *strerr);
+static void add_errno(int errnum, const char *errnum_str, const char *strerr);
 
 static void Usage (void)
 {
@@ -226,23 +91,14 @@ static const char *VendorName (void)
 #elif defined(__POCC__)
   return ("__POCC__");
 
-#elif defined(__clang__)
-  return ("__clang__");
-
 #elif defined(_MSC_VER)
   return ("_MSC_VER");
 
 #elif defined(__DMC__)
   return ("__DMC__");
 
-#elif defined(__MINGW64__)
-  return ("__MINGW64__");
-
 #elif defined(__MINGW32__)
   return ("__MINGW32__");
-
-#elif defined(__CYGWIN__)
-  return ("__CYGWIN__");
 
 #elif defined(__CCDL__)
   return ("__CCDL__");
@@ -261,52 +117,28 @@ static const char *VendorVersion (void)
 
 #if defined(__DJGPP__)
   sprintf (buf, "%d.%02d", __DJGPP__, __DJGPP_MINOR__);
-
 #elif defined(__DMC__)
   sprintf (buf, "%X.%X", __DMC__ >> 8, __DMC__ & 0xFF);
-
 #elif defined(__WATCOMC__)
   sprintf (buf, "%d.%d", __WATCOMC__/100, __WATCOMC__ % 100);
-
 #elif defined(__BORLANDC__)
   sprintf (buf, "%X.%X", __BORLANDC__ >> 8, __BORLANDC__ & 0xFF);
-
 #elif defined(__TURBOC__)
   sprintf (buf, "%X.%X", (__TURBOC__ >> 8) - 1, __TURBOC__ & 0xFF);
-
 #elif defined(__POCC__)
   sprintf (buf, "%d.%d", __POCC__/100, __POCC__ % 100);
-
-#elif defined(__clang__)
-  sprintf (buf, "%d.%d", __clang_major__, __clang_minor__);
-
 #elif defined(_MSC_VER)
   sprintf (buf, "%d.%d", _MSC_VER/100, _MSC_VER % 100);
-
-#elif defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR)
-  sprintf (buf, "%d.%d", __MINGW64_VERSION_MAJOR, __MINGW64_VERSION_MINOR);
-
-#elif defined(__MINGW32__) && defined(__MINGW_MAJOR_VERSION)  /* MingW-RT 4.0+ */
-  sprintf (buf, "%d.%d", __MINGW_MAJOR_VERSION, __MINGW_MINOR_VERSION);
-
 #elif defined(__MINGW32__)
   sprintf (buf, "%d.%d", __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
-
-#elif defined(__CYGWIN__)
-  sprintf (buf, "%d.%d.%d", CYGWIN_VERSION_DLL_MAJOR/1000, CYGWIN_VERSION_DLL_MAJOR % 1000,
-           CYGWIN_VERSION_DLL_MINOR);
-
 #elif defined(__CCDL__)
   sprintf (buf, "%d.%d", __CCDL__/100, __CCDL__ % 100);
-
 #elif defined(__LCC__)
-/*sprintf (buf, "%d.%d", __LCC__/100, __LCC__ % 100); doesn't work */
   return (NULL);
-
+/*sprintf (buf, "%d.%d", __LCC__/100, __LCC__ % 100); doesn't work */
 #else
   buf[0] = '\0';
 #endif
-
   return (buf);
 }
 
@@ -314,11 +146,6 @@ static void prologue (void)
 {
   const char *vendor_name = VendorName();
   const char *vendor_ver  = VendorVersion();
-  const char *now;
-  time_t t;
-
-  time (&t);
-  now = ctime (&t);
 
 #if defined(__HIGHC__)       /* Metaware is wrong by one! */
   last_errno = sys_nerr - 1;
@@ -331,37 +158,22 @@ static void prologue (void)
 #endif
 
   if (print_errno)
-  {
-    const char *comment = "";
-
-#if defined(WATT32_DJGPP_MINGW)
-    comment = "But since djgpp programs normally does not run under Windows, "
-              "it was generated by using MinGW/gcc.\n";
-#endif
-
-    printf ("#ifndef __SYS_WERRNO_ERR\n"
-            "#define __SYS_WERRNO_ERR\n\n"
-            "/*\n"
-            " * THIS FILE WAS GENERATED BY %s at %.24s.\n"
-            " * DO NOT EDIT.\n%s"
-            " *\n"
-            " * Watt-32 errnos are after vendor's errnos (1 - %d)\n"
-            " */\n\n", prog_name, now, comment, last_errno-1);
-  }
+     printf ("#ifndef __SYS_WERRNO_ERR\n"
+             "#define __SYS_WERRNO_ERR\n\n"
+             "/*\n"
+             " * THIS FILE WAS GENERATED BY %s. DO NOT EDIT.\n"
+             " *\n"
+             " * Watt-32 errnos are after vendor's errnos (1 - %d)\n"
+             " */\n\n", prog_name, last_errno-1);
 
   if (print_errlist)
      printf ("/*\n"
-             " * THIS FILE WAS GENERATED BY %s at %.24s.\n"
-             " * DO NOT EDIT.\n"
+             " * THIS FILE WAS GENERATED BY %s. DO NOT EDIT.\n"
              " *\n"
-             " * Watt-32 sys_errlist replaces vendor's sys_errlist[]\n"
-             " */\n\n", prog_name, now);
+             " * Watt-32 sys_errlist replaces vendor's sys_errlist\n"
+             " */\n\n", prog_name);
 
-  if (print_test)
-     printf ("The vendor's (%s) C-lib defines only these errnos (1 - %d):\n",
-             vendor_name, last_errno-1);
-
-#if defined(OLD_MSC)
+#ifdef OLD_MSC
    /* MSC 7.0 (or older) doesn't seem to handle the below construct
     */
 #else
@@ -374,9 +186,6 @@ static void prologue (void)
 #endif
   if (print_errno && vendor_ver)
      printf ("#define ERRNO_VENDOR_VERSION  \"%s\"\n\n", vendor_ver);
-
-  if (print_errlist)
-     printf ("char __syserr000[] = \"Unknown error\";\n");
 }
 
 static void epilogue (void)
@@ -395,12 +204,13 @@ static void epilogue (void)
       if (i % 5 == 0)
          printf ("\n   ");
       if (FD_ISSET(i, &errno_set))
-           printf (" __syserr%03d, ", i);
-      else printf (" __syserr000, ");
+           printf (" __syserr%02d, ", i);
+      else printf (" __syserr00, ");
     }
     printf ("\n};\n\n");
   }
 }
+
 
 static const char *err_tab[] = {
   "Operation would block (EWOULDBLOCK)",                     /* 0  */
@@ -1087,7 +897,7 @@ static void process (void)
 }
 
 /*
- * strip off newlines
+ * rip off newlines
  */
 static const char *rip_nl (const char *s)
 {
@@ -1101,7 +911,7 @@ static const char *rip_nl (const char *s)
 }
 
 /*
- * strip off paranthesis
+ * rip off paranthesis
  */
 static const char *rip_par (const char *s)
 {
@@ -1125,14 +935,8 @@ static const char *get_errno (const char *s)
   char  *p, *q;
 
   strcpy (buf, s);
-  p = strchr (buf, '(');
-  if (p)
-     p++;
-
-  q = strchr (buf, ')');
-  if (q)
-    *q = '\0';
-
+  if ((p = strchr(buf,'(')) != NULL) p++;
+  if ((q = strchr(buf,')')) != NULL) *q = '\0';
   if (p && q)
      return ((const char*)p);
   return (NULL);
@@ -1140,58 +944,44 @@ static const char *get_errno (const char *s)
 
 static void add_errno (int errnum, const char *errnum_str, const char *strerr)
 {
-  int dummy = 0;
-
   if (errnum < 0)
+     add_errno (last_errno++, errnum_str, strerr);
+  else
   {
-    add_errno (last_errno++, errnum_str, strerr);
-    return;
-  }
+#ifdef __TURBOC__  /* Turbo-C's strerror() is buggy */
+    int dummy = 0;
 
- /* Since Turbo-C's strerror() is buggy
-  */
-#if defined(__TURBOC__) && !defined(__BORLANDC__)
-  if ((errnum_str && sscanf(errnum_str,"%d",&dummy)) == 1 ||
-      !strncmp(strerr,"-1",2))
-     return;
+    if (sscanf(errnum_str,"%d",&dummy) == 1 || !strncmp(strerr,"-1",2))
+       return;
 #endif
 
-  if (!errnum_str)          /* we're adding our own */
-  {
-    errnum_str = get_errno (strerr);
-    assert (errnum_str);
-  }
-  else if (print_test)
-  {
-    /** \todo: should make the output sorted on 'errnum' */
-    printf ("  %3d=%-15s -> \"%s\"\n", errnum, errnum_str, rip_nl(strerr));
-    fflush (stdout);
-    return;
-  }
-
-  if (print_errno)
-  {
-    /** \todo: should make the output sorted on 'errnum' */
-    printf ("#define %-17s %d\n", errnum_str, errnum);
-  }
-
-  if (print_errlist && !FD_ISSET(errnum,&errno_set))
-  {
-    strerr = rip_par (rip_nl(strerr));
-    if (*strerr == '\0')
+    if (!errnum_str)          /* we're adding our own */
     {
-      char buf[30];
-      sprintf (buf, "System error %d", errnum);
-      strerr = buf;
+      errnum_str = get_errno (strerr);
+      assert (errnum_str);
+    }
+    else if (print_test)
+    {
+      printf ("%2d=%-15s -> \"%s\"\n", errnum, errnum_str, rip_nl(strerr));
+      return;
     }
 
-    /** \todo: should make the output sorted on "__syserr'errnum'" */
+    if (print_errno)
+       printf ("#define %-17s %d\n", errnum_str, errnum);
 
-    printf ("char __syserr%03d[] = \"%s (%s)\";\n",
-            errnum, strerr, errnum_str);
-    FD_SET (errnum, &errno_set);
+    if (print_errlist && !FD_ISSET(errnum,&errno_set))
+    {
+      strerr = rip_par (rip_nl(strerr));
+      if (*strerr == '\0')
+      {
+        char buf[30];
+        sprintf (buf, "System error %d", errnum);
+        strerr = buf;
+      }
+      printf ("char __syserr%02d[] = \"%s (%s)\";\n",
+              errnum, strerr, errnum_str);
+      FD_SET (errnum, &errno_set);
+    }
   }
-
-  (void) dummy;
 }
 

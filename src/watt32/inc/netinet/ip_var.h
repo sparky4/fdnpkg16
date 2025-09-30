@@ -41,9 +41,7 @@
 #ifndef __NETINET_IP_VAR_H
 #define __NETINET_IP_VAR_H
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 #if defined(__TURBOC__) || defined(__BORLANDC__)
 #pragma warn -bbf-   /* "Bitfields must be signed or unsigned int" warning */
@@ -83,9 +81,7 @@ struct  ipasfrag {
         struct  ipasfrag *ipf_prev;     /* previous fragment */
 };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 /*
  * Ip reassembly queue structure.  Each fragment

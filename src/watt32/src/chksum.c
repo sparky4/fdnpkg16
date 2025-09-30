@@ -9,7 +9,7 @@
 
 #include "wattcp.h"
 #include "pcicmp.h"
-#include "pcdbug.h"
+#include "pcconfig.h"
 #include "pcstat.h"
 #include "language.h"
 #include "strings.h"
@@ -26,15 +26,11 @@
  *       on a Pentium 4 CPU. But on a Pentium 2 the ASM version is
  *       approx. 10 times faster.
  */
-WORD W32_CALL in_checksum (const void *ptr, unsigned len)
+WORD in_checksum (const void *ptr, unsigned len)
 {
   register long  sum       = 0;
   register long  slen      = (long) len;   /* must be signed */
   register const WORD *wrd = (const WORD*) ptr;
-
-  #if defined(WIN32) || defined(__DJGPP__)
-  // WATT_ASSERT (0);  /* Why should we use this slow checksum routine? */
-  #endif
 
   while (slen > 1)
   {
@@ -44,11 +40,13 @@ WORD W32_CALL in_checksum (const void *ptr, unsigned len)
   if (slen > 0)
      sum += *(const BYTE*)wrd;
 
+  /*@-shiftsigned@*/
   while (sum >> 16)
       sum = (sum & 0xFFFF) + (sum >> 16);
 
   return (WORD)sum;
 }
+
 
 #if defined(USE_IPV6)
 /**
@@ -84,7 +82,7 @@ WORD _ip6_checksum (const in6_Header *ip, WORD proto,
 }
 
 /**
- * Check tcp header checksum of an IPv6 packet.
+ * Check tcp header checksum for an IPv6 packet.
  */
 int _ip6_tcp_checksum (const in6_Header *ip, const tcp_Header *tcp, unsigned len)
 {
@@ -92,14 +90,14 @@ int _ip6_tcp_checksum (const in6_Header *ip, const tcp_Header *tcp, unsigned len
   {
     STAT (tcpstats.tcps_rcvbadsum++);
     if (debug_on)
-       outsnl (_LANG("bad IPv6/TCP checksum"));
+       outsnl (_LANG("bad tcp checksum"));
     return (0);
   }
   return (1);
 }
 
 /**
- * Check udp header checksum of an IPv6 packet
+ * Check udp header checksum for an IPv6 packet
  */
 int _ip6_udp_checksum (const in6_Header *ip, const udp_Header *udp, unsigned len)
 {
@@ -107,14 +105,14 @@ int _ip6_udp_checksum (const in6_Header *ip, const udp_Header *udp, unsigned len
   {
     STAT (udpstats.udps_badsum++);
     if (debug_on)
-       outsnl (_LANG("bad IPv6/UDP checksum"));
+       outsnl (_LANG("bad udp checksum"));
     return (0);
   }
   return (1);
 }
 
 /*
- * Check ICMP header checksum of an IPv6 packet.
+ * Check ICMP header checksum for an IPv6 packet.
  * Caller upcates stats.
  */
 int _ip6_icmp_checksum (const in6_Header *ip, const void *icmp, unsigned len)
@@ -123,15 +121,6 @@ int _ip6_icmp_checksum (const in6_Header *ip, const void *icmp, unsigned len)
 }
 #endif /* USE_IPV6 */
 
-
-#if defined(WIN32) && 0
-/**
- * Do the IP checksum in NIC hardware.
- */
-int ndis_in_checksum_offload (const void *ptr, unsigned len)
-{
-}
-#endif  /* WIN32 */
 
 #if defined(NOT_USED)
 
@@ -151,11 +140,11 @@ int ndis_in_checksum_offload (const void *ptr, unsigned len)
  */
 int do_checksum (const BYTE *buf, BYTE protocol, unsigned len)
 {
-  struct in_Header     *ip = (struct in_Header*) buf;
-  struct tcp_Header    *tcp;
-  struct udp_Header    *udp;
-  struct IGMPv1_packet *igmp;
-  union  icmp_pkt      *icmp;
+  struct in_Header   *ip = (struct in_Header*) buf;
+  struct tcp_Header  *tcp;
+  struct udp_Header  *udp;
+  struct IGMP_packet *igmp;
+  union  icmp_pkt    *icmp;
   WORD  sum = 0;
 
   unsigned ip_hlen = in_GetHdrLen (ip);
@@ -188,7 +177,7 @@ int do_checksum (const BYTE *buf, BYTE protocol, unsigned len)
          break;
 
     case IGMP_PROTO:
-         igmp = (struct IGMPv1_packet*) (buf + ip_hlen);
+         igmp = (struct IGMP_packet*) (buf + ip_hlen);
          igmp->checksum = 0;
          sum += CHECKSUM (igmp, len);
          igmp->checksum = CKSUM_CARRY (sum);

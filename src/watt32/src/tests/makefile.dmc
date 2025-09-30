@@ -1,5 +1,5 @@
 #
-#  Makefile for _some_ Watt-32 tcp/ip test programs.
+#  Makefile for _some_ Waterloo tcp/ip test programs.
 #  Flat X32VM version only
 #
 
@@ -8,9 +8,8 @@ CFLAGS = -mx -g -I.. -I..\..\inc -DTEST_PROG -DWATT32
 LFLAGS = -mx -L/map:full -L/stack:200000
 LIBS   = ..\..\lib\wattcpdf.lib x32.lib
 
-all: cpu.exe chksum.exe tftp.exe ttime.exe ttime2.exe gettod.exe \
-     pc_cbrk.exe geteth.exe getserv.exe ip4_frag.exe fingerd.exe \
-     sel.exe
+all: cpu.exe chksum.exe tftp.exe ttime.exe gettod.exe pc_cbrk.exe \
+     geteth.exe getserv.exe ip4_frag.exe fingerd.exe sel.exe
 
 tftp.exe: ..\tftp.c
     $(CC) -c $(CFLAGS) ..\tftp.c
@@ -56,8 +55,8 @@ clean:
     del *.exe
 
 cpu.c: ..\wattcp.h ..\misc.h ..\cpumodel.h
-..\geteth.c: ..\wattcp.h ..\pcbsd.h ..\pcarp.h ..\pcconfig.h ..\pcdns.h
-..\tftp.c: ..\socket.h ..\pcdns.h ..\tftp.h
+..\geteth.c: ..\wattcp.h ..\pcbsd.h ..\pcarp.h ..\pcconfig.h ..\udp_dom.h
+..\tftp.c: ..\socket.h ..\udp_dom.h ..\tftp.h
 chksum.c: ..\wattcp.h ..\misc.h ..\getopt.h ..\gettod.h ..\chksum.h \
           ..\cpumodel.h
 ..\gettod.c: ..\wattcp.h ..\misc.h ..\x32vm.h ..\gettod.h

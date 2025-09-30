@@ -30,9 +30,9 @@
  * 2550 Garcia Avenue
  * Mountain View, California  94043
  *
- *  from: @(#)svc.h 1.20 88/02/08 SMI
- *  from: @(#)svc.h 2.2 88/07/29 4.0 RPCSRC
- *  $Id: svc.h,v 1.5 1996/01/30 23:32:29 mpp Exp $
+ *	from: @(#)svc.h 1.20 88/02/08 SMI
+ *	from: @(#)svc.h	2.2 88/07/29 4.0 RPCSRC
+ *	$Id: svc.h,v 1.5 1996/01/30 23:32:29 mpp Exp $
  */
 
 /*
@@ -43,14 +43,6 @@
 
 #ifndef __RPC_SVC_H
 #define __RPC_SVC_H
-
-#ifndef __SYS_W32API_H
-#include <sys/w32api.h>
-#endif
-
-#ifndef __SYS_WTYPES_H
-#include <sys/wtypes.h>
-#endif
 
 #ifndef __SYS_CDEFS_H
 #include <sys/cdefs.h>
@@ -79,31 +71,31 @@
  */
 
 enum xprt_stat {
-     XPRT_DIED,
-     XPRT_MOREREQS,
-     XPRT_IDLE
-   };
+	XPRT_DIED,
+	XPRT_MOREREQS,
+	XPRT_IDLE
+};
 
 /*
  * Server side transport handle
  */
 typedef struct {
-        int                xp_sock;
-        u_short            xp_port;        /* associated port number */
-        struct xp_ops {
-          bool_t         (*xp_recv)();     /* receive incoming requests */
-          enum xprt_stat (*xp_stat)();     /* get transport status */
-          bool_t         (*xp_getargs)();  /* get arguments */
-          bool_t         (*xp_reply)();    /* send reply */
-          bool_t         (*xp_freeargs)(); /* free mem allocated for args */
-          void           (*xp_destroy)();  /* destroy this struct */
-        }                 *xp_ops;
-        int                xp_addrlen;     /* length of remote address */
-        struct sockaddr_in xp_raddr;       /* remote address */
-        struct opaque_auth xp_verf;        /* raw response verifier */
-        caddr_t            xp_p1;          /* private */
-        caddr_t            xp_p2;          /* private */
-      } SVCXPRT;
+	int		xp_sock;
+	u_short		xp_port;	 /* associated port number */
+	struct xp_ops {
+	    bool_t	(*xp_recv)();	 /* receive incoming requests */
+	    enum xprt_stat (*xp_stat)(); /* get transport status */
+	    bool_t	(*xp_getargs)(); /* get arguments */
+	    bool_t	(*xp_reply)();	 /* send reply */
+	    bool_t	(*xp_freeargs)();/* free mem allocated for args */
+	    void	(*xp_destroy)(); /* destroy this struct */
+	} *xp_ops;
+	int		xp_addrlen;	 /* length of remote address */
+	struct sockaddr_in xp_raddr;	 /* remote address */
+	struct opaque_auth xp_verf;	 /* raw response verifier */
+	caddr_t		xp_p1;		 /* private */
+	caddr_t		xp_p2;		 /* private */
+} SVCXPRT;
 
 /*
  *  Approved way of getting address of caller
@@ -113,59 +105,53 @@ typedef struct {
 /*
  * Operations defined on an SVCXPRT handle
  *
- * SVCXPRT      *xprt;
- * struct rpc_msg   *msg;
- * xdrproc_t         xargs;
- * caddr_t       argsp;
+ * SVCXPRT		*xprt;
+ * struct rpc_msg	*msg;
+ * xdrproc_t		 xargs;
+ * caddr_t		 argsp;
  */
-#define SVC_RECV(xprt, msg)             \
-        (*(xprt)->xp_ops->xp_recv)((xprt), (msg))
+#define SVC_RECV(xprt, msg)				\
+	(*(xprt)->xp_ops->xp_recv)((xprt), (msg))
+#define svc_recv(xprt, msg)				\
+	(*(xprt)->xp_ops->xp_recv)((xprt), (msg))
 
-#define svc_recv(xprt, msg)             \
-        (*(xprt)->xp_ops->xp_recv)((xprt), (msg))
+#define SVC_STAT(xprt)					\
+	(*(xprt)->xp_ops->xp_stat)(xprt)
+#define svc_stat(xprt)					\
+	(*(xprt)->xp_ops->xp_stat)(xprt)
 
-#define SVC_STAT(xprt)                  \
-        (*(xprt)->xp_ops->xp_stat)(xprt)
+#define SVC_GETARGS(xprt, xargs, argsp)			\
+	(*(xprt)->xp_ops->xp_getargs)((xprt), (xargs), (argsp))
+#define svc_getargs(xprt, xargs, argsp)			\
+	(*(xprt)->xp_ops->xp_getargs)((xprt), (xargs), (argsp))
 
-#define svc_stat(xprt)                  \
-        (*(xprt)->xp_ops->xp_stat)(xprt)
+#define SVC_REPLY(xprt, msg)				\
+	(*(xprt)->xp_ops->xp_reply) ((xprt), (msg))
+#define svc_reply(xprt, msg)				\
+	(*(xprt)->xp_ops->xp_reply) ((xprt), (msg))
 
-#define SVC_GETARGS(xprt, xargs, argsp)         \
-        (*(xprt)->xp_ops->xp_getargs)((xprt), (xargs), (argsp))
+#define SVC_FREEARGS(xprt, xargs, argsp)		\
+	(*(xprt)->xp_ops->xp_freeargs)((xprt), (xargs), (argsp))
+#define svc_freeargs(xprt, xargs, argsp)		\
+	(*(xprt)->xp_ops->xp_freeargs)((xprt), (xargs), (argsp))
 
-#define svc_getargs(xprt, xargs, argsp)         \
-        (*(xprt)->xp_ops->xp_getargs)((xprt), (xargs), (argsp))
-
-#define SVC_REPLY(xprt, msg)                \
-        (*(xprt)->xp_ops->xp_reply) ((xprt), (msg))
-
-#define svc_reply(xprt, msg)                \
-        (*(xprt)->xp_ops->xp_reply) ((xprt), (msg))
-
-#define SVC_FREEARGS(xprt, xargs, argsp)        \
-        (*(xprt)->xp_ops->xp_freeargs)((xprt), (xargs), (argsp))
-
-#define svc_freeargs(xprt, xargs, argsp)        \
-        (*(xprt)->xp_ops->xp_freeargs)((xprt), (xargs), (argsp))
-
-#define SVC_DESTROY(xprt)               \
-        (*(xprt)->xp_ops->xp_destroy)(xprt)
-
-#define svc_destroy(xprt)               \
-        (*(xprt)->xp_ops->xp_destroy)(xprt)
+#define SVC_DESTROY(xprt)				\
+	(*(xprt)->xp_ops->xp_destroy)(xprt)
+#define svc_destroy(xprt)				\
+	(*(xprt)->xp_ops->xp_destroy)(xprt)
 
 
 /*
  * Service request
  */
 struct svc_req {
-       u_long             rq_prog;       /* service program number */
-       u_long             rq_vers;       /* service protocol version */
-       u_long             rq_proc;       /* the desired procedure */
-       struct opaque_auth rq_cred;       /* raw creds from the wire */
-       caddr_t            rq_clntcred;   /* read only cooked cred */
-       SVCXPRT           *rq_xprt;       /* associated transport */
-     };
+	u_long		rq_prog;	/* service program number */
+	u_long		rq_vers;	/* service protocol version */
+	u_long		rq_proc;	/* the desired procedure */
+	struct opaque_auth rq_cred;	/* raw creds from the wire */
+	caddr_t		rq_clntcred;	/* read only cooked cred */
+	SVCXPRT	*rq_xprt;		/* associated transport */
+};
 
 __BEGIN_DECLS
 
@@ -173,38 +159,38 @@ __BEGIN_DECLS
  * Service registration
  *
  * svc_register(xprt, prog, vers, dispatch, protocol)
- *  SVCXPRT *xprt;
- *  u_long prog;
- *  u_long vers;
- *  void (*dispatch)();
- *  int protocol;        // like TCP or UDP, zero means do not register
+ *	SVCXPRT *xprt;
+ *	u_long prog;
+ *	u_long vers;
+ *	void (*dispatch)();
+ *	int protocol;        // like TCP or UDP, zero means do not register
  */
-W32_FUNC bool_t W32_CALL svc_register (SVCXPRT *, u_long, u_long, void (*)(), int);
+extern bool_t  svc_register (SVCXPRT *, u_long, u_long, void (*)(), int);
 
 /*
  * Service un-registration
  *
  * svc_unregister(prog, vers)
- *  u_long prog;
- *  u_long vers;
+ *	u_long prog;
+ *	u_long vers;
  */
-W32_FUNC void W32_CALL svc_unregister (u_long, u_long);
+extern void svc_unregister (u_long, u_long);
 
 /*
  * Transport registration.
  *
  * xprt_register(xprt)
- *  SVCXPRT *xprt;
+ *	SVCXPRT *xprt;
  */
-W32_FUNC void W32_CALL xprt_register (SVCXPRT *);
+extern void xprt_register (SVCXPRT *);
 
 /*
  * Transport un-register
  *
  * xprt_unregister(xprt)
- *  SVCXPRT *xprt;
+ *	SVCXPRT *xprt;
  */
-W32_FUNC void W32_CALL xprt_unregister (SVCXPRT *);
+extern void xprt_unregister (SVCXPRT *);
 
 
 
@@ -234,14 +220,14 @@ W32_FUNC void W32_CALL xprt_unregister (SVCXPRT *);
  * deadlock the caller and server processes!
  */
 
-W32_FUNC bool_t W32_CALL svc_sendreply   (SVCXPRT *, xdrproc_t, char *);
-W32_FUNC void   W32_CALL svcerr_decode   (SVCXPRT *);
-W32_FUNC void   W32_CALL svcerr_weakauth (SVCXPRT *);
-W32_FUNC void   W32_CALL svcerr_noproc   (SVCXPRT *);
-W32_FUNC void   W32_CALL svcerr_progvers (SVCXPRT *, u_long, u_long);
-W32_FUNC void   W32_CALL svcerr_auth     (SVCXPRT *, enum auth_stat);
-W32_FUNC void   W32_CALL svcerr_noprog   (SVCXPRT *);
-W32_FUNC void   W32_CALL svcerr_systemerr(SVCXPRT *);
+extern bool_t svc_sendreply   (SVCXPRT *, xdrproc_t, char *);
+extern void   svcerr_decode   (SVCXPRT *);
+extern void   svcerr_weakauth (SVCXPRT *);
+extern void   svcerr_noproc   (SVCXPRT *);
+extern void   svcerr_progvers (SVCXPRT *, u_long, u_long);
+extern void   svcerr_auth     (SVCXPRT *, enum auth_stat);
+extern void   svcerr_noprog   (SVCXPRT *);
+extern void   svcerr_systemerr(SVCXPRT *);
 
 /*
  * Lowest level dispatching -OR- who owns this process anyway.
@@ -259,25 +245,25 @@ W32_FUNC void   W32_CALL svcerr_systemerr(SVCXPRT *);
  * dynamic; must be inspected before each call to select
  */
 #ifdef FD_SETSIZE
-  W32_FUNC void   svc_getreqset (fd_set *);
-  W32_DATA fd_set svc_fdset;
+  extern void   svc_getreqset (fd_set *);
+  extern fd_set svc_fdset;
   #define svc_fds svc_fdset.fds_bits[0]   /* compatibility */
 #else
-  W32_DATA int svc_fds;
+  extern int svc_fds;
 #endif
 
 /*
  * a small program implemented by the svc_rpc implementation itself;
  * also see clnt.h for protocol numbers.
  */
-W32_FUNC void W32_CALL rpctest_service();
-W32_FUNC void W32_CALL svc_getreq  (int);
-W32_FUNC void W32_CALL svc_run     (void);
+extern void rpctest_service();
+extern void svc_getreq  (int);
+extern void svc_run     (void);
 
 /*
  * Socket to use on svcxxx_create call to get default socket
  */
-#define RPC_ANYSOCK -1
+#define	RPC_ANYSOCK	-1
 
 /*
  * These are the existing service side transport implementations
@@ -286,19 +272,19 @@ W32_FUNC void W32_CALL svc_run     (void);
 /*
  * Memory based rpc for testing and timing.
  */
-W32_FUNC SVCXPRT * W32_CALL svcraw_create (void);
+extern SVCXPRT *svcraw_create (void);
 
 
 /*
  * Udp based rpc.
  */
-W32_FUNC SVCXPRT * W32_CALL svcudp_create (int);
-W32_FUNC SVCXPRT * W32_CALL svcudp_bufcreate (int, u_int, u_int);
+extern SVCXPRT *svcudp_create (int);
+extern SVCXPRT *svcudp_bufcreate (int, u_int, u_int);
 
 /*
  * Tcp based rpc.
  */
-W32_FUNC SVCXPRT * W32_CALL svctcp_create (int, u_int, u_int);
+extern SVCXPRT *svctcp_create (int, u_int, u_int);
 
 __END_DECLS
 

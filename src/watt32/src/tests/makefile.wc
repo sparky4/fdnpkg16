@@ -1,12 +1,23 @@
 #
-#  Watcom Makefile for _some_ Watt-32 tcp/ip test programs.
+#  Watcom Makefile for _some_ Waterloo tcp/ip test programs.
 #  16-bit large or flat version.
 #
 
-#@define 32bit
+32bit = 1
 
 CFLAGS = -zq -fr=nul -bt=dos -d2 -fpi -w5 -oilrtfm &
          -I$(%watcom)\h -I.. -I..\..\inc -DTEST_PROG -DWATT32
+
+!ifdef 32bit
+CC     = *wcc386
+CFLAGS += -mf -3r
+
+LFLAGS = system dos32a debug all sort global option quiet, map,  &
+         verbose, caseexact, stack=50k, eliminate
+
+LIB    = ..\..\lib\wattcpwf.lib
+
+!else
 
 CC     = *wcc
 CFLAGS += -ml
@@ -15,9 +26,15 @@ LFLAGS = system dos debug all sort global option quiet, map, &
          verbose, caseexact, stack=10k, eliminate
 LIB    = ..\..\lib\wattcpwl.lib
 
-PROGRAMS = cpu.exe cpuspeed.exe geteth.exe gettod.exe tftp.exe ttime.exe &
-           ttime2.exe cpuid.exe chksum.exe ip4_frag.exe fingerd.exe      &
-           ioctl.exe sel.exe wecho.exe pcconfig.exe misc.exe idna.exe
+!endif
+
+PROGRAMS = cpu.exe cpuspeed.exe geteth.exe gettod.exe tftp.exe ttime.exe   &
+           cpuid.exe chksum.exe ip4_frag.exe fingerd.exe ioctl.exe sel.exe &
+           wecho.exe pcconfig.exe misc.exe idna.exe
+
+!ifdef 32bit
+PROGRAMS += eatsock.exe packet.exe
+!endif
 
 
 all: $(PROGRAMS)
@@ -36,9 +53,6 @@ tftp.exe: tftp.obj
 
 ttime.exe: ttime.obj
     *wlink $(LFLAGS) file ttime.obj name ttime.exe library $(LIB)
-
-ttime2.exe: ttime2.obj
-    *wlink $(LFLAGS) file ttime2.obj name ttime2.exe library $(LIB)
 
 geteth.exe: geteth.obj
     *wlink $(LFLAGS) file geteth.obj name geteth.exe library $(LIB)

@@ -1,0 +1,110 @@
+#
+#  Visual-C 6+ Makefile for _some_ Waterloo tcp/ip test programs.
+#
+
+CC     = cl
+CFLAGS = -MTd -W2 -Yd -I.. -I..\..\inc -DWIN32 -DTEST_PROG -DWATT32
+
+LIBS   = ..\..\lib\wattcpvc_imp_d.lib
+
+
+all: cpu.exe cpuspeed.exe geteth.exe gettod.exe tftp.exe ttime.exe   &
+     cpuid.exe chksum.exe ip4_frag.exe fingerd.exe ioctl.exe sel.exe &
+     wecho.exe pcconfig.exe misc.exe idna.exe gtod_tst.exe packet.exe
+
+chksum.exe: chksum.obj
+    link $(LFLAGS) chksum.obj $(LIBS)
+
+cpu.exe: cpu.obj
+    link $(LFLAGS) cpu.obj $(LIBS)
+
+cpuspeed.exe: cpuspeed.obj
+    link $(LFLAGS) cpuspeed.obj $(LIBS)
+
+tftp.exe: tftp.obj
+    link $(LFLAGS) tftp.obj $(LIBS)
+
+ttime.exe: ttime.obj
+    link $(LFLAGS) ttime.obj $(LIBS)
+
+geteth.exe: geteth.obj
+    link $(LFLAGS) geteth.obj -out:geteth.exe $(LIBS)
+
+gettod.exe: gettod.obj
+    link $(LFLAGS) gettod.obj -out:gettod.exe $(LIBS)
+
+ip4_frag.exe: ip4_frag.obj
+    link $(LFLAGS) ip4_frag.obj -out:ip4_frag.exe $(LIBS)
+
+fingerd.exe: fingerd.obj
+    link $(LFLAGS) fingerd.obj -out:fingerd.exe $(LIBS)
+
+ioctl.exe: ioctl.obj
+    link $(LFLAGS) ioctl.obj -out:ioctl.exe $(LIBS)
+
+sel.exe: sel.obj
+    link $(LFLAGS) sel.obj -out:sel.exe $(LIBS)
+
+wecho.exe: wecho.obj
+    link $(LFLAGS) wecho.obj -out:wecho.exe $(LIBS)
+
+pcconfig.exe: pcconfig.obj
+    link $(LFLAGS) pcconfig.obj -out:pcconfig.exe $(LIBS)
+
+misc.exe: misc.obj
+    link $(LFLAGS) misc.obj -out:misc.exe $(LIBS)
+
+idna.exe: idna.obj
+    link $(LFLAGS) idna.obj -out:idna.exe $(LIBS)
+
+gtod_tst.exe: gtod_tst.obj
+    link $(LFLAGS) gtod_tst.obj -out:gtod_tst.exe $(LIBS)
+
+packet.exe: packet.obj
+    link $(LFLAGS) packet.obj -out:packet.exe $(LIBS)
+
+
+tftp.obj: ..\tftp.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+geteth.obj: ..\geteth.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+gettod.obj: ..\gettod.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+ip4_frag.obj: ..\ip4_frag.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+fingerd.obj: ..\listen.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+ioctl.obj: ..\ioctl.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+sel.obj: ..\select.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+wecho.obj: ..\echo.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+pcconfig.obj: ..\pcconfig.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+misc.obj: ..\misc.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+idna.obj: ..\idna.c
+    $(CC) $< $(CFLAGS) -Fo$@
+
+.obj.exe:
+    link $(LFLAGS) $*.obj -out:$*.exe $(LIBS)
+
+.c.obj:
+    $(CC) -c $(CFLAGS) -Fo$@ $<
+
+clean:
+    - del *.obj
+    - del *.map
+    - del *.exe
+

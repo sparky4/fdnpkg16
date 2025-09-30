@@ -28,7 +28,7 @@
 #include "ioport.h"
 #include "strings.h"
 #include "gettod.h"
-#include "pcdbug.h"
+#include "pcconfig.h"
 #include "pcqueue.h"
 #include "language.h"
 #include "cpumodel.h"
@@ -37,39 +37,39 @@
 #include "x32vm.h"
 #include "rs232.h"
 #include "misc.h"
-#include "run.h"
 #include "timer.h"
 
 #if (DOSX & PHARLAP)
 #include <mw/exc.h>  /* _dx_alloc_rmode_wrapper_iret() */
 #endif
 
-DWORD start_time = 0;              /**< Start-time of watt_sock_init() (in msec) */
-DWORD start_day  = 0;              /**< Start-day of watt_sock_init() */
+DWORD start_time = 0;      /**< Start-time of watt_sock_init() (in msec) */
+DWORD start_day  = 0;      /**< Start-day of watt_sock_init() */
 
-#if defined(WIN32)
-  #if defined(__WATCOMC__)
-    WINBASEAPI VOID WINAPI GetNativeSystemInfo (LPSYSTEM_INFO);
-  #endif
+BOOL  has_8254   = FALSE;  /**< Do we have a working 8254 timer chip? */
+BOOL  has_rdtsc  = FALSE;  /**< Do we have a CPU with RDTSC instruction? */
+BOOL  use_rdtsc  = FALSE;  /**< Do not use RDTSC by default */
+BOOL  using_int8 = FALSE;  /**< init_timer_isr() called */
+DWORD clocks_per_usec;     /**< Measured CPU speed (MHz) */
 
-  BOOL has_rdtsc = TRUE;           /**< Never set in Watt-32. Some users may need it. */
-  BOOL use_rdtsc = TRUE;           /**< Ditto */
-
-#else
-  BOOL has_8254   = FALSE;         /**< Do we have a working 8254 timer chip? */
-  BOOL has_rdtsc  = FALSE;         /**< Do we have a CPU with RDTSC instruction? */
-  BOOL use_rdtsc  = FALSE;         /**< Do not use RDTSC by default */
-  BOOL using_int8 = FALSE;         /**< init_timer_isr() called */
-#endif
-
-DWORD    clocks_per_usec  = 0L;    /**< Measured CPU speed (MHz) */
-time_t   user_tick_base   = 0UL;   /* time() when user-tick started */
-DWORD    user_tick_msec   = 0UL;   /* milli-sec user-tick counter */
-BOOL     user_tick_active = FALSE;
-unsigned num_cpus         = 1;
+time_t user_tick_base   = 0UL;   /* time() when user-tick started */
+DWORD  user_tick_msec   = 0UL;   /* milli-sec user-tick counter */
+BOOL   user_tick_active = FALSE;
 
 static DWORD date    = 0;
 static DWORD date_ms = 0;
+
+#if defined(USE_PROFILER)
+  /*
+   * A simple execution profiler
+   */
+  BOOL profile_enable = FALSE;
+  char profile_file [MAX_PATHLEN+1] = ".\\WATTCP.PRO";
+
+  static FILE  *prof_fout;
+  static uint64 prof_start;
+  static uint64 num_profs;
+#endif
 
 /*
  * Things for the user installable timer ISR.
@@ -88,7 +88,7 @@ static DWORD date_ms = 0;
   #define HAVE_TIMER_ISR
 
   static REALPTR old_int_8, int8_cback;
-/*static FARPTR  old_int_8_pm; */
+  static FARPTR  old_int_8_pm;
   static RMC_BLK rmBlock_int8;
 
 #elif (DOSX & DJGPP)
@@ -108,51 +108,32 @@ static DWORD date_ms = 0;
 #endif
 
 
+
 /**
  * Setup timer stuff and measure CPU speed.
  * Called from init_misc().
  */
 void init_timers (void)
 {
-#if defined(WIN32)
-  SYSTEM_INFO sys_info;
+#if (DOSX)             /* problems using 64-bit types in small/large models */
+  hires_timer (TRUE);  /**< \todo check if 8254 PIT is really working */
 
-  memset (&sys_info, 0, sizeof(sys_info));
-
-#if !defined(WIN64) && (_WIN32_WINNT >= 0x0501)
-  if (_watt_is_wow64)
-    GetNativeSystemInfo (&sys_info);
-  else
-#endif
-    GetSystemInfo (&sys_info);
-
-  num_cpus = sys_info.dwNumberOfProcessors;
-  clocks_per_usec = (DWORD) (get_cpu_speed() / S64_SUFFIX(1000000));
-
-#else
-  #if (DOSX)                  /* problems using 64-bit types in small/large models */
-    hires_timer (TRUE);      /**< \todo check if 8254 PIT is really working */
-  #endif
-
-  #if defined(HAVE_UINT64)
-    if (use_rdtsc && has_rdtsc)
+#if defined(HAVE_UINT64)
+  if (use_rdtsc && has_rdtsc)
+  {
+    clocks_per_usec = (DWORD) (get_cpu_speed() / S64_SUFFIX(1000000));
+    if (clocks_per_usec == 0UL)
     {
-      clocks_per_usec = (DWORD) (get_cpu_speed() / S64_SUFFIX(1000000));
-      if (clocks_per_usec == 0UL)
-      {
-        outsnl ("CPU speed is 0?");
-        use_rdtsc = FALSE;
-        has_rdtsc = FALSE;
-      }
+      outsnl ("CPU speed is 0?");
+      use_rdtsc = FALSE;
+      has_rdtsc = FALSE;
     }
-    set_utc_offset();  /* don't pull in gettod.c unneccesary */
-  #endif
+  }
+  set_utc_offset();  /* don't pull in gettod.c unneccesary */
+#endif
 #endif
 
-  chk_timeout (0UL);         /* init 'date' variables */
-
-  start_time = set_timeout (0);
-  start_day  = get_day_num();
+  chk_timeout (0UL); /* init 'date' variables */
 }
 
 /**
@@ -164,14 +145,12 @@ void init_timers (void)
  * original timer handling once this is called.
  * By GvB 2002-09
  */
-void W32_CALL init_userSuppliedTimerTick (void)
+void init_userSuppliedTimerTick (void)
 {
   SIO_TRACE (("init_userSuppliedTimerTick"));
   user_tick_active = TRUE;
   user_tick_base = time (NULL);
-#ifdef __MSDOS__
   has_8254 = FALSE;
-#endif
 }
 
 /*
@@ -191,20 +170,19 @@ void W32_CALL init_userSuppliedTimerTick (void)
  * count once activated via init_userSuppliedTimerTick().
  * Best called from a periodic interrupt handler (int 8/1Ch/70h) which
  * is the case now with init_timer_isr().
- *
- * by GvB 2002-09
+ * GvB 2002-09
  */
-void W32_CALL userTimerTick (DWORD elapsed_time_msec)
+void userTimerTick (DWORD elapsed_time_msec)
 {
   user_tick_msec += elapsed_time_msec;
 }
 
 #if defined(HAVE_TIMER_ISR)
 /**
- * User defined 10 (or 55) milli-sec counter ISR.
+ * User defined 10ms counter ISR.
  */
 #if (DOSX & (DJGPP|PHARLAP|X32VM))
-  static void new_int_8 (void)   /* not really an intr-handler */
+  static void new_int_8 (void) /* not really an intr-handler */
 #else
   static INTR_PROTOTYPE new_int_8 (void)
 #endif
@@ -231,7 +209,8 @@ void W32_CALL userTimerTick (DWORD elapsed_time_msec)
 
 #else
   userTimerTick (itimer_resolution / 1000UL);
-#endif   /* !(DOSX & DJGPP) */
+#endif   /* !DJGPP */
+
 
 #if (DOSX & DJGPP)
   /* BEEP(); */  /* !! test */
@@ -259,8 +238,7 @@ void exit_timer_isr (void)
     _dx_rmiv_set (TIMER_INTR, old_int_8);
     if (int8_cback)
        _dx_free_rmode_wrapper (int8_cback);
-    old_int_8  = 0;
-    int8_cback = 0;
+    old_int_8 = 0;
 #else
     _dos_setvect (TIMER_INTR, old_int_8);
     old_int_8 = NULL;
@@ -278,9 +256,8 @@ void exit_timer_isr (void)
 }
 
 /*
- * DOS/djgpp:  Hook INT 8 and modify rate of timer channel 0 for 55 msec period.
- * DOS/others: Hook INT 8 and modify rate of timer channel 0 for 10 msec period.
- * Win32:      N/A.
+ * Hook INT 8 and modify rate of timer channel 0 for 55msec (djgpp)
+ * or 10 msec (others) period.
  */
 void init_timer_isr (void)
 {
@@ -342,7 +319,21 @@ void init_timer_isr (void)
   /* release it very early */
   RUNDOWN_ADD (exit_timer_isr, -2);
 }
-#endif  /* HAVE_TIMER_ISR */
+
+#else
+
+void init_timer_isr (void)
+{
+#if defined(USE_DEBUG)
+  if (debug_on)
+     outsnl ("No timer-ISR in this environment");
+#endif
+}
+
+void exit_timer_isr (void)
+{
+}
+#endif
 
 /**
  * Compare two timers with expirary at 't1' and 't2'.
@@ -353,14 +344,12 @@ void init_timer_isr (void)
  * \note This logic fails when timers approaches ULONG_MAX
  *       after approx. 50 days.
  */
-int W32_CALL cmp_timers (DWORD t1, DWORD t2)
+int cmp_timers (DWORD t1, DWORD t2)
 {
   if (t1 == t2)
      return (0);
   return (t1 < t2 ? -1 : +1);
 }
-
-#if defined(__MSDOS__)
 
 /**
  * Control use of high-resolution timer.
@@ -368,7 +357,7 @@ int W32_CALL cmp_timers (DWORD t1, DWORD t2)
  * (8254 timer chip), the millisec_clock() function may return wrong
  * values. In such cases it's best to use old-style 55ms timers.
  * Using Watt-32 with Allegro graphics library is one such case where
- * application program should call `hires_timer(0)' after `sock_init()'
+ * application program should call `ÿhires_timer(0)' after `sock_init()'
  * has been called.
  */
 int hires_timer (int on)
@@ -382,6 +371,7 @@ int hires_timer (int on)
 }
 
 
+#if !defined(WIN32)
 /*
  * The following 2 routines are modified versions from KA9Q NOS
  * by Phil Karn.
@@ -402,13 +392,12 @@ int hires_timer (int on)
  *   A bit lower precision, but a bit faster.
  *
  * WARNING!: This can cause serious trouble if anything else is also using
- * timer interrupts. In that case use the above "userSuppliedTimerTick()".
+ * timer interrupts. In that case use the above "userSuppliedTimerTick".
  * The reading of I/O registers gives bad precision under Windows.
  */
 DWORD clockbits (void)
 {
   static VOLATILE DWORD count;  /* static because of PUSHF_CLI() */
-
 #if 1
   /*
    * The following version was suggested by Andrew Paulsen
@@ -456,7 +445,6 @@ DWORD clockbits (void)
 #endif
 }
 
-#if !defined(W32_NO_8087)
 /*
  * Return hardware time-of-day in milliseconds. Resolution is improved
  * beyond 55 ms (the clock tick interval) by reading back the instantaneous
@@ -489,15 +477,14 @@ DWORD millisec_clock (void)
   x = ldexp ((double)hi, 16) + (double)lo;  /* x = hi*2^16 + lo */
   return (DWORD) (x * 4.0 / 4770.0);
 }
-#endif  /* !W32_NO_8087 */
-#endif  /* __MSDOS__ */
+#endif  /* !WIN32 */
 
 
 /**
  * Return time for when given timeout (msec) expires.
  * Make sure it never returns 0 (it will confuse chk_timeout).
  */
-DWORD W32_CALL set_timeout (DWORD msec)
+DWORD set_timeout (DWORD msec)
 {
   DWORD ret;
 
@@ -512,16 +499,13 @@ DWORD W32_CALL set_timeout (DWORD msec)
     struct timeval now;
 
     gettimeofday2 (&now, NULL);
-    ret = msec + 1000 * (DWORD)now.tv_sec + (DWORD)(now.tv_usec / 1000);
+    ret = msec + 1000 * now.tv_sec + (DWORD)(now.tv_usec / 1000);
   }
 #else
-
-#if !defined(W32_NO_8087)
   else if (has_8254)    /* high-resolution PIT */
   {
     ret = msec + date_ms + millisec_clock();
   }
-#endif
   else /* fallback to 55msec ticks */
   {
     DWORD ticks = 1;
@@ -531,7 +515,7 @@ DWORD W32_CALL set_timeout (DWORD msec)
  /* ret = ticks + ms_clock();  !!!! try this */
     ret = ticks + date + PEEKL (0,BIOS_CLK);
   }
-#endif /* HAVE_UINT64 || WIN32 */
+#endif
 
   return (ret == 0 ? 1 : ret);
 }
@@ -541,7 +525,7 @@ DWORD W32_CALL set_timeout (DWORD msec)
  *  \retval \li  TRUE  timer expired
  *          \li  FALSE not expired (or value not set)
  */
-BOOL W32_CALL chk_timeout (DWORD value)
+BOOL chk_timeout (DWORD value)
 {
   if (user_tick_active)      /* using timer ISR or user-timer */
   {
@@ -558,9 +542,7 @@ BOOL W32_CALL chk_timeout (DWORD value)
 #else
   {
     static char  oldHour = -1;
-#if !defined(W32_NO_8087)
     static DWORD now_ms;
-#endif
     static DWORD now;
     char   hour;
 
@@ -585,13 +567,11 @@ BOOL W32_CALL chk_timeout (DWORD value)
     if (value == 0L)        /* timer not initialised */
        return (0);          /* (or stopped) */
 
-#if !defined(W32_NO_8087)
     if (has_8254)
     {
       now_ms = millisec_clock();
       return (now_ms + date_ms >= value);
     }
-#endif
     now += date;            /* date extend current time */
     return (now >= value);  /* return true if expired */
   }
@@ -602,7 +582,7 @@ BOOL W32_CALL chk_timeout (DWORD value)
  * Must be called by user right before or after a time change occurs.
  * Not used in Watt-32.
  */
-int W32_CALL set_timediff (long msec)
+int set_timediff (long msec)
 {
   date_ms -= msec;
   date    -= msec/55;
@@ -615,7 +595,7 @@ int W32_CALL set_timediff (long msec)
  * This function should be called immediately after chk_timeout()
  * is called.
  */
-long W32_CALL get_timediff (DWORD now, DWORD tim)
+long get_timediff (DWORD now, DWORD tim)
 {
 #if defined(HAVE_UINT64) || defined(WIN32)
   return (long)(now - tim);
@@ -629,61 +609,46 @@ long W32_CALL get_timediff (DWORD now, DWORD tim)
 #endif
 }
 
-#if !defined(W32_NO_8087)
 /*
  * Return difference (in micro-sec) between timevals `*newer' and `*older'
  */
-double W32_CALL timeval_diff (const struct timeval *newer, const struct timeval *older)
+double timeval_diff (const struct timeval *newer, const struct timeval *older)
 {
   long d_sec  = (long)newer->tv_sec - (long)older->tv_sec;
   long d_usec = newer->tv_usec - older->tv_usec;
+  return (1E6 * (double)d_sec + (double)d_usec);
+}
 
-  while (d_usec < 0)
-  {
-    d_usec += 1000000L;
-    d_sec  -= 1;
-  }
-  return ((1E6 * (double)d_sec) + (double)d_usec);
+#if defined(WIN32)
+/*
+ * Return FILETIME in seconds.
+ */
+double filetime_sec (const void *filetime)
+{
+#if 0
+  const FILETIME *ft = (const FILETIME*) filetime;
+  long double rc = (long double)ft->dwHighDateTime * (long double)(ULONG_MAX+1);
+
+  rc += (long double) ft->dwLowDateTime;
+#else
+  const LARGE_INTEGER ft = *(const LARGE_INTEGER*) filetime;
+  long double rc = (long double)ft.QuadPart;
+#endif
+  return (double) (rc/1E7);    /* from 100 nano-sec periods to sec */
 }
 #endif
-
-struct timeval W32_CALL timeval_diff2 (struct timeval *ta, struct timeval *tb)
-{
-  struct timeval tv;
-
-  if (tb->tv_usec > ta->tv_usec)
-  {
-    ta->tv_sec--;
-    ta->tv_usec += 1000000L;
-  }
-  tv.tv_sec  = ta->tv_sec - tb->tv_sec;
-  tv.tv_usec = ta->tv_usec - tb->tv_usec;
-  if (tv.tv_usec >= 1000000L)
-  {
-    tv.tv_usec -= 1000000L;
-    tv.tv_sec++;
-  }
-  return (tv);
-}
 
 #if defined(USE_DEBUG)
 /*
  * Return string "x.xx" for timeout value.
  * 'val' is always in milli-sec units if we're using the 8254 PIT,
  * RDTSC timestamps, timer ISR or user-supplied timer.
- * 'val' is always in milli-sec units on Win32.
  */
 const char *time_str (DWORD val)
 {
-  static char buf[30];
+  static char  buf[30];
   char   fmt[6];
   double flt_val;
-
-#if defined(WIN32)
-  flt_val = (double)val / 1000.0F;
-  strcpy (fmt, "%.3f");
-
-#else
 
   if (has_8254 || has_rdtsc || user_tick_active)
   {
@@ -695,13 +660,14 @@ const char *time_str (DWORD val)
     flt_val = (double)val / 18.2F;
     strcpy (fmt, "%.2f");
   }
+
+#if (!DOSX) && defined(__BORLANDC__) && 0 /* Bug? Try "%.xlf" */
+  fmt[3] = 'l';
+  fmt[4] = 'f';
+  fmt[5] = '\0';
 #endif
 
-#if defined(SNPRINTF)
-  SNPRINTF (buf, sizeof(buf), fmt, flt_val);
-#else
   sprintf (buf, fmt, flt_val);
-#endif
   return (buf);
 }
 
@@ -727,29 +693,23 @@ const char *elapsed_str (DWORD val)
   static char buf[30];
   WORD   hour, min, msec;
   DWORD  sec;
-  BOOL   msec_clock = 1;
-
-#ifdef __MSDOS__
-  msec_clock = (has_8254 || has_rdtsc);
-#endif
+  BOOL   is_win = (DOSX & WINWATT);
 
   if (val == 0UL)
      return ("00:00:00.000");
 
-#if 0
   if (!user_tick_active && val < start_time)   /* wrapped? */
      val = ULONG_MAX - val + start_time;
-#endif
 
   /* If user-ticks is used, 'val' should be correct msec count
-   * since init_userSuppliedTimerTick() was called.
+   * since init_userSuppliedTimerTick()() was called.
    */
   if (user_tick_active)
   {
     sec  = val / 1000UL;
     msec = (WORD) (val % 1000UL);
   }
-  else if (msec_clock)
+  else if (has_8254 || has_rdtsc || is_win)
   {
     val -= start_time;
     sec  = val / 1000UL;
@@ -765,13 +725,13 @@ const char *elapsed_str (DWORD val)
   hour = (WORD) (sec / 3600UL);
   min  = (WORD) (sec / 60UL) - 60 * hour;
   sec  = sec % 60UL;
-  sprintf (buf, "%02u:%02u:%02lu.%03u", hour, min, (u_long)sec, msec);
+  sprintf (buf, "%02u:%02u:%02lu.%03u", hour, min, sec, msec);
   return (buf);
 }
 #endif /* USE_DEBUG */
 
 
-#if defined(__MSDOS__)
+#if !defined(WIN32)
 /*
  * The following was contributed by
  * "Alain" <alainm@pobox.com>
@@ -795,18 +755,164 @@ DWORD ms_clock (void)
   lastTick = tick;
   return (tick - tickOffset);
 }
+#endif  /* WIN32 */
 
-#if defined(__HIGHC__) || defined(__DMC__)
-void delay (unsigned int msec)
+
+#if defined(USE_PROFILER)
+/*
+ * Called on entry of something to profile.
+ */
+void profile_start (const char *str)
 {
-  for (; msec; msec--)
+  if (prof_fout)
   {
-    DWORD now = ms_clock();
-    while (ms_clock() == now)   /* wait 1msec */
-       ;
+    fprintf (prof_fout, "  profiling %-12.12s ", str);
+    prof_start = get_rdtsc();
+    num_profs++;
   }
 }
+
+/*
+ * Dumps the time taken (milli-sec and CPU clocks).
+ */
+void profile_stop (void)
+{
+  if (prof_fout && clocks_per_usec)
+  {
+    int64  clocks = (int64) (get_rdtsc() - prof_start);
+    double msec   = (double)clocks / ((double)clocks_per_usec * 1000.0);
+    fprintf (prof_fout, "%10.3f msec (%" S64_FMT " clk)\n", msec, clocks);
+  }
+}
+
+static void profile_exit (void)
+{
+  if (prof_fout)
+  {
+    fclose (prof_fout);
+    prof_fout = NULL;
+    if (num_profs)
+       (*_printf) ("profiling info written to \"%s\"\n", profile_file);
+  }
+}
+
+/*
+ * Dump some arbitrary data to profile dump file.
+ */
+void profile_dump (const uint64 *data, size_t num)
+{
+  unsigned i;
+
+  if (!prof_fout || !clocks_per_usec)
+     return;
+
+  for (i = 0; i < num; i++)
+  {
+    double msec = (double)data[i] / ((double)clocks_per_usec * 1000.0);
+
+    fprintf (prof_fout, "profile_dump: %3u: %12.3f msec (%" U64_FMT " clk)\n",
+             i, msec, data[i]);
+  }
+}
+
+/*
+ * Profile speed of receving a packet. Write the difference of
+ *   get - time of 2nd packet upcall for DOS or time reported
+ *         by NPF.SYS on Windows.
+ *   put - time when we called pkt_poll_recv().
+ *
+ * DOS:   the 'put' and 'get' are CPU clock timestamps.
+ * WIN32: these are 'timeval' values.
+ */
+void profile_recv (const uint64 *putp, const uint64 *getp)
+{
+  uint64 put, get;
+
+  if (!prof_fout || !clocks_per_usec)
+     return;
+
+  WATT_ASSERT (putp && getp);
+
+  put = *putp;
+  get = *getp;
+
+  fputs ("  profiling pkt_receiver ", prof_fout);
+  if (get == U64_SUFFIX(0) || put == U64_SUFFIX(0))
+     fputs ("<not enabled>\n", prof_fout);
+  else
+  {
+#if defined(WIN32)
+    const struct timeval *tv_get = (const struct timeval*)getp;
+    const struct timeval *tv_put = (const struct timeval*)putp;
+    double usec   = timeval_diff (tv_get, tv_put);
+    int64  clocks = (int64) (usec * clocks_per_usec);
+
+    fprintf (prof_fout, "%10.3f msec (%" S64_FMT " clk)\n",
+             usec / 1000.0, clocks);
+#else
+    int64  clocks = (int64)(get - put);
+    double msec   = (double)clocks / ((double)clocks_per_usec * 1000.0);
+    fprintf (prof_fout, "%10.3f msec (%" S64_FMT " clk)\n", msec, clocks);
 #endif
+  }
+}
+
+/*
+ * Must be called after init_timers() or init_misc().
+ */
+int profile_init (void)
+{
+  uint64 overhead, start;
+  time_t now;
+
+  if (!profile_enable || !profile_file[0])
+     return (0);
+
+  if (!has_rdtsc || !clocks_per_usec)
+  {
+    profile_enable = FALSE;
+    (*_printf) (_LANG("Profiling not available (no RDTSC or $USE_RDTSC=1)\n"));
+    return (0);
+  }
+
+  prof_fout = fopen (profile_file, "at");
+  if (!prof_fout)
+  {
+    (*_printf) (_LANG("Failed to open %s: %s\n"),
+                profile_file, strerror(errno));
+    return (0);
+  }
+
+#if !defined(__BORLANDC__)  /* buggy output with this */
+  {
+    static char fbuf [256];
+    setvbuf (prof_fout, fbuf, _IOLBF, sizeof(fbuf));  /* line-buffered */
+  }
+#endif
+
+  now = time (NULL);
+
+  fprintf (prof_fout, "\nProfiling %s, %.15s, %s\n",
+           get_argv0(), ctime(&now)+4, dos_extender_name());
+
+  num_profs = 0;
+  start = get_rdtsc();
+  profile_start ("dummy");
+  profile_stop();
+  overhead = get_rdtsc() - start;
+
+  fprintf (prof_fout, "  CPU-speed %lu MHz, overhead %" U64_FMT " clocks\n",
+           clocks_per_usec, overhead);
+  RUNDOWN_ADD (profile_exit, 90);
+  return (1);
+}
+
+int profile_on (void)
+{
+  return (prof_fout != NULL);
+}
+#endif  /* USE_PROFILER */
+
 
 #if (DOSX) && defined(HAVE_UINT64)
 /*
@@ -814,11 +920,17 @@ void delay (unsigned int msec)
  */
 static void Wait_N_ticks (int num)
 {
+  DWORD tim;
+
   while (num--)
   {
-    DWORD time = PEEKL (0, BIOS_CLK);
-
-    while (time == PEEKL(0,BIOS_CLK))
+#if defined(WIN32)
+    tim = GetTickCount() + 55;
+    while (GetTickCount() < tim)
+          Sleep (0);
+#else
+    tim = PEEKL (0, BIOS_CLK);
+    while (PEEKL(0,BIOS_CLK) == tim)
     {
 #ifdef __DJGPP__
       ENABLE();    /* CWSDPMI requires this! */
@@ -826,6 +938,7 @@ static void Wait_N_ticks (int num)
       ((void)0);
 #endif
     }
+#endif
   }
 }
 
@@ -845,10 +958,10 @@ uint64 get_cpu_speed (void)
 
   for (i = 0; i < NUM_SAMPLES; i++)
   {
-    uint64 start = GET_RDTSC();
+    uint64 start = get_rdtsc();
 
     Wait_N_ticks (WAIT_TICKS);
-    sample[i] = 1000 * (GET_RDTSC() - start) / (WAIT_TICKS*55);
+    sample[i] = 1000 * (get_rdtsc() - start) / (WAIT_TICKS*55);
   }
 
   speed = 0;
@@ -857,138 +970,4 @@ uint64 get_cpu_speed (void)
   return (speed / NUM_SAMPLES);
 }
 #endif  /* DOSX && HAVE_UINT64 */
-
-#elif defined(WIN32)
-
-/* Another hackery section for 'gcc -O0 -fgnu89-inline':
- */
-#if defined(__GNUC__) && defined(__NO_INLINE__)  /* -O0 */
-  #if defined(__i386__)
-    uint64 _w32_get_rdtsc (void)
-    {
-      register uint64 tsc;
-      __asm__ __volatile__ (
-                ".byte 0x0F, 0x31;"   /* rdtsc opcode */
-              : "=A" (tsc) );
-      return (tsc);
-    }
-
-  #elif defined(__x86_64__)
-    uint64 _w32_get_rdtsc (void)
-    {
-      unsigned hi, lo;
-      __asm__ __volatile__ (
-                "rdtsc" : "=a" (lo), "=d" (hi) );
-      return ( (uint64)lo) | ( ((uint64)hi) << 32 );
-    }
-  #else
-    #error What kind of CPU is this?
-  #endif
-#endif    /* __GNUC__ && __NO_INLINE__ */
-
-
-#if 0
-/*
- * Wait for timer-ticks to change 'num' times.
- */
-static void Wait_N_ticks (int num)
-{
-  DWORD tim;
-
-  while (num--)
-  {
-    tim = GetTickCount() + 55;
-    while (GetTickCount() < tim)
-          Sleep (0);
-  }
-}
-#endif
-
-static BOOL get_processor_freq (uint64 *Hz)
-{
-  BOOL  rc = FALSE;
-  DWORD MHz, size = sizeof(MHz);
-  HKEY  key = NULL;
-  LONG  status = RegOpenKeyEx (HKEY_LOCAL_MACHINE,
-                               "HARDWARE\\DESCRIPTION\\System\\"
-                               "CentralProcessor\\0", 0, KEY_READ, &key);
-
-  if (status != ERROR_SUCCESS)
-     goto fail;
-
-  status = RegQueryValueEx (key, "~MHz", NULL, NULL, (BYTE*)&MHz, &size);
-  if (status != ERROR_SUCCESS)
-     goto fail;
-
-  *Hz =  MHz * U64_SUFFIX(1000000);
-  rc = TRUE;
-
-fail:
-  if (key)
-     RegCloseKey (key);
-  return (rc);
-}
-
-/**
- * Return estimated CPU speed in Hz.
- * With multiple CPU cores, the QueryPerformanceFrequency() doesn't
- * give the real CPU frequency. Then simply extract from Registry.
- */
-uint64 get_cpu_speed (void)
-{
-  static LARGE_INTEGER qpc;
-  static uint64        Hz;
-  static BOOL          done = FALSE;
-  static uint64        rc = U64_SUFFIX(0);
-
-  if (done)
-     return (rc);
-
-  if (num_cpus > 1)
-       rc = get_processor_freq(&Hz) ? Hz : U64_SUFFIX(0);
-  else if (QueryPerformanceFrequency(&qpc))
-       rc = qpc.QuadPart;
-  else rc = U64_SUFFIX(0);
-  done = TRUE;
-  return (rc);
-}
-
-uint64 win_get_perf_count (void)
-{
-  LARGE_INTEGER rc;
-  DWORD  am = 0UL;
-  HANDLE ct = INVALID_HANDLE_VALUE;
-
-  if (num_cpus > 1)
-  {
-    ct = GetCurrentThread();
-    am = SetThreadAffinityMask (ct, 1);
-  }
-  QueryPerformanceCounter (&rc);
-  if (num_cpus > 1)
-     SetThreadAffinityMask (ct, am);
-  return (rc.QuadPart);
-}
-
-/*
- * Make sure RDTSC is returned from the 1st CPU on a multi (or hyper-threading)
- * CPU system.
- */
-uint64 win_get_rdtsc (void)
-{
-  DWORD  am = 0UL;
-  HANDLE ct = INVALID_HANDLE_VALUE;
-  uint64 rc;
-
-  if (num_cpus > 1)
-  {
-    ct = GetCurrentThread();
-    am = SetThreadAffinityMask (ct, 1);
-  }
-  rc = get_rdtsc();
-  if (num_cpus > 1)
-     SetThreadAffinityMask (ct, am);
-  return (rc);
-}
-#endif  /* __MSDOS__ */
 

@@ -184,7 +184,6 @@
 #define T_SRV          33              /* Server selection */
 #define T_ATMA         34              /* ATM Address */
 #define T_NAPTR        35              /* Naming Authority PoinTeR */
-#define T_OPT          41              /* Extension mechanisms for DNS (EDNS) */
         /* non standard */
 #define T_UINFO       100              /* user (finger) information */
 #define T_UID         101              /* user ID */
@@ -196,7 +195,7 @@
 #define T_MAILB       253              /* transfer mailbox records */
 #define T_MAILA       254              /* transfer mail agent records */
 #define T_ANY         255              /* wildcard match */
-#define T_CAA         257              /* Certification Authority Authorization, RFC-6844 */
+
 #define T_WINS        0xFF01           /* WINS name lookup */
 #define T_WINSR       0xFF02           /* WINS reverse lookup */
 
@@ -219,9 +218,7 @@
 #define CONV_BADCKSUM   (-3)
 #define CONV_BADBUFLEN  (-4)
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /*
  * Structure for query header.  The order of the fields is machine- and
@@ -231,27 +228,27 @@ W32_CLANG_PACK_WARN_OFF()
  */
 
 typedef struct {
-        unsigned  id : 16;          /* query identification number */
+        unsigned  id :16;          /* query identification number */
 
         /* fields in third byte */
-        unsigned  rd : 1;           /* recursion desired */
-        unsigned  tc : 1;           /* truncated message */
-        unsigned  aa : 1;           /* authoritative answer */
-        unsigned  opcode : 4;       /* purpose of message */
-        unsigned  qr : 1;           /* response flag */
+        unsigned  rd :1;           /* recursion desired */
+        unsigned  tc :1;           /* truncated message */
+        unsigned  aa :1;           /* authoritative answer */
+        unsigned  opcode :4;       /* purpose of message */
+        unsigned  qr :1;           /* response flag */
 
         /* fields in fourth byte */
-        unsigned  rcode : 4;        /* response code */
-        unsigned  cd : 1;           /* checking disabled by resolver */
-        unsigned  ad : 1;           /* authentic data from named */
-        unsigned  unused : 1;       /* unused bits (MBZ as of 4.9.3a3) */
-        unsigned  ra : 1;           /* recursion available */
+        unsigned  rcode :4;        /* response code */
+        unsigned  cd: 1;           /* checking disabled by resolver */
+        unsigned  ad: 1;           /* authentic data from named */
+        unsigned  unused :1;       /* unused bits (MBZ as of 4.9.3a3) */
+        unsigned  ra :1;           /* recursion available */
 
         /* remaining bytes */
-        unsigned  qdcount : 16;     /* number of question entries */
-        unsigned  ancount : 16;     /* number of answer entries */
-        unsigned  nscount : 16;     /* number of authority entries */
-        unsigned  arcount : 16;     /* number of resource entries */
+        unsigned  qdcount :16;     /* number of question entries */
+        unsigned  ancount :16;     /* number of answer entries */
+        unsigned  nscount :16;     /* number of authority entries */
+        unsigned  arcount :16;     /* number of resource entries */
       } HEADER;
 
 
@@ -272,14 +269,13 @@ struct rrec {
        char    *r_data;            /* pointer to data */
      };
 
-#include <sys/pack_off.h>
+#include <sys/packoff.h>
 
-W32_CLANG_PACK_WARN_DEF()
 
 __BEGIN_DECLS
 
-W32_FUNC u_short W32_CALL _getshort (const u_char *);
-W32_FUNC u_long  W32_CALL _getlong  (const u_char *);
+W32_FUNC u_short _getshort (const u_char *);
+W32_FUNC u_long  _getlong  (const u_char *);
 
 __END_DECLS
 

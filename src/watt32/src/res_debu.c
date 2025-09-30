@@ -176,7 +176,7 @@ static const u_char *do_rrset (const u_char *msg, int len, const u_char *cp,
   return (cp);
 }
 
-void W32_CALL __p_query (const u_char *msg)
+void __p_query (const u_char *msg)
 {
   __fp_query (msg,stdout);
 }
@@ -186,7 +186,7 @@ void W32_CALL __p_query (const u_char *msg)
  * Print the current options.
  * This is intended to be primarily a debugging routine.
  */
-void W32_CALL __fp_resstat (struct __res_state *statp, FILE *file)
+void __fp_resstat (struct __res_state *statp, FILE *file)
 {
   u_long mask;
 
@@ -203,7 +203,7 @@ void W32_CALL __fp_resstat (struct __res_state *statp, FILE *file)
  * Print the contents of a query.
  * This is intended to be primarily a debugging routine.
  */
-void W32_CALL __fp_nquery (const u_char *msg, int len, FILE *file)
+void __fp_nquery (const u_char *msg, int len, FILE *file)
 {
   const u_char *cp, *endMark;
   const HEADER *hp;
@@ -228,7 +228,7 @@ void W32_CALL __fp_nquery (const u_char *msg, int len, FILE *file)
 
   /* Print header fields.
    */
-  hp = (HEADER*) msg;
+  hp = (HEADER *)msg;
   cp = msg + HFIXEDSZ;
   endMark = cp + len;
 
@@ -331,14 +331,13 @@ error:
   fprintf (file, "\n;; ...malformed (%s, line %d)\n", __FILE__, tline);
 }
 
-void W32_CALL __fp_query (const u_char *msg, FILE *file)
+void __fp_query (const u_char *msg, FILE *file)
 {
   fp_nquery (msg, PACKETSZ, file);
 }
 
-const u_char * W32_CALL __p_cdnname (const u_char *cp,
-                                     const u_char *msg,
-                                     int len, FILE *file)
+const u_char *__p_cdnname (const u_char *cp, const u_char *msg,
+                           int len, FILE *file)
 {
   char name[MAXDNAME];
   int  n;
@@ -351,7 +350,7 @@ const u_char * W32_CALL __p_cdnname (const u_char *cp,
   return (cp + n);
 }
 
-const u_char * W32_CALL __p_cdname (const u_char *cp, const u_char *msg, FILE *file)
+const u_char *__p_cdname (const u_char *cp, const u_char *msg, FILE *file)
 {
   return (p_cdnname(cp, msg, PACKETSZ, file));
 }
@@ -359,7 +358,7 @@ const u_char * W32_CALL __p_cdname (const u_char *cp, const u_char *msg, FILE *f
 /* XXX:  the rest of these functions need to become length-limited, too. (vix)
  */
 
-const u_char * W32_CALL __p_fqname (const u_char *cp, const u_char *msg, FILE *file)
+const u_char *__p_fqname (const u_char *cp, const u_char *msg, FILE *file)
 {
   char name[MAXDNAME];
   int  n = dn_expand (msg, cp + MAXCDNAME, cp, name, sizeof(name));
@@ -381,7 +380,7 @@ const u_char * W32_CALL __p_fqname (const u_char *cp, const u_char *msg, FILE *f
 /*
  * Print resource record fields in human readable form.
  */
-const u_char * W32_CALL __p_rr (const u_char *cp, const u_char *msg, FILE *file)
+const u_char *__p_rr (const u_char *cp, const u_char *msg, FILE *file)
 {
   struct in_addr inaddr;
   const  u_char *cp1, *cp2;
@@ -659,7 +658,7 @@ const u_char * W32_CALL __p_rr (const u_char *cp, const u_char *msg, FILE *file)
 /*
  * Return a string for the type
  */
-const char * W32_CALL __p_type (int type)
+const char *__p_type (int type)
 {
   static char buf[20];
 
@@ -712,7 +711,7 @@ const char * W32_CALL __p_type (int type)
 /*
  * Return a mnemonic for class
  */
-const char * W32_CALL __p_class (int Class)
+const char *__p_class (int Class)
 {
   static char buf[20];
 
@@ -731,7 +730,7 @@ const char * W32_CALL __p_class (int Class)
 /*
  * Return a mnemonic for an option
  */
-const char * W32_CALL __p_option (u_long option)
+const char * __p_option (u_long option)
 {
   static char buf[40];
 
@@ -757,7 +756,7 @@ const char * W32_CALL __p_option (u_long option)
 /*
  * Return a mnemonic for a time to live
  */
-char * W32_CALL __p_time (u_long value)
+char * __p_time (u_long value)
 {
   static char buf[120];
   int    secs, mins, hours, days;

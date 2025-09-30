@@ -3,7 +3,7 @@
 #ifndef _w32_SPLIT_H
 #define _w32_SPLIT_H
 
-#if defined(USE_STATISTICS) || defined(USE_DEBUG) || defined(USE_IPV6)
+#if (defined(USE_STATISTICS) || defined(USE_DEBUG) || defined(USE_IPV6)) && !defined(USE_UDP_ONLY)
 #define NEED_PKT_SPLIT
 #endif
 
@@ -49,12 +49,12 @@ struct pkt_split {
        unsigned        len;
      };
 
-extern const struct pkt_split *pkt_split_mac_in  (const void *link_pkt);
-extern const struct pkt_split *pkt_split_mac_out (const void *link_pkt);
-extern const struct pkt_split *pkt_get_split_in  (void);
-extern const struct pkt_split *pkt_get_split_out (void);
-extern const struct pkt_split *pkt_get_type_in   (enum Components type);
-extern const struct pkt_split *pkt_get_type_out  (enum Components type);
+extern const struct pkt_split *pkt_split_mac_in   (const void *link_pkt);
+extern const struct pkt_split *pkt_split_mac_out  (const void *link_pkt);
+extern const struct pkt_split *pkt_get_split_in   (void);
+extern const struct pkt_split *pkt_get_split_out  (void);
+extern const struct pkt_split *pkt_get_type_in    (enum Components type);
+extern const struct pkt_split *pkt_get_type_out   (enum Components type);
 
 extern void pkt_print_split_in  (void);
 extern void pkt_print_split_out (void);

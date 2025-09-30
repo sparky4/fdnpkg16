@@ -1,5 +1,5 @@
 /*!\file crit.c
- * Watt-32 critical error (int24h).
+ * WatTCP critical error (int24h).
  */
 
 /* Targets:
@@ -8,7 +8,7 @@
  *    GNU C / djgpp2
  *    real-mode DOS targets
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions

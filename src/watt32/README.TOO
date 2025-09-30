@@ -96,7 +96,7 @@ make a port for that combination.  Search the sources for `POWERPAK' and
 `UNFINISHED()'
 
 Contributions and fixes for current (and future) targets are welcome.
-Mail to <gvanem@yahoo.no>.
+Mail to <giva@bgnett.no>.
 
 
 
@@ -829,7 +829,7 @@ include some protocol summary at the end. Typically something like this:
       con-attempt:         13
 
   TCP output stats:
-
+ 
 
  (+) In order to save space, these lines will not be included if the
      associated count is 0.

@@ -215,9 +215,6 @@ struct ip6_fw_chain {
  * Main firewall chains definitions and global var's definitions.
  */
 #ifdef _KERNEL
-#ifndef __SYS_MBUF_H
-#include <sys/mbuf.h>
-#endif
 
 /*
  * Function definitions.

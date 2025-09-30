@@ -5,7 +5,7 @@
  *  These are safe to use in interrupt handlers
  *  Inspired by Linux's printk().
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -45,16 +45,14 @@
 #include "wattcp.h"
 #include "strings.h"
 #include "misc.h"
-#include "run.h"
 #include "netaddr.h"
-#include "pcconfig.h"
 #include "printk.h"
 
 #if defined(USE_BSD_API) || defined(USE_DEBUG) || (DOSX & (DOS4GW|X32VM))
 
-int _printk_safe = 1;     /* must be set to 0 in intr-handlers */
+int  _printk_safe = 1;     /* must be set to 0 in intr-handlers */
 
-#if defined(_WIN32)
+#if defined(WIN32)
   FILE *_printk_file = NULL;
 #else
   FILE *_printk_file = stderr;
@@ -67,13 +65,9 @@ static char *printk_end = NULL;
 static const char *str_signal (int sig);
 
 /*
- * _snprintk - format a message into a buffer.  Like snprintf() except
- * we also handle:
- *   %m - error message from 'strerror(errno)'.
- *   %t - current time.
- *   %I - IPv4 address.
- *   %S - signal name.
- *
+ * _snprintk - format a message into a buffer.  Like sprintf except we
+ * also specify the length of the output buffer, and we handle
+ * %m (error message), %t (current time) and %I (IP address) formats.
  * Returns the number of chars put into buf.
  *
  * NB! Doesn't do floating-point formats and long modifiers.
@@ -83,8 +77,8 @@ int MS_CDECL _snprintk (char *buf, int buflen, const char *fmt, ...)
 {
   int     len;
   va_list args;
-
   va_start (args, fmt);
+
   len = _vsnprintk (buf, buflen, fmt, args);
   va_end (args);
   return (len);
@@ -93,7 +87,7 @@ int MS_CDECL _snprintk (char *buf, int buflen, const char *fmt, ...)
 int MS_CDECL _printk (const char *fmt, ...)
 {
   int left = (int)(printk_end - printk_ptr);
-  int len  = -1;
+  int len = -1;
 
   if (_printk_file && fmt && left > 0)
   {
@@ -130,14 +124,16 @@ void _printk_flush (void)
   }
 }
 
-static void W32_CALL printk_exit (void)
+static void printk_exit (void)
 {
   _printk_flush();
   if (_printk_file && _printk_file != stderr && _printk_file != stdout)
-     fclose (_printk_file);
+    fclose (_printk_file);
   _printk_file = NULL;
 
-  DO_FREE (printk_buf);  /* Reclaim memory allocated in _printk_init() */
+  if (printk_buf)
+     free (printk_buf);  /* Reclaim memory allocated in _printk_init() */
+  printk_buf = NULL;
 }
 
 /*
@@ -148,7 +144,7 @@ int _printk_init (int size, const char *file)
 {
   if (!printk_buf)
   {
-    printk_ptr = printk_buf = malloc (size);
+    printk_ptr = printk_buf = (char*) malloc (size);
     if (!printk_ptr)
     {
       fprintf (stderr, "_printk_init: allocation failed\n");
@@ -156,7 +152,7 @@ int _printk_init (int size, const char *file)
     }
   }
 
-#if defined(_WIN32)
+#if defined(WIN32)
   _printk_file = stderr;
 #endif
 
@@ -166,7 +162,7 @@ int _printk_init (int size, const char *file)
     return (0);
   }
   printk_end = printk_ptr + size;
-  RUNDOWN_ADD (printk_exit, 301);
+  RUNDOWN_ADD (printk_exit, 300);
   return (1);
 }
 
@@ -182,11 +178,11 @@ int _vsnprintk (char *buf, int buflen, const char *fmt, va_list args)
   int    base, len, neg, quoted, upper;
   long   i;
   BOOL   right_pad, is_long;
+  DWORD  val = 0L;
   BYTE  *p;
   char  *str, *f, *buf0 = buf, *_fmt = (char*)fmt;
-  char   num[32], ct_buf[30];
+  char   num[32];
   time_t t;
-  DWORD_PTR val = 0L;
 
   if (--buflen < 0)
      return (-1);
@@ -300,7 +296,7 @@ next:
            break;
 
       case 'p':
-           val   = (DWORD_PTR) va_arg (args, void*);
+           val   = (DWORD) va_arg (args, void*);
            base  = 16;
            neg   = 2;
            upper = 1;
@@ -329,18 +325,18 @@ next:
            break;
 
       case 't':
-           str = (char*) "??";
+           str = "??";
            if (!_printk_safe)
               break;
            time (&t);
-           str = ctime_r (&t, ct_buf);
+           str  = ctime (&t);
            str += 4;           /* chop off the day name */
            str[15] = '\0';     /* chop off year and newline */
            break;
 
       case 'v':                /* "visible" string */
       case 'q':                /* quoted string */
-           quoted = (c == 'q');
+           quoted = c == 'q';
            p = va_arg (args, BYTE*);
            if (fillch == '0' && prec > 0)
               n = prec;
@@ -589,6 +585,10 @@ static const char *str_signal (int sig)
 #ifdef SIGCHLD
     case SIGCHLD:
          return ("SIGCHLD");
+#endif
+#ifdef SIGPWR
+    case SIGPWR:
+         return ("SIGPWR");
 #endif
 #ifdef SIGWINCH
     case SIGWINCH:

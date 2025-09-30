@@ -1,7 +1,5 @@
 /*!\file btree.c
  *
- *\note <b>Not used</b>
- *
  * Binary Tree with variably sized data and node deletion.
  *
  * C User Journal May 1992
@@ -12,10 +10,14 @@
 
 #include "wattcp.h"
 #include "strings.h"
-#include "misc.h"
 #include "btree.h"
 
 /*
+ * \note This file is only used together with gethost2.c.
+ *       But gethost2.c isn't finished yet.
+ */
+
+/* 
  *  Non-recursive tree insertion.
  *  If duplicate key then new data is substituted.
  *
@@ -87,7 +89,7 @@ tree_load:
 }
 
 
-/*
+/* 
  *  Non-recursive find, returns first matching entry or NULL
  */
 TreeNode *tree_find (TreeNode *root, const void *info, CmpFunc cmp)
@@ -110,8 +112,8 @@ TreeNode *tree_find (TreeNode *root, const void *info, CmpFunc cmp)
 
 TreeNode *tree_delete (TreeNode *root, TreeNode *node)
 {
-  TreeChild child;
-  TreeNode *temp;
+  TreeChild  child;
+  TreeNode  *temp;
 
   if (!node || !root)
      return (root);
@@ -172,7 +174,7 @@ TreeNode *tree_delete (TreeNode *root, TreeNode *node)
          /* drop through to return */
   }
   return (root);
-}
+}     
 
 /*
  *  Recursive post-order traversal to deallocate tree memory
@@ -190,12 +192,12 @@ void tree_free (TreeNode *root)
 }
 
 #if defined(TEST_PROG)
-/*
+
+#include <conio.h>
+
+/* 
  *  Interactive tree test driver
  */
-#ifdef __DJGPP__
-#include <conio.h>  /* getch() */
-#endif
 
 #define KEYSIZE 80
 
@@ -213,12 +215,13 @@ typedef struct {
 
 static record rec;
 
+
 void prompt (const char *verb)
 {
   printf ("\nEnter String to %s\t( <Enter> for none )\n>", verb);
 }
 
-int MS_CDECL rec_cmp (const void *a, const void *b)
+int rec_cmp (const void *a, const void *b)
 {
   const record *rec1 = (record*)a;
   const record *rec2 = (record*)b;
@@ -232,7 +235,7 @@ void tree_print (const record *record)
 }
 
 /*
- * Recursive tree traversal function with 3 traversing modes
+ *  Recursive tree traversal function with 3 traversing modes
  */
 void tree_trace (TreeNode *root)
 {
@@ -276,9 +279,9 @@ int main (void)
 
   prompt ("Insert");
 
-  while (fgets(buf,sizeof(buf),stdin))
+  while (*gets(buf))
   {
-    _strlcpy (rec.key, buf, KEYSIZE);
+    StrLcpy (rec.key, buf, KEYSIZE);
     rec.id = ++record_num;
     if (!tree_insert (&tree_root, &rec, sizeof(rec), (CmpFunc)rec_cmp))
     {
@@ -289,9 +292,9 @@ int main (void)
   }
 
   prompt ("Delete");
-  fgets(buf,sizeof(buf),stdin);
+  gets (buf);
   rec.key[0] = '\0';
-  _strlcpy (rec.key, buf, KEYSIZE);
+  StrLcpy (rec.key, buf, KEYSIZE);
 
   while ((found = tree_find (tree_root, &rec, (CmpFunc)rec_cmp)) != NULL)
   {
@@ -300,12 +303,9 @@ int main (void)
     count++;
   }
 
-  printf ("\n\t%d String(s) Deleted\n"
-          "\n\tSelect Tree Traversal Type\n"
-          "\n\t\t1) pre-order\n"
-            "\t\t2) in-order\n"
-            "\t\t3) post-order\n\n"
-            "\t>", count);
+  printf ("\n\t%d String(s) Deleted\n", count);
+  printf ("\n\tSelect Tree Traversal Type\n");
+  printf ("\n\t\t1) pre-order\n\t\t2) in-order\n\t\t3) post-order\n\n\t>");
 
   ch = getch();
   ch -= '0';
@@ -318,4 +318,5 @@ int main (void)
   tree_free (tree_root);
   return (0);
 }
+
 #endif  /* TEST_PROG */

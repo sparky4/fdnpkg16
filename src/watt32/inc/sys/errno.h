@@ -13,11 +13,3 @@
 #include <sys/werrno.h>
 #endif
 
-/*
- * This file shadows CygWin's <sys/errno.h>. This hack pulls
- * in the default <sys/errno.h>
- */
-#ifdef __CYGWIN__
-#include_next <sys/errno.h>
-#endif
-

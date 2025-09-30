@@ -18,7 +18,7 @@
 #include "language.h"
 #include "strings.h"
 
-#if defined(__DJGPP__)
+#ifdef __DJGPP__
 #include <sys/exceptn.h>
 #endif
 
@@ -31,8 +31,7 @@
   #undef SIGBREAK
 #endif
 
-#if defined(TEST_PROG) && !defined(__CYGWIN__) &&\
-    !(defined(__MINGW32__) || defined(__x86_64__))  /* MinGW64 has no cputs()! */
+#ifdef TEST_PROG
   #include <conio.h>
   #undef  outsnl
   #define outsnl(str)  cputs (str)
@@ -44,42 +43,22 @@
  */
 #include "nochkstk.h"
 
-WORD         _watt_handle_cbreak = 0;  /*!< changes operation of the break stuff */
-volatile int _watt_cbroke        = 0;  /*!< increment on SIGINT catch */
+WORD         _watt_handle_cbreak = 0; /*!< changes operation of the break stuff */
+volatile int _watt_cbroke        = 0; /*!< increment on SIGINT catch */
 
-static int     cbreak_mode;
+static int cbreak_mode;
+
+#if !defined(WIN32)
 static jmp_buf sig_jmp;
+#endif
 
 /**
  * SIGINT/SIGBREAK handler function.
- *
- * The Windows runtime docs at
- *   http://msdn.microsoft.com/library/en-us/vclib/html/_crt_signal.asp
- * specifically forbid a number of things being done from a signal handler,
- * including IO, memory allocation and system calls, and only allow jmpbuf
- * if you are handling SIGFPE.
- *
- * Hence sig_handler_watt() on Win32 simply increments the '_watt_cbroke'
- * variable.
-
- * Also note the behaviour of Windows with SIGINT, which says this:
- *   Note SIGINT is not supported for any Win32 application, including
- *   Windows 98/Me and Windows NT/2000/XP. When a CTRL+C interrupt occurs,
- *   Win32 operating systems generate a new thread to specifically handle
- *   that interrupt. This can cause a single-thread application such as UNIX,
- *   to become multithreaded, resulting in unexpected behavior.
- *
- * So a longjmp() from handler-thread to main-thread is out of the question.
  */
 void MS_CDECL sig_handler_watt (int sig)
 {
-#if defined(TEST_PROG)
+#ifdef TEST_PROG
   BEEP();
-
-  #if defined(__CYGWIN__) && 0
-   _watt_cbroke++;
-  longjmp (sig_jmp, sig);
-  #endif
 #endif
 
   if (_watt_handle_cbreak) /* inside _arp_resolve(), lookup_domain() etc. */
@@ -94,30 +73,31 @@ void MS_CDECL sig_handler_watt (int sig)
   }
   else
   {
-#if defined(WIN32)
-    _watt_cbroke++;
-#else
 #if defined(__HIGHC__)
     static UINT new_stk [1024];
     _mwstack_limit[1] = (UINT)&new_stk;  /* set new Bottom-Of-Stack */
 #elif defined(__DJGPP__)
     signal (sig, SIG_IGN);               /* ignore until we quit */
 #endif
+
     _watt_cbroke++;
-    longjmp (sig_jmp, sig);              /* jump back to where setjmp() was called */
-#endif  /* WIN32 */
+
+#if defined(WIN32)
+    return;
+#else
+    longjmp (sig_jmp, sig);
+#endif
   }
 
   signal (sig, sig_handler_watt);        /* rearm our handler */
 
-#if !defined(WIN32)
   /* !! Seems the BREAK state of NTVDM gets reenabled when pressing ^C.
    * So disable the state again (not reentrant)
    */
   if (sig == SIGINT && (cbreak_mode & 1))
      set_cbreak (0);
-#endif
 }
+
 
 /**
  * Sets normal and extended BREAK mode.
@@ -183,29 +163,13 @@ int set_cbreak (int want_brk)
 #endif  /* WIN32 */
 }
 
-#if defined(WIN32) && 0
-/*
- * Ref. http://msdn.microsoft.com/en-us/library/ms683242(v=vs.85).aspx
- */
-static BOOL WINAPI console_handler (DWORD event)
-{
-  if (event == CTRL_C_EVENT || event == CTRL_BREAK_EVENT)
-  {
-    sig_handler_watt (SIGINT);
-    return (TRUE);
-  }
-  return (FALSE);
-}
-#endif   /* WIN32 */
-
-
 /**
  * Sets our break mode.
  * \arg `mode' is composed of the following flags
  *   - 0x01: disallow breakouts
  *   - 0x10: display a message upon ^C/^BREAK (default)
  */
-int W32_CALL tcp_cbreak (int mode)
+int tcp_cbreak (int mode)
 {
   volatile int rc = 0;
 
@@ -213,16 +177,6 @@ int W32_CALL tcp_cbreak (int mode)
 
 #if defined(SIGBREAK)
   signal (SIGBREAK, sig_handler_watt);
-#endif
-
-#if defined(__CYGWIN__) && 0
-  {
-    static sigset_t old_mask, new_mask;
-
-    sigemptyset (&new_mask);
-    sigaddset (&new_mask, SIGINT);
-    sigprocmask (SIG_SETMASK, &new_mask, &old_mask);
-  }
 #endif
 
 #if defined(__DJGPP__)
@@ -234,6 +188,7 @@ int W32_CALL tcp_cbreak (int mode)
 
   cbreak_mode = mode;
 
+#if !defined(WIN32)
   {
     int sig;
 
@@ -244,15 +199,8 @@ int W32_CALL tcp_cbreak (int mode)
     if (sig)
        sock_sig_exit ("\nTerminating.", sig);
   }
+#endif
   return (rc);
-}
-
-/*
- * Return TRUE if ^C/^Break should be disabled
- */
-BOOL tcp_cbreak_off (void)
-{
-  return (cbreak_mode & 1);
 }
 
 #if defined(TEST_PROG)
@@ -302,17 +250,10 @@ int main (int argc, char **argv)
   {
     usleep (200000);
 
-#ifdef __MSDOS__
     /* PEEKB on djgpp changes the FS register. This is just to
      * test if SIGINT handler restores FS/GS registers.
      */
     (void) PEEKB (0, 0);
-#endif
-
-#ifdef __CYGWIN__
-   // os_yield();   /* Hard to raise SIGINT on Cygwin w/o this. */
-#endif
-
     kbhit();
     putchar ('.');
     fflush (stdout);

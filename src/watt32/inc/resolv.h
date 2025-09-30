@@ -81,9 +81,6 @@
 #include <sys/cdefs.h>
 #endif
 
-#ifndef __ARPA_NAMESER_H
-#include <arpa/nameser.h>
-#endif
 
 /*
  * revision information.  this is the release date in YYYYMMDD format.
@@ -117,11 +114,6 @@
 #define MAXRESOLVSORT           10      /* number of net to sort on */
 #define RES_MAXNDOTS            15      /* should reflect bit field size */
 
-struct  __res_sort {
-        struct in_addr addr;
-        u_long         mask;
-      };
-
 struct __res_state {
         int      retrans;               /* retransmition time interval */
         int      retry;                 /* number of times to retransmit */
@@ -134,12 +126,15 @@ struct __res_state {
         char    *dnsrch[MAXDNSRCH+1];   /* components of domain to search */
         char     defdname[MAXDNAME];    /* default domain */
         u_long   pfcode;                /* RES_PRF_ flags - see below. */
-        unsigned ndots : 4;             /* threshold for initial abs. query */
-        unsigned nsort : 4;             /* number of elements in sort_list[] */
-        char     unused[3];
-        struct __res_sort sort_list [MAXRESOLVSORT];
-        char              pad[72];     /* On an i386 this means 512b total. */
-      };
+        unsigned ndots:4;               /* threshold for initial abs. query */
+        unsigned nsort:4;               /* number of elements in sort_list[] */
+        char    unused[3];
+        struct {
+          struct in_addr  addr;
+          u_long          mask;
+      } sort_list[MAXRESOLVSORT];
+        char pad[72];                   /* On an i386 this means 512b total. */
+};
 
 /*
  * Resolver options (keep these in synch with res_debug.c, please)
@@ -190,26 +185,23 @@ typedef enum {
         res_error
       } res_sendhookact;
 
-typedef res_sendhookact (W32_CALL *res_send_qhook) (
-        struct sockaddr_in * const *ns,
-        const u_char              **query,
-        int                        *querylen,
-        u_char                     *ans,
-        int                         anssiz,
-        int                        *resplen);
+typedef res_sendhookact (*res_send_qhook)(struct sockaddr_in * const *ns,
+                                          const u_char **query,
+                                          int *querylen,
+                                          u_char *ans,
+                                          int anssiz,
+                                          int *resplen);
 
-typedef res_sendhookact (W32_CALL *res_send_rhook) (
-        const struct sockaddr_in *ns,
-        const u_char             *query,
-        int                       querylen,
-        u_char                   *ans,
-        int                       anssiz,
-        int                      *resplen);
+typedef res_sendhookact (*res_send_rhook)(const struct sockaddr_in *ns,
+                                          const u_char *query,
+                                          int querylen,
+                                          u_char *ans,
+                                          int anssiz,
+                                          int *resplen);
 
 W32_DATA struct __res_state _res;
 
 W32_DATA int h_errno;
-
 
 /* Private routines shared between libc/net, named, nslookup and others. */
 #define res_hnok         __res_hnok
@@ -239,46 +231,46 @@ W32_DATA int h_errno;
 
 __BEGIN_DECLS
 
-W32_FUNC int      W32_CALL __res_hnok   (const char *);
-W32_FUNC int      W32_CALL __res_ownok  (const char *);
-W32_FUNC int      W32_CALL __res_mailok (const char *);
-W32_FUNC int      W32_CALL __res_dnok   (const char *);
-W32_FUNC int      W32_CALL __loc_aton   (const char *ascii, u_char *binary);
-W32_FUNC char *   W32_CALL __loc_ntoa   (const u_char *binary, char *ascii);
-W32_FUNC int      W32_CALL __dn_skipname(const u_char *, const u_char *);
-W32_FUNC void     W32_CALL __fp_resstat (struct __res_state *, FILE *);
-W32_FUNC void     W32_CALL __fp_query   (const u_char *, FILE *);
-W32_FUNC void     W32_CALL __fp_nquery  (const u_char *, int, FILE *);
-W32_FUNC char    *W32_CALL __hostalias  (const char *);
-W32_FUNC void     W32_CALL __putlong    (u_long,  u_char *);
-W32_FUNC void     W32_CALL __putshort   (u_short, u_char *);
-W32_FUNC char    *W32_CALL __p_time     (u_long);
-W32_FUNC void     W32_CALL __p_query    (const u_char *);
+W32_FUNC int      __res_hnok   (const char *);
+W32_FUNC int      __res_ownok  (const char *);
+W32_FUNC int      __res_mailok (const char *);
+W32_FUNC int      __res_dnok   (const char *);
+W32_FUNC int      __loc_aton   (const char *ascii, u_char *binary);
+W32_FUNC char *   __loc_ntoa   (const u_char *binary, char *ascii);
+W32_FUNC int      __dn_skipname(const u_char *, const u_char *);
+W32_FUNC void     __fp_resstat (struct __res_state *, FILE *);
+W32_FUNC void     __fp_query   (const u_char *, FILE *);
+W32_FUNC void     __fp_nquery  (const u_char *, int, FILE *);
+W32_FUNC char    *__hostalias  (const char *);
+W32_FUNC void     __putlong    (u_long,  u_char *);
+W32_FUNC void     __putshort   (u_short, u_char *);
+W32_FUNC char    *__p_time     (u_long);
+W32_FUNC void     __p_query    (const u_char *);
 
-W32_FUNC const u_char *W32_CALL __p_cdnname (const u_char *, const u_char *, int, FILE *);
-W32_FUNC const u_char *W32_CALL __p_cdname  (const u_char *, const u_char *, FILE *);
-W32_FUNC const u_char *W32_CALL __p_fqname  (const u_char *, const u_char *, FILE *);
-W32_FUNC const u_char *W32_CALL __p_rr      (const u_char *, const u_char *, FILE *);
-W32_FUNC const char   *W32_CALL __p_type    (int);
-W32_FUNC const char   *W32_CALL __p_class   (int);
-W32_FUNC const char   *W32_CALL __p_option  (u_long option);
+W32_FUNC const u_char *__p_cdnname (const u_char *, const u_char *, int, FILE *);
+W32_FUNC const u_char *__p_cdname  (const u_char *, const u_char *, FILE *);
+W32_FUNC const u_char *__p_fqname  (const u_char *, const u_char *, FILE *);
+W32_FUNC const u_char *__p_rr      (const u_char *, const u_char *, FILE *);
+W32_FUNC const char   *__p_type    (int);
+W32_FUNC const char   *__p_class   (int);
+W32_FUNC const char   *__p_option  (u_long option);
 
-W32_FUNC int     W32_CALL dn_comp   (const char *, u_char *, int, u_char **, u_char **);
-W32_FUNC int     W32_CALL dn_expand (const u_char *, const u_char *, const u_char *, char *, int);
+W32_FUNC int     dn_comp   (const char *, u_char *, int, u_char **, u_char **);
+W32_FUNC int     dn_expand (const u_char *, const u_char *, const u_char *, char *, int);
 
-W32_FUNC int     W32_CALL res_init         (void);
-W32_FUNC u_short W32_CALL res_randomid     (void);
-W32_FUNC int     W32_CALL res_query        (const char *, int, int, u_char *, int);
-W32_FUNC int     W32_CALL res_search       (const char *, int, int, u_char *, int);
-W32_FUNC int     W32_CALL res_querydomain  (const char *, const char *, int, int, u_char *, int);
-W32_FUNC int     W32_CALL res_mkquery      (int, const char *, int, int, const u_char *, int, const u_char *, u_char *, int);
-W32_FUNC int     W32_CALL res_send         (const u_char *, int, u_char *, int);
-W32_FUNC int     W32_CALL res_isourserver  (const struct sockaddr_in *);
-W32_FUNC int     W32_CALL res_nameinquery  (const char *, int, int, const u_char *, const u_char *);
-W32_FUNC int     W32_CALL res_queriesmatch (const u_char *, const u_char *, const u_char *, const u_char *);
+W32_FUNC int     res_init        (void);
+W32_FUNC u_short res_randomid    (void);
+W32_FUNC int     res_query       (const char *, int, int, u_char *, int);
+W32_FUNC int     res_search      (const char *, int, int, u_char *, int);
+W32_FUNC int     res_querydomain (const char *, const char *, int, int, u_char *, int);
+W32_FUNC int     res_mkquery     (int, const char *, int, int, const u_char *, int, const u_char *, u_char *, int);
+W32_FUNC int     res_send        (const u_char *, int, u_char *, int);
+W32_FUNC int     res_isourserver (const struct sockaddr_in *);
+W32_FUNC int     res_nameinquery (const char *, int, int, const u_char *, const u_char *);
+W32_FUNC int     res_queriesmatch(const u_char *, const u_char *, const u_char *, const u_char *);
 
-W32_FUNC void    W32_CALL res_send_setqhook (res_send_qhook hook);
-W32_FUNC void    W32_CALL res_send_setrhook (res_send_rhook hook);
+W32_FUNC void    res_send_setqhook (res_send_qhook hook);
+W32_FUNC void    res_send_setrhook (res_send_rhook hook);
 
 __END_DECLS
 

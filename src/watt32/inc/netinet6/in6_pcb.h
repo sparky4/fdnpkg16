@@ -74,11 +74,6 @@
 #define	_NETINET6_IN6_PCB_H_
 
 #ifdef _KERNEL
-
-#ifndef __SYS_MBUF_H
-#include <sys/mbuf.h>
-#endif
-
 #define	satosin6(sa)	((struct sockaddr_in6 *)(sa))
 #define	sin6tosa(sin6)	((struct sockaddr *)(sin6))
 #define	ifatoia6(ifa)	((struct in6_ifaddr *)(ifa))

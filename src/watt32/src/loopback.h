@@ -15,6 +15,7 @@
 #define LBACK_MODE_WINSOCK 0x10    /* highly experimental */
 
 extern WORD  loopback_mode;
-extern int   loopback_device (in_Header *);
+extern int (*loopback_handler)(in_Header *);
+extern int   loopback_device  (in_Header *);
 
 #endif

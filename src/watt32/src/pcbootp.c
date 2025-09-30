@@ -17,7 +17,7 @@
 #include "wattcp.h"
 #include "strings.h"
 #include "language.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "syslog2.h"
 #include "misc.h"
 #include "timer.h"
@@ -29,8 +29,6 @@
 #include "pcqueue.h"
 #include "pcpkt.h"
 #include "pcbootp.h"
-
-#undef udp_Socket
 
 DWORD _bootp_host = IP_BCAST_ADDR;
 
@@ -59,8 +57,8 @@ static void bootp_parse (const struct bootp *bootp_in, int len);
  */
 int BOOTP_do_boot (void)
 {
-  struct bootp      bootp_out, bootp_in;
-  struct udp_Socket sock;
+  struct bootp       bootp_out, bootp_in;
+  struct _udp_Socket sock;
   DWORD  save_ip = my_ip_addr;
   int    rc = 0;
 
@@ -77,8 +75,6 @@ int BOOTP_do_boot (void)
   }
   else
   {
-    memset (&bootp_in, 0, sizeof(bootp_in));
-    memset (&bootp_out, 0, sizeof(bootp_out));
     bootp_xmit (&bootp_out);
     if (bootp_recv(&bootp_out, &bootp_in))
     {
@@ -94,16 +90,17 @@ int BOOTP_do_boot (void)
 
 static int bootp_xmit (struct bootp *bootp_out)
 {
-  DWORD exchange_id = set_timeout (0);  /* "random" exchange ID */
+  DWORD xid = set_timeout (0);  /* "random" exchange ID */
 
+  memset (bootp_out, 0, sizeof(*bootp_out));
   _eth_get_hwtype (&bootp_out->bp_htype, &bootp_out->bp_hlen);
 
   bootp_out->bp_op   = BOOTP_REQUEST;
-  bootp_out->bp_xid  = exchange_id;
-  bootp_out->bp_secs = intel16 (((WORD)exchange_id & 7) + 7);
+  bootp_out->bp_xid  = xid;
+  bootp_out->bp_secs = intel16 (((WORD)xid & 7) + 7);
   *(DWORD*) &bootp_out->bp_vend = intel (VM_RFC1048);  /* Magic Number */
 
-  memcpy (&bootp_out->bp_chaddr, _eth_addr, _eth_mac_len);
+  memcpy (&bootp_out->bp_chaddr, _eth_addr, sizeof(eth_address));
   return sock_fastwrite (boot_sock, (BYTE*)bootp_out, sizeof(*bootp_out));
 }
 
@@ -136,15 +133,14 @@ static BOOL bootp_recv (struct bootp *bootp_out, struct bootp *bootp_in)
     /* Check if transaction ID and MAC-address matches
      */
     if (bootp_in->bp_xid != exchange_id ||
-        memcmp(&bootp_in->bp_chaddr, _eth_addr, _eth_mac_len))
+        memcmp(&bootp_in->bp_chaddr, _eth_addr, sizeof(eth_address)))
        continue;
 
     vendor = intel (*(DWORD*)&bootp_in->bp_vend);
     if (vendor == VM_RFC1048)
        bootp_parse (bootp_in, len);
-    break;
+    return (TRUE);
   }
-  return (TRUE);
 }
 
 /*
@@ -182,8 +178,8 @@ static void bootp_parse (const struct bootp *bootp_in, int max)
            for (i = 0; i < *(p+1); i += sizeof(ip))
            {
              ip = intel (*(DWORD*)(p+2+i));
-             _add_server (&last_nameserver, def_nameservers,
-                          DIM(def_nameservers), ip);
+             _add_server (&last_nameserver, MAX_NAMESERVERS,
+                          def_nameservers, ip);
            }
            break;
 
@@ -191,17 +187,17 @@ static void bootp_parse (const struct bootp *bootp_in, int max)
            for (i = 0; i < *(p+1) ; i += sizeof(ip))
            {
              ip = intel (*(DWORD*)(p+2+i));
-             _add_server (&last_cookie, cookies, DIM(cookies), ip);
+             _add_server (&last_cookie, MAX_COOKIES, cookies, ip);
            }
            break;
 
 #if defined(USE_BSD_API)
       case BOOTP_OPT_LOG_SRV:
            ip = intel (*(DWORD*)(p+2));  /* select 1st host */
-           if (!syslog_host_name[0] &&   /* not in config-file */
+           if (!syslog_hostName[0] &&    /* not in config-file */
                p[1] % 4 == 0)            /* length = n * 4 */
-             _strlcpy (syslog_host_name, _inet_ntoa(NULL,ip),
-                       sizeof(syslog_host_name));
+             StrLcpy (syslog_hostName, _inet_ntoa(NULL,ip),
+                      sizeof(syslog_hostName));
            break;
 #endif
 

@@ -2,9 +2,9 @@
  * BSD bind().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -40,27 +40,26 @@
 
 #if defined(USE_BSD_API)
 
-/*!
- * \brief bind() - bind name to socket.
- *
+/*
+ * Bind:
  *  The purpose of bind is to fill in the information for the local IP
  *  address and local port (local_addr). In this respect, it is the
  *  opposite of connect(). connect() fills in the destination IP address
  *  and destination port (remote_addr).
  *  In most situations, one does not need to call bind().
  *
- *  Calling bind() on a \pre SOCK_DGRAM socket and for multiple addresses
- *  (\b 'myaddr->sin_addr.s_addr == INADDR_ANY' \b) requires special attention:
+ *  Calling bind() on a SOCK_DGRAM socket and for multiple addresses
+ *  ('myaddr->sin_addr.s_addr == INADDR_ANY') requires special attention:
  *  Wattcp's 'udp_handler()' doesn't store address information for
  *  broadcast.
  *
  *  We therefore install a 's->dataHandler' pointing to '_recvdaemon()'
  *  which queues up SOCK_DGRAM messages. This queue is polled (by
- *  'sock_recv_from()') when we call 'receive()' on such a socket.
+ *  'sock_recv_from') when we call 'receive()' on such a socket.
  *  Thus the '*from' address in 'receive()' will be correctly set to
  *  source address/port of peer.
  */
-int W32_CALL bind (int s, const struct sockaddr *myaddr, socklen_t namelen)
+int W32_CALL bind (int s, const struct sockaddr *myaddr, int namelen)
 {
   Socket              *socket = _socklist_find (s);
   struct sockaddr_in  *addr   = (struct sockaddr_in*) myaddr;
@@ -228,14 +227,8 @@ int W32_CALL bind (int s, const struct sockaddr *myaddr, socklen_t namelen)
 #define MY_PORT_ID  6060
 #undef  close
 
-#if !defined(__CYGWIN__)
+#include <unistd.h>
 #include <conio.h>
-#endif
-
-#ifndef STDIN_FILENO
-#define STDIN_FILENO 0
-#endif
-
 #include "pcdbug.h"
 
 int main (int argc, char **argv)
@@ -258,8 +251,8 @@ int main (int argc, char **argv)
   if (argc >= 2 && !strcmp(argv[1],"-frag")) /* test Tx of large datagrams */
   {
     #define CHUNK_SIZE 500
-    char    data [3*CHUNK_SIZE];
-    size_t  i;
+    char data [3*CHUNK_SIZE];
+    int  i;
 
     for (i = 0; i < sizeof(data);  i++)
         data[i] = i;

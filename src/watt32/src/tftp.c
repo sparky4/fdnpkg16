@@ -26,7 +26,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *  Major changes for Watt-32 by G. Vanem <gvanem@yahoo.no> 1999
+ *  Major changes for Watt-32 by G. Vanem <giva@bgnett.no> 1999
  *
  *  This client adheres to RFC-1350 (TFTP v2), but supports only
  *  reading from a remote host.
@@ -35,8 +35,7 @@
  */
 
 #include "socket.h"
-#include "pcdns.h"
-#include "run.h"
+#include "udp_dom.h"
 #include "tftp.h"
 
 #if defined(USE_TFTP)
@@ -73,8 +72,8 @@
 /*
  * Public data
  */
-int (W32_CALL *_tftp_write) (const void*, size_t) = NULL;
-int (W32_CALL *_tftp_close) (void)                = NULL;
+int (*tftp_writer) (const void*, size_t) = NULL;
+int (*tftp_terminator) (void)            = NULL;
 
 /*
  * Local variables
@@ -352,8 +351,8 @@ static int tftp_open (DWORD server, const char *fname)
  */
 static void tftp_close (void)
 {
-  if (_tftp_close)
-    (*_tftp_close)();
+  if (tftp_terminator)
+    (*tftp_terminator)();
 
   if (debug_on)
      outs ("\n");
@@ -361,7 +360,8 @@ static void tftp_close (void)
   if (sock)
   {
     sock_close (sock);
-    DO_FREE (sock);
+    free (sock);
+    sock = NULL;
   }
   DO_FREE (inbuf);
   DO_FREE (outbuf);
@@ -373,7 +373,7 @@ static void tftp_close (void)
 char *tftp_set_server (const char *name, int len)
 {
   len = min (len+1, SIZEOF(tftp_server_name));
-  return _strlcpy (tftp_server_name, name, len);
+  return StrLcpy (tftp_server_name, name, len);
 }
 
 /*
@@ -386,7 +386,7 @@ char *tftp_set_boot_fname (const char *name, int len)
   char *p, buf [MAX_PATHLEN];
 
   len = min (len+1, SIZEOF(buf));
-  _strlcpy (buf, name, len);
+  StrLcpy (buf, name, len);
   tftp_boot_remote_file = strdup (buf);
   tftp_boot_local_file  = tftp_boot_remote_file;
 
@@ -407,7 +407,7 @@ char *tftp_set_boot_fname (const char *name, int len)
  */
 static char *tftp_set_xfer_mode (const char *name)
 {
-  return _strlcpy (tftp_xfer_mode, name, sizeof(tftp_xfer_mode));
+  return StrLcpy (tftp_xfer_mode, name, sizeof(tftp_xfer_mode));
 }
 
 /*
@@ -469,9 +469,9 @@ int tftp_boot_load (void)
 
   /* Allocate socket and buffers
    */
-  sock   = malloc (sizeof(sock->udp));
-  inbuf  = malloc (TFTP_HEADSIZE+SEGSIZE);
-  outbuf = malloc (TFTP_HEADSIZE+SEGSIZE);
+  sock   = (sock_type*) malloc (sizeof(sock->udp));
+  inbuf  = (struct tftphdr*) malloc (TFTP_HEADSIZE+SEGSIZE);
+  outbuf = (struct tftphdr*) malloc (TFTP_HEADSIZE+SEGSIZE);
 
   if (!sock || !inbuf || !outbuf)
   {
@@ -499,7 +499,7 @@ int tftp_boot_load (void)
 
   /* Open connection and request file
    */
-  if (!tftp_open(tftp_server, tftp_boot_remote_file))
+  if (!tftp_open (tftp_server, tftp_boot_remote_file))
   {
     tftp_close();
     return (0);
@@ -515,7 +515,7 @@ int tftp_boot_load (void)
       rc = 0;
       break;
     }
-    if (size > 0 && (*_tftp_write)(buf,size) < 0)
+    if (size > 0 && (*tftp_writer)(buf,size) < 0)
     {
       rc = -1;     /* writer failed, errno set */
       break;
@@ -533,9 +533,9 @@ int tftp_boot_load (void)
 /*
  * Config-file handler for TFTP-client
  */
-static void (W32_CALL *prev_hook) (const char*, const char*) = NULL;
+static void (*prev_hook) (const char*, const char*) = NULL;
 
-static void W32_CALL tftp_cfg_hook (const char *name, const char *value)
+static void tftp_cfg_hook (const char *name, const char *value)
 {
   static const struct config_table tftp_cfg[] = {
             { "BOOT_FILE", ARG_FUNC,    (void*)tftp_set_boot_fname },
@@ -554,7 +554,7 @@ static void W32_CALL tftp_cfg_hook (const char *name, const char *value)
 /**
  * Free allocated memory.
  */
-static void W32_CALL tftp_exit (void)
+static void tftp_exit (void)
 {
   if (!_watt_fatal_error)
   {
@@ -579,10 +579,9 @@ int tftp_init (void)
  */
 #if defined(TEST_PROG)
 
-#ifndef _MSC_VER
 #include <unistd.h>
-#endif
 
+#include "getopt.h"
 #include "netaddr.h"
 #include "pcdbug.h"
 #include "pcarp.h"
@@ -592,7 +591,7 @@ static char  *fname;
 static DWORD  tot_size;
 static time_t start;
 
-static int W32_CALL close_func (void)
+int close_func (void)
 {
   if (file && fname)
   {
@@ -610,7 +609,7 @@ static int W32_CALL close_func (void)
   return (0);
 }
 
-static int W32_CALL write_func (const void *buf, size_t length)
+static int write_func (const void *buf, size_t length)
 {
   static DWORD block = 0;
 
@@ -735,7 +734,7 @@ int main (int argc, char **argv)
     if (!f_flag)
        tftp_set_boot_fname ("test.fil", 8);
     if (a_flag)
-       _arp_cache_add (tftp_server, (const eth_address*)&eth, FALSE);
+       _arp_add_cache (tftp_server, (const eth_address*)&eth, FALSE);
   }
   else if (m_flag || i_flag || h_flag || f_flag || a_flag)
   {
@@ -751,16 +750,12 @@ int main (int argc, char **argv)
 
   /* Must set our hook first
    */
-  _tftp_write = write_func;
-  _tftp_close = close_func;
+  tftp_writer     = write_func;
+  tftp_terminator = close_func;
 
   sock_init();
 
-#ifdef WIN32
-  Sleep (1000);        /* drain network buffers */
-#else
-  sleep (1);
-#endif
+  sleep (1);       /* drain network buffers */
   tcp_tick (NULL);
   return (0);
 }

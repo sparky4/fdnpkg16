@@ -2,9 +2,9 @@
  * Counts user/system time.
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -72,7 +72,7 @@ static DWORD usr_time (void)
   return (set_timeout(0) - start_time - sock_sys_time);
 }
 
-unsigned long W32_CALL net_times (struct tms *tms)
+unsigned long net_times (struct tms *tms)
 {
   if (!tms)
   {
@@ -82,11 +82,7 @@ unsigned long W32_CALL net_times (struct tms *tms)
   memset (tms, 0, sizeof(*tms));
   if (_watt_is_init)
   {
-#ifdef WIN32
-    DWORD divisor = 1000;
-#else
     DWORD divisor = (has_8254 || has_rdtsc) ? 1000 : 18;
-#endif
 
     tms->tms_utime = (CLOCKS_PER_SEC * usr_time()) / divisor;
     tms->tms_stime = (CLOCKS_PER_SEC * sys_time()) / divisor;

@@ -96,7 +96,7 @@ extern void endrpcent (void);
     defined(__DJGPP__) || defined(__WATCOMC__)
 
   /* from RPC-DOS v0.1Alpha by Mike Durkin <mdurkin@tsoft.net> */
-  /*                       updated by G.Vanem <gvanem@yahoo.no> */
+  /*                       updated by G.Vanem <giva@bgnett.no> */
 
   extern void   rpc_init     (void);
   extern void   set_user_id  (u_long uid);

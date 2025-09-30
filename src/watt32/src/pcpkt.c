@@ -3,7 +3,7 @@
  *  Packet Driver interface for WatTCP/Watt-32.
  *
  *  Heavily modified and extended for DOSX by
- *  G.Vanem <gvanem@yahoo.no>
+ *  G.Vanem <giva@bgnett.no>
  */
 
 #include <stdio.h>
@@ -12,12 +12,10 @@
 #include <string.h>
 #include <limits.h>
 
-#include "copyrigh.h"
-#include "wattcp.h"
-
-/* All this is for MS-DOS only. For Win32, refer winpkt.c instead.
+/* Nothing of this is needed for Win32.
+ * Refer winpcap.c instead.
  */
-#if defined(__MSDOS__)
+#if !defined(WIN32) && !defined(_WIN32)
 
 #if defined(__DJGPP__)
   #include <sys/exceptn.h>
@@ -25,6 +23,8 @@
   #include <crt0.h>
 #endif
 
+#include "copyrigh.h"
+#include "wattcp.h"
 #include "wdpmi.h"
 #include "x32vm.h"
 #include "powerpak.h"
@@ -35,15 +35,17 @@
 #include "cpumodel.h"
 #include "misc.h"
 #include "timer.h"
-#include "profile.h"
 #include "pcsed.h"
 #include "pcstat.h"
 #include "pcconfig.h"
 #include "pcdbug.h"
-#include "pcigmp.h"
+#include "pcmulti.h"
 #include "pcqueue.h"
 #include "pcpkt.h"
 #include "pcpkt32.h"
+
+
+/*@-usedef@*/
 
 WORD _pktdevclass  = PDCLASS_UNKNOWN;  /**< Ethernet, Token, FDDI etc.       */
 WORD _pkt_ip_ofs   = 0;                /**< ofs from link-layer head to ip   */
@@ -53,7 +55,7 @@ BYTE _pktdevlevel  = 1;                /**< basic unless otherwise specified */
 int  _pkt_rxmode   = RXMODE_BROADCAST; /**< active receive mode              */
 int  _pkt_rxmode0  = -1;               /**< startup receive mode             */
 int  _pkt_errno    = 0;                /**< error code set in pcpkt.c API    */
-const char *pkt_error = NULL;          /**< Last pkt error string            */
+char *pkt_error    = NULL;             /* Last pkt error string */
 
 int  _pkt_forced_rxmode = -1;
 char _pktdrvrname[20]   = "unknown";
@@ -77,9 +79,8 @@ static int   pkt_num_rx_bufs = RX_BUFS;
 
 static struct PktParameters pkt_params;
 static BOOL   got_params   = FALSE;
-
-int pkt_release_handle (WORD handle);
-int pkt_reset_handle (WORD handle);
+static BOOL   async_txmode = FALSE;
+static int    async_txtime = -1;
 
 /**
  * First and last vector to search for a driver.
@@ -118,10 +119,7 @@ int pkt_reset_handle (WORD handle);
 
 #elif (DOSX & DJGPP)
   #if !defined(USE_FAST_PKT)
-    #define RMCB_STK_SIZE 2048
-    #include "gormcb_c.inc"
-
-    static _go32_dpmi_seginfo rm_cb;
+  static _go32_dpmi_seginfo rm_cb;
   #endif
 
   static DWORD rm_base;
@@ -140,9 +138,8 @@ int pkt_reset_handle (WORD handle);
 #elif (DOSX & DOS4GW)         /* All DOS4GW type extenders */
 
   static DWORD rm_base;       /* Linear address (in DOS) for allocated area */
-
   #if !defined(USE_FAST_PKT)
-    static WORD  pkt_inf_sel; /* selector returned from `_pkt_inf' allocation */
+  static WORD  pkt_inf_sel;   /* selector returned from `_pkt_inf' allocation */
   #endif
 
   /*
@@ -166,10 +163,9 @@ int pkt_reset_handle (WORD handle);
   #define RP_SEGM()     _pkt_inf->rm_seg
 
 #elif (DOSX & POWERPAK)
-  static REALPTR         rm_base;
-
+  static REALPTR        rm_base;
   #if !defined(USE_FAST_PKT)
-    static DPMI_callback rm_cb;
+  static DPMI_callback  rm_cb;
   #endif
 
   #define PKT_TMP()     0
@@ -213,7 +209,7 @@ static BOOL pkt_api_entry  (IREGS *reg, unsigned called_from_line);
 /**
  * Return textual error representing error-code.
  */
-const char * W32_CALL pkt_strerror (int code)
+const char *pkt_strerror (int code)
 {
   static char  buf[50];
   static const char *errors[] = {
@@ -241,7 +237,7 @@ const char * W32_CALL pkt_strerror (int code)
   if (code > 0 && code < DIM(errors))
      return (_LANG(errors[code]));
 
-  rc = _strlcpy (buf, _LANG(errors[0]), sizeof(buf));
+  rc = StrLcpy (buf, _LANG(errors[0]), sizeof(buf));
   p  = strchr (rc, '(');
   if (p && strlen(p) >= 5)
   {
@@ -250,13 +246,6 @@ const char * W32_CALL pkt_strerror (int code)
     p[4] = hex_chars_upper [code & 15];
   }
   return (buf);
-}
-
-/* Return TRUE is adapter is up.
- */
-BOOL W32_CALL pkt_is_init (void)
-{
-  return (_pkt_inf != NULL);
 }
 
 /*
@@ -312,6 +301,7 @@ void *pkt_tx_buf (void)
   fprintf (stderr, "%s (%d): wrong usage of pkt_tx_buf()\n",
            __FILE__, __LINE__);
   exit (-1);
+  /*@-unreachable-*/
   return (NULL);
 }
 
@@ -392,7 +382,7 @@ static int pkt_drvr_info (void)
 
   if (!PKT_API(&regs))
   {
-    CONSOLE_MSG (0, ("Warning: old-type PKTDRVR\n"));
+    TCP_CONSOLE_MSG (0, ("Warning: old-type PKTDRVR\n"));
     _pktdevclass  = PDCLASS_ETHER;      /* assume Ethernet */
     _pkt_ip_ofs   = sizeof(eth_Header);
     _pkt_type_ofs = offsetof (struct eth_Header, type);
@@ -515,7 +505,7 @@ int pkt_get_mac_len (void)
  * \retval -1 on error.
  * Return major version in upper 8 bit, minor in lower.
  */
-int pkt_get_api_ver (WORD *ver)
+int pkt_get_api_ver (DWORD *ver)
 {
   if (got_params)
   {
@@ -528,39 +518,20 @@ int pkt_get_api_ver (WORD *ver)
 /**
  * Return version of PKTDRVR.
  */
-int pkt_get_drvr_ver (WORD *major, WORD *minor, WORD *unused1, WORD *unused2)
+int pkt_get_drvr_ver (DWORD *ver)
 {
   if (!pkt_drvr_ver)
      return (0);
-  *major = pkt_drvr_ver >> 8;
-  *minor = pkt_drvr_ver & 255;
-  ARGSUSED (unused1);
-  ARGSUSED (unused2);
+  *ver = pkt_drvr_ver;
   return (1);
 }
 
 /**
  * Return PKTDRVR vector.
  */
-W32_FUNC int W32_CALL pkt_get_vector (void)
+int pkt_get_vector (void)
 {
   return (pkt_interrupt);
-}
-
-/*
- * Return driver class
- */
-W32_FUNC WORD W32_CALL pkt_get_drvr_class (void)
-{
-  return (_pktdevclass);
-}
-
-/*
- * Returns low-level PktDriver name.
- */
-const char * W32_CALL pkt_get_device_name (void)
-{
-  return (_pktdrvrname);
 }
 
 /**
@@ -644,8 +615,8 @@ static int pkt16_drvr_init (mac_address *mac_addr)
   if (_pktdevlevel >= 5 && _pktdevlevel < 255) /* high-performance driver */
   {
     if (!pkt_get_params(&pkt_params))
-       CONSOLE_MSG (1, ("Failed to get PKTDRVR params; %s\n",
-                    pkt_strerror(_pkt_errno)));
+       TCP_CONSOLE_MSG (1, ("Failed to get PKTDRVR params; %s\n",
+                        pkt_strerror(_pkt_errno)));
   }
 
 #if defined(USE_STATISTICS)
@@ -662,8 +633,8 @@ static int pkt16_drvr_init (mac_address *mac_addr)
       (_pkt_forced_rxmode < -1 ||
        _pkt_forced_rxmode > RXMODE_PROMISCOUS))
   {
-    CONSOLE_MSG (0, ("Illegal Rx-mode (%d) specified\n",
-                 _pkt_forced_rxmode));
+    TCP_CONSOLE_MSG (0, ("Illegal Rx-mode (%d) specified\n",
+                     _pkt_forced_rxmode));
     _pkt_forced_rxmode = -1;
   }
 
@@ -828,7 +799,7 @@ static void release_real_mem (void)
 #pragma aux pkt_release loadds;
 #endif
 
-#if defined(__GNUC__)
+#ifdef __GNUC__
 #define DTOR __attribute__((destructor))
 #else
 #define DTOR
@@ -857,13 +828,13 @@ int DTOR pkt_release (void)
    *       stuck PKTDRVR.
    */
 
-#if (DOSX)
-  #if defined(USE_FAST_PKT)
-    release_real_mem();
-  #else
-    unlock_code_and_data();   /* unlock before freeing */
-    release_callback();
-  #endif
+#if (DOSX) && !defined(USE_FAST_PKT)
+  unlock_code_and_data(); /* unlock before freeing */
+  release_callback();
+#endif
+
+#if (DOSX) && defined(USE_FAST_PKT)
+  release_real_mem();
 #endif
 
   if (_pkt_inf && !_watt_fatal_error)
@@ -1088,9 +1059,9 @@ void _pkt_end (void) {}
  */
 int pkt_send (const void *tx, int length)
 {
+  struct async_iocb asy_cb;
   IREGS  regs;
-  WORD   tx_seg, tx_ofs;
-  BOOL   fail = FALSE;
+  WORD   tx_seg, tx_ofs, as_seg, as_ofs;
   int    tx_cnt;
 
   if (!_pkt_inf)
@@ -1122,27 +1093,89 @@ int pkt_send (const void *tx, int length)
   tx_ofs = FP_OFF (tx);
 #endif
 
-  for (tx_cnt = 0; tx_cnt <= pkt_txretries; tx_cnt++)
+  as_seg = as_ofs = 0;
+
+  if (async_txmode)
   {
-    regs.r_cx = length;
-    regs.r_ax = PD_SEND;
-    regs.r_ds = tx_seg;
-    regs.r_si = tx_ofs;
-
-    fail = FALSE;
-
-    if (PKT_API(&regs))   /* success */
-       break;
-
-    fail = TRUE;
-    if (pkt_txwait > 0)
-       Wait (pkt_txwait);
+#if (DOSX & (PHARLAP|POWERPAK))
+    as_seg = RP_SEGM();
+    as_ofs = PKT_TMP();
+    WriteRealMem (rm_base + as_ofs, (void*)&asy_cb, sizeof(asy_cb));
+#elif (DOSX & (DOS4GW|X32VM))
+    as_seg = RP_SEGM();
+    as_ofs = PKT_TMP();
+#elif (DOSX & DJGPP)
+    as_seg = RP_SEGM();
+    as_ofs = PKT_TMP();
+    DOSMEMPUT (&asy_cb, sizeof(asy_cb), rm_base + as_ofs);
+#else
+    as_seg = FP_SEG (&asy_cb);
+    as_ofs = FP_OFF (&asy_cb);
+#endif
+    asy_cb.buffer    = (tx_seg << 4) + tx_ofs;
+    asy_cb.length    = length;
+    asy_cb.flagbits  = 0;
+    asy_cb.xmit_func = 0;
   }
 
+  for (tx_cnt = 0; tx_cnt <= pkt_txretries; tx_cnt++)
+  {
+    DWORD tx_timer;
+    BOOL  done;
+    BYTE  flags;
+
+    regs.r_cx = length;
+    regs.r_ax = async_txmode ? PD_ASY_SEND : PD_SEND;
+    regs.r_ds = tx_seg;
+    regs.r_si = tx_ofs;
+    regs.r_es = as_seg;
+    regs.r_di = as_ofs;
+
+    if (!PKT_API(&regs))
+    {
+      if (async_txmode && _pkt_errno == PDERR_BAD_COMMAND)
+      {
+        async_txmode = FALSE;
+        PROFILE_STOP();
+        TCP_CONSOLE_MSG (2, ("Async Tx failed. Retrying in sync mode.\n"));
+        return pkt_send (tx, length);
+      }
+
+#if 0 /** \todo estimate max time this should take */
+      if (elapsed_time > (length / line_speed) + some_margin)
+         break;
+#endif
+      if (pkt_txwait > 0)
+         Wait (pkt_txwait);
+      continue;
+    }
+
+    if (!async_txmode)
+       break;
+
+    /* we should wait for the transmit to complete
+     */
+    tx_timer = set_timeout (async_txtime);
+    done = FALSE;
+
+    while (!done)
+    {
+      flags = PEEKB (as_seg, as_ofs + offsetof(struct async_iocb, flagbits));
+      done  = (flags & ASY_DONE);
+      if (async_txtime > -1 && chk_timeout(tx_timer))
+      {
+        STAT (macstats.num_tx_timeout++);
+        length = 0;
+        goto quit;  /* no point retrying (?) */
+      }
+    }
+  }
+
+quit:
   if (tx_cnt > 0)
      STAT (macstats.num_tx_retry += tx_cnt-1);
 
-  if (fail)
+  if (tx_cnt > pkt_txretries)
      length = 0;
 
   if (length == 0)
@@ -1155,7 +1188,7 @@ int pkt_send (const void *tx, int length)
 /**
  * Return the MAC address.
  */
-int pkt_get_addr (mac_address *mac)
+int pkt_get_addr (mac_address *eth)
 {
   IREGS regs;
   WORD  seg, ofs;
@@ -1167,14 +1200,14 @@ int pkt_get_addr (mac_address *mac)
 
   regs.r_ax = PD_GET_ADDRESS;
   regs.r_bx = _pkt_inf->handle;
-  regs.r_cx = sizeof (*mac);
+  regs.r_cx = sizeof (*eth);
 
 #if (DOSX)
   regs.r_es = seg = RP_SEGM();
   regs.r_di = ofs = PKT_TMP();
 #else
-  regs.r_es = seg = FP_SEG (mac);
-  regs.r_di = ofs = FP_OFF (mac);
+  regs.r_es = seg = FP_SEG (eth);
+  regs.r_di = ofs = FP_OFF (eth);
 #endif
 
   if (!PKT_API(&regs))
@@ -1184,7 +1217,7 @@ int pkt_get_addr (mac_address *mac)
   }
   else
   {
-    get_rmode_data (mac, sizeof(*mac), seg, ofs);
+    get_rmode_data (eth, sizeof(*eth), seg, ofs);
     rc = 1;
   }
   PROFILE_STOP();
@@ -1358,7 +1391,7 @@ void pkt_free_pkt (const void *pkt)
 
   if (pkt != (const void*) (pktq_out_buf(q) + _pkt_ip_ofs))
   {
-    CONSOLE_MSG (0, ("%s: freeing illegal packet 0x%p.\n", __FILE__, pkt));
+    TCP_CONSOLE_MSG (0, ("%s: freeing illegal packet 0x%p.\n", __FILE__, pkt));
     pktq_clear (q);
   }
   else
@@ -1402,7 +1435,24 @@ DWORD pkt_dropped (void)
   return (pkt_drop_cnt);    /* return last known value */
 }
 
-    /**
+/*
+ * Set async transmit mode and Tx timeout.
+ * "pkt.txmode = async [, timeout]"
+ */
+static void set_txmode (const char *value)
+{
+  const char *p;
+
+  if (!strnicmp(value,"async",5))
+  {
+    async_txmode = TRUE;
+    p = strchr (value, ',');
+    if (p)
+       async_txtime = atoi (p+1);
+  }
+}
+
+/**
  * Search WATTCP.CFG file for "PKT.VECTOR = 0x??" etc.
  * Accept "0x20 - 0xFF".
  */
@@ -1414,13 +1464,14 @@ static int parse_config_pass_1 (void)
        { "PKT.TXRETRIES", ARG_ATOB,   (void*)&pkt_txretries },
        { "PKT.TXWAIT",    ARG_ATOI,   (void*)&pkt_txwait },
        { "PKT.RXMODE",    ARG_ATOI,   (void*)&_pkt_forced_rxmode },
+       { "PKT.TXMODE",    ARG_FUNC,   (void*)set_txmode },
        { "PKT.RXBUFS",    ARG_ATOI,   (void*)&pkt_num_rx_bufs },
        { "PKT.NEAR_PTR",  ARG_ATOI,   (void*)&pkt_use_near },
        { "PKT.RESET",     ARG_ATOI,   (void*)&pkt_do_reset },
        { NULL,            0,          NULL }
      };
-  const struct config_table *cfg_save = watt_init_cfg;
-  void (W32_CALL *init_save) (const char*, const char*) = usr_init;
+  const struct config_table *cfg_save          = watt_init_cfg;
+  void (*init_save) (const char*, const char*) = usr_init;
   int    rc;
 
   watt_init_cfg = pkt_init_cfg;
@@ -1471,8 +1522,8 @@ int pkt_eth_init (mac_address *addr)
     {
       rc = pkt32_drvr_init (pm_driver, addr);
       if (rc == 0)
-         CONSOLE_MSG (2, ("Using Pmode `%s' driver at %08lX\n",
-                      pkt32_drvr_name(pm_driver), (DWORD)_pkt32_drvr));
+         TCP_CONSOLE_MSG (2, ("Using Pmode `%s' driver at %08lX\n",
+                          pkt32_drvr_name(pm_driver), (DWORD)_pkt32_drvr));
     }
     if (rc)  /* pmode driver failed, try real-mode driver */
 #endif
@@ -1488,7 +1539,7 @@ int pkt_eth_init (mac_address *addr)
   FAR_POKE_WORD (struct pkt_info, pkt_ip_ofs, _pkt_inf->pkt_ip_ofs);
   FAR_POKE_WORD (struct pkt_info, pkt_type_ofs, _pkt_inf->pkt_type_ofs);
 
-#if (DOSX & X32VM) && 0
+#if (DOSX & X32VM)
   if (!pkt_test_upcall())
   {
     pkt_release();
@@ -1501,8 +1552,7 @@ int pkt_eth_init (mac_address *addr)
 }
 
 /**
- * Check a single interrupt vector for signature string "PKT DRVR"
- * at offset 3 into intr-handler.
+ * Check a single interrupt vector for signature string "PKT DRVR".
  */
 #if (DOSX & (PHARLAP|X32VM))
   static BOOL check_intr_num (WORD intr_num)
@@ -1572,7 +1622,7 @@ int pkt_eth_init (mac_address *addr)
     _pkt_enque_ptr = pkt_enqueue;
 #endif
 
-    if (addr && !_fmemcmp(addr+3, pkt_sign, strlen(pkt_sign)))
+    if (addr && !_fmemcmp (addr+3, pkt_sign, strlen(pkt_sign)))
        return (TRUE);
     return (FALSE);
   }
@@ -1646,7 +1696,7 @@ static int find_vector (int first, int num)
   {
     static __dpmi_regs rm_reg;
     int    seg = __dpmi_allocate_dos_memory ((RDATA_SIZE + 15) / 16,
-                                             (int*)&_pkt_inf->rm_sel);
+                                             &_pkt_inf->rm_sel);
     if (seg < 0)
        return (-2);
 
@@ -1849,15 +1899,15 @@ static int setup_pkt_inf (void)
   if (pkt_use_near)
   {
     if (!(_crt0_startup_flags & _CRT0_FLAG_NEARPTR))
-       CONSOLE_MSG (1, ("Near-pointers not enabled\n"));
+       TCP_CONSOLE_MSG (1, ("Near-pointers not enabled\n"));
     else
     {
       _pkt_inf->use_near_ptr = TRUE;
-      CONSOLE_MSG (1, ("Near-pointers enabled\n"));
+      TCP_CONSOLE_MSG (1, ("Near-pointers enabled\n"));
     }
   }
   else if (_crt0_startup_flags & _CRT0_FLAG_NEARPTR)
-       CONSOLE_MSG (1, ("Near-pointers on, but \"PKT.NEAR_PTR = 0\"\n"));
+       TCP_CONSOLE_MSG (1, ("Near-pointers on, but \"PKT.NEAR_PTR = 0\"\n"));
 #endif
 
   return (1);
@@ -1865,7 +1915,7 @@ static int setup_pkt_inf (void)
 
 
 /**
- * Return PKTDRVR data at seg:ofs, Copy to 'dest'.
+ * Return PKTDRVR data at seg:ofs
  */
 static void get_rmode_data (void *dest, unsigned size, WORD seg, WORD ofs)
 {
@@ -1891,8 +1941,7 @@ static void get_rmode_data (void *dest, unsigned size, WORD seg, WORD ofs)
  * interface via a call to dynamically loaded module (not yet) or issue
  * an interrupt for the real-mode PKTDRVR.
  *
- * Returns TRUE if CARRY is clear, otherwise set '_pkt_errno' from DH
- * register and return FALSE.
+ * Return TRUE if CARRY is clear, else set _pkt_errno and return FALSE.
  */
 static BOOL pkt_api_entry (IREGS *reg, unsigned line)
 {
@@ -1944,7 +1993,7 @@ static BOOL pkt_api_entry (IREGS *reg, unsigned line)
  * mode is one of the following modes:
  *  - 1 - turn off receiver
  *  - 2 - receive only packets sent to this interface
- *  - 3 - mode 2 plus broadcast packets (default)
+ *  - 3 - mode 2 plus broadcast packets <default>
  *  - 4 - mode 3 plus limited multicast packets
  *  - 5 - mode 3 plus all multicast packets
  *  - 6 - all packets (AKA promiscuous mode)
@@ -2143,5 +2192,5 @@ int pkt_set_multicast_list (const void *listbuf, int len)
   return (1);
 }
 #endif /* USE_MULTICAST */
-#endif /* __MSDOS__ */
+#endif /* !WIN32 && !_WIN32 */
 

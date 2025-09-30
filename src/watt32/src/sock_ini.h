@@ -16,40 +16,35 @@ enum eth_init_result {    /* pass to sock_init_err() */
      WERR_PPPOE_DISC      /* All: PPPoE discovery failed (timeout) */
    };
 
-#define _bootp_on      W32_NAMESPACE (_bootp_on)
-#define _dhcp_on       W32_NAMESPACE (_dhcp_on)
-#define _dhcp6_on      W32_NAMESPACE (_dhcp6_on)
-#define _rarp_on       W32_NAMESPACE (_rarp_on)
-#define _do_mask_req   W32_NAMESPACE (_do_mask_req)
+#define _bootp_on      NAMESPACE (_bootp_on)
+#define _dhcp_on       NAMESPACE (_dhcp_on)
+#define _dhcp6_on      NAMESPACE (_dhcp6_on)
+#define _rarp_on       NAMESPACE (_rarp_on)
+#define _do_mask_req   NAMESPACE (_do_mask_req)
 
-#define survive_eth    W32_NAMESPACE (survive_eth)
-#define survive_bootp  W32_NAMESPACE (survive_bootp)
-#define survive_dhcp   W32_NAMESPACE (survive_dhcp)
-#define survive_rarp   W32_NAMESPACE (survive_rarp)
+#define survive_eth    NAMESPACE (survive_eth)
+#define survive_bootp  NAMESPACE (survive_bootp)
+#define survive_dhcp   NAMESPACE (survive_dhcp)
+#define survive_rarp   NAMESPACE (survive_rarp)
 
-extern int  _bootp_on;    /* boot-up through BOOTP and/or DHCP */
-extern int  _dhcp_on;
-extern int  _dhcp6_on;
-extern int  _rarp_on;
-extern BOOL _do_mask_req;
-extern BOOL _watt_do_exit;
-extern BOOL _watt_is_init;
+W32_DATA int  _bootp_on;    /* boot-up through BOOTP and/or DHCP */
+W32_DATA int  _dhcp_on;
+W32_DATA int  _dhcp6_on;
+W32_DATA int  _rarp_on;
+W32_DATA BOOL _do_mask_req;
+W32_DATA BOOL _watt_do_exit;
+W32_DATA BOOL _watt_is_init;
+W32_DATA BOOL _watt_no_config;
 
-extern BOOL survive_eth,  survive_bootp;
-extern BOOL survive_dhcp, survive_rarp;
+W32_DATA BOOL survive_eth, survive_bootp, survive_dhcp, survive_rarp;
 
-extern WattUserConfigFunc _watt_user_config_fn;
+W32_FUNC int           watt_sock_init (size_t tcp_sz, size_t udp_sz);
+W32_FUNC void MS_CDECL sock_exit      (void);
+W32_FUNC const char   *sock_init_err  (int rc);
+W32_FUNC void          sock_sig_exit  (const char *msg, int sig) ATTR_NORETURN();
 
 #if !defined(sock_init) && defined(TEST_PROG)
-  #define sock_init()  watt_sock_init (0, 0, sizeof(time_t))
-#endif
-
-#if defined(SWIG)
-  #undef sock_init
-  static int sock_init (void)
-  {
-    return watt_sock_init (0, 0, sizeof(time_t));
-  }
+#define sock_init()  watt_sock_init (0, 0)
 #endif
 
 #endif

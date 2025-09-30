@@ -20,9 +20,7 @@
 #include "ioport.h"
 #include "pcslip.h"
 
-#if defined(__MSDOS__)  /* rest of file */
-
-static void (W32_CALL *prev_hook) (const char*, const char*);
+static void (*prev_hook) (const char*, const char*);
 
 static WORD slip_base_reg = 0x3F8;      /* COM1 */
 static int  slip_timeout  = 40;         /* CONNECT timeout etc. */
@@ -33,7 +31,7 @@ static void do_dial (const char *val);
 
 /*****************************************************************/
 
-static void W32_CALL slip_config (const char *name, const char *value)
+static void SlipConfig (const char *name, const char *value)
 {
   static const struct config_table slip_cfg[] = {
             { "DIAL",    ARG_FUNC,   (void*)do_dial        },
@@ -45,7 +43,8 @@ static void W32_CALL slip_config (const char *name, const char *value)
           };
 
   if ((_pktdevclass != PDCLASS_SLIP ||
-       !parse_config_table(&slip_cfg[0], "SLIP.", name, value)) && prev_hook)
+       !parse_config_table(&slip_cfg[0], "SLIP.", name, value)) &&
+      prev_hook)
      (*prev_hook) (name, value);
 }
 
@@ -54,7 +53,7 @@ static void W32_CALL slip_config (const char *name, const char *value)
 int slip_init (void)
 {
   prev_hook = usr_init;
-  usr_init  = slip_config;
+  usr_init  = SlipConfig;
   return (0);
 }
 
@@ -63,7 +62,6 @@ int slip_init (void)
 static BOOL modem_command (const char *cmd, const char *resp, int timeout)
 {
   DWORD timer;
-  BOOL  rc;
   int   len = cmd ? strlen (cmd) : strlen (resp);
 
   if (cmd)
@@ -76,13 +74,13 @@ static BOOL modem_command (const char *cmd, const char *resp, int timeout)
 
   while (!chk_timeout(timer))
   {
-    char *pkt = (char*) _eth_arrived (NULL, NULL);
+    char *pkt = (char*) _eth_arrived (NULL NULL);
 
     if (!pkt)
        continue;
 
     outsn (pkt, len);                             /* print the modem echo */
-    _eth_free (pkt);
+    _eth_free (pkt, type);
     return (strncmp(pkt,resp,strlen(resp)) == 0); /* got modem response */
   }
   return (FALSE);
@@ -102,7 +100,7 @@ static int slip_dial (const char *str)
   if (!modem_command("ATZ\r","OK",5))
      return (0);
 
-  _strlcpy (dial_str, str, sizeof(dial_str)-3);
+  strcpy (dial_str, str);
   strcat (dial_str, "\r");
   outs (_LANG("SLIP dialing.."));
 
@@ -124,4 +122,3 @@ static void do_dial (const char *value)
      outsnl (_LANG("Connect failed"));
 }
 
-#endif /* __MSDOS__ */

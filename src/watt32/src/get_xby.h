@@ -17,35 +17,38 @@
 #define MAX_PROTO_ALIASES   0
 #define MAX_CACHE_LIFE      (15*60)
 
-#define ReadHostsFile     W32_NAMESPACE (ReadHostsFile)
-#define GetHostsFile      W32_NAMESPACE (GetHostsFile)
-#define CloseHostFile     W32_NAMESPACE (CloseHostFile)
+#define ReadHostsFile     NAMESPACE (ReadHostsFile)
+#define GetHostsFile      NAMESPACE (GetHostsFile)
+#define CloseHostFile     NAMESPACE (CloseHostFile)
 
-#define ReadHosts6File    W32_NAMESPACE (ReadHosts6File)
-#define CloseHost6File    W32_NAMESPACE (CloseHost6File)
-#define GetHosts6File     W32_NAMESPACE (GetHosts6File)
+#define ReadHosts6File    NAMESPACE (ReadHosts6File)
+#define CloseHost6File    NAMESPACE (CloseHost6File)
+#define GetHosts6File     NAMESPACE (GetHosts6File)
 
-#define ReadServFile      W32_NAMESPACE (ReadServFile)
-#define GetServFile       W32_NAMESPACE (GetServFile)
-#define CloseServFile     W32_NAMESPACE (CloseServFile)
+#define ReadServFile      NAMESPACE (ReadServFile)
+#define GetServFile       NAMESPACE (GetServFile)
+#define CloseServFile     NAMESPACE (CloseServFile)
 
-#define ReadProtoFile     W32_NAMESPACE (ReadProtoFile)
-#define GetProtoFile      W32_NAMESPACE (GetProtoFile)
-#define CloseProtoFile    W32_NAMESPACE (CloseProtoFile)
+#define ReadProtoFile     NAMESPACE (ReadProtoFile)
+#define GetProtoFile      NAMESPACE (GetProtoFile)
+#define CloseProtoFile    NAMESPACE (CloseProtoFile)
 
-#define ReadNetworksFile  W32_NAMESPACE (ReadNetworksFile)
-#define CloseNetworksFile W32_NAMESPACE (CloseNetworksFile)
-#define GetNetFile        W32_NAMESPACE (GetNetFile)
+#define ReadNetworksFile  NAMESPACE (ReadNetworksFile)
+#define CloseNetworksFile NAMESPACE (CloseNetworksFile)
+#define GetNetFile        NAMESPACE (GetNetFile)
 
-#define InitEthersFile    W32_NAMESPACE (InitEthersFile)
-#define ReadEthersFile    W32_NAMESPACE (ReadEthersFile)
-#define GetEthersFile     W32_NAMESPACE (GetEthersFile)
-#define GetEtherName      W32_NAMESPACE (GetEtherName)
-#define NumEtherEntries   W32_NAMESPACE (NumEtherEntries)
+#define InitEthersFile    NAMESPACE (InitEthersFile)
+#define ReadEthersFile    NAMESPACE (ReadEthersFile)
+#define GetEthersFile     NAMESPACE (GetEthersFile)
+#define NumEtherEntries   NAMESPACE (NumEtherEntries)
 
-#define DumpHostsCache    W32_NAMESPACE (DumpHostsCache)
-#define DumpHosts6Cache   W32_NAMESPACE (DumpHosts6Cache)
-#define DumpEthersCache   W32_NAMESPACE (DumpEthersCache)
+#define gethostbyname6    NAMESPACE (gethostbyname6)
+#define gethostbyaddr6    NAMESPACE (gethostbyaddr6)
+#define gethostent6       NAMESPACE (gethostent6)
+
+#define DumpHostsCache    NAMESPACE (DumpHostsCache)
+#define DumpHosts6Cache   NAMESPACE (DumpHosts6Cache)
+
 
 /*!\struct _hostent
  * Internal hostent structure.
@@ -105,42 +108,42 @@ struct _servent {
   struct _servent *s_next;
 };
 
-extern BOOL     called_from_getai;
-extern unsigned netdbCacheLife;
+extern BOOL called_from_getai;
 
-/* These are not in any ./inc headers (<netdb.h> etc.). We export
- * them anyway since they could come in handy. Now, only ./bin/tcpinfo.c
- * uses some of them.
- */
+W32_DATA unsigned netdbCacheLife;
 
-W32_FUNC void        W32_CALL ReadHostsFile    (const char *fname);  /* gethost.c */
-W32_FUNC void        W32_CALL ReadServFile     (const char *fname);  /* getserv.c */
-W32_FUNC void        W32_CALL ReadProtoFile    (const char *fname);  /* getprot.c */
-W32_FUNC void        W32_CALL ReadNetworksFile (const char *fname);  /* getnet.c */
-W32_FUNC void        W32_CALL ReadEthersFile   (void);               /* geteth.c */
-W32_FUNC int         W32_CALL NumEtherEntries  (void);               /* geteth.c */
-W32_FUNC void        W32_CALL InitEthersFile   (const char *fname);  /* geteth.c */
+W32_FUNC void  ReadHostsFile    (const char *fname);  /* gethost.c */
+W32_FUNC void  ReadServFile     (const char *fname);  /* getserv.c */
+W32_FUNC void  ReadProtoFile    (const char *fname);  /* getprot.c */
+W32_FUNC void  ReadNetworksFile (const char *fname);  /* getnet.c */
+W32_FUNC void  ReadEthersFile   (void);               /* geteth.c */
+W32_FUNC int   NumEtherEntries  (void);               /* geteth.c */
+W32_FUNC void  InitEthersFile   (const char *fname);  /* geteth.c */
 
-W32_FUNC void        W32_CALL CloseHostFile    (void);
-W32_FUNC void        W32_CALL CloseServFile    (void);
-W32_FUNC void        W32_CALL CloseProtoFile   (void);
-W32_FUNC void        W32_CALL CloseNetworksFile(void);
+W32_FUNC void  CloseHostFile    (void);
+W32_FUNC void  CloseServFile    (void);
+W32_FUNC void  CloseProtoFile   (void);
+W32_FUNC void  CloseNetworksFile(void);
 
-W32_FUNC const char *W32_CALL GetHostsFile (void);
-W32_FUNC const char *W32_CALL GetServFile  (void);
-W32_FUNC const char *W32_CALL GetProtoFile (void);
-W32_FUNC const char *W32_CALL GetNetFile   (void);
-W32_FUNC const char *W32_CALL GetEthersFile(void);
-W32_FUNC const char *W32_CALL GetEtherName (const eth_address *eth);
+W32_FUNC const char *GetHostsFile (void);
+W32_FUNC const char *GetServFile  (void);
+W32_FUNC const char *GetProtoFile (void);
+W32_FUNC const char *GetNetFile   (void);
+W32_FUNC const char *GetEthersFile(void);
 
-W32_FUNC void        W32_CALL DumpHostsCache (void);
-W32_FUNC void        W32_CALL DumpEthersCache (void);
+W32_FUNC void DumpHostsCache (void);
 
 #if defined(USE_BSD_API) && defined(USE_IPV6)  /* gethost6.c */
-  W32_FUNC void        W32_CALL ReadHosts6File  (const char *fname);
-  W32_FUNC void        W32_CALL CloseHost6File  (void);
-  W32_FUNC void        W32_CALL DumpHosts6Cache (void);
-  W32_FUNC const char *W32_CALL GetHosts6File   (void);
+  W32_FUNC void            ReadHosts6File (const char *fname);
+  W32_FUNC void            CloseHost6File (void);
+  W32_FUNC void            DumpHosts6Cache (void);
+  W32_FUNC const char     *GetHosts6File (void);
+
+  W32_FUNC void            sethostent6 (int stayopen);
+  W32_FUNC void            endhostent6 (void);
+  W32_FUNC struct hostent *gethostent6 (void);
+  W32_FUNC struct hostent *gethostbyname6 (const char *name);
+  W32_FUNC struct hostent *gethostbyaddr6 (const void *addr);
 #endif
 
 #endif

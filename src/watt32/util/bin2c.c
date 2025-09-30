@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <string.h>
 #include <time.h>
 
-static void Abort (const char *fmt, ...)
+static void Abort (const char *fmt,...)
 {
   va_list args;
   va_start (args, fmt);
@@ -20,18 +19,11 @@ int main (int argc, char **argv)
   time_t now     = time (NULL);
   int    ch, i;
 
-  if (argc == 1 ||
-      (argc == 2 && (!strcmp(argv[1],"-h") || !strcmp(argv[1],"-?")) ) )
-     Abort ("Usage: %s <- | bin-file> [> result]\n", argv[0]);
+  if (argc != 2)
+     Abort ("Usage: %s bin-file [> result]\n", argv[0]);
 
-  if (argc == 2 && !strcmp(argv[1],"-"))
-     inFile = stdin;
-  else
-  {
-    inFile = fopen (argv[1], "rb");
-    if (!inFile)
-       Abort ("Cannot open %s\n", argv[1]);
-  }
+  if ((inFile = fopen(argv[1],"rb")) == NULL)
+     Abort ("Cannot open %s\n", argv[1]);
 
   fprintf (outFile,
            "/* data statements for file %s at %.24s */\n"
@@ -45,9 +37,7 @@ int main (int argc, char **argv)
        fputs ("\n  ", outFile);
     fprintf (outFile, "0x%02X,", ch);
   }
-
   fputc ('\n', outFile);
-  if (inFile != stdin)
-     fclose (inFile);
+  fclose (inFile);
   return (0);
 }

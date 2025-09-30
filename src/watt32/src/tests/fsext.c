@@ -1,5 +1,5 @@
 /*
- * This is mainly to test if sockets might be used with djgpp's
+ * This is mainly to test if sockets may be used with djgpp's
  * fdopen() and stdio oriented calls (fgets, fprintf). It doesn't
  * seems it's implemented as of djgpp 2.03.
  */
@@ -15,7 +15,9 @@
 int main (void)
 {
   struct sockaddr_in sin;
+#if 0
   struct linger      linger;
+#endif
   int    s, on = 1;
   FILE  *fil;
 
@@ -59,7 +61,7 @@ int main (void)
       perror ("fprintf");
       break;
     }
-    if (fgets(msg,sizeof(msg),fil) < 0)
+    if (fgets(msg,sizeof(msg),fil) == NULL)
     {
       perror ("fgets");
       break;

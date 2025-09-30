@@ -1,6 +1,6 @@
 /*!\file ip4_in.c
  *
- *  IPv4 input and address classifier functions.
+ *  IPv4 input routines.
  *
  *  Version
  *
@@ -15,9 +15,8 @@
 #include "misc.h"
 #include "chksum.h"
 #include "rs232.h"
-#include "strings.h"
 #include "pcconfig.h"
-#include "pcigmp.h"
+#include "pcmulti.h"
 #include "pcdbug.h"
 #include "pcsed.h"
 #include "pctcp.h"
@@ -72,7 +71,7 @@ int _ip4_handler (const in_Header *ip, BOOL broadcast)
    * Note: _bsd_socket_hook does nothing unless we have allocated at least
    *       one SOCK_RAW socket.
    *
-   * Should we return if the hook consumed packet (returns non-NULL) ?
+   * Should we return if the hook consumed packet (return non-NULL) ?
    */
   if (_bsd_socket_hook)
     (*_bsd_socket_hook) (BSO_IP4_RAW, ip);
@@ -149,13 +148,13 @@ int _chk_ip4_header (const in_Header *ip)
     DEBUG_RX (NULL, ip);
     STAT (ip4stats.ips_badvers++);
     return (0);
-  }
+  }          
   if (hlen < sizeof(*ip))
   {
     DEBUG_RX (NULL, ip);
     STAT (ip4stats.ips_tooshort++);
     return (0);
-  }
+  }          
   if (CHECKSUM(ip,hlen) != 0xFFFF)
   {
     DEBUG_RX (NULL, ip);

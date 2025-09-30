@@ -14,7 +14,7 @@
  *                SOCKDATAREAY    - tcp/udp data ready for reading
  *                SOCKCLOSED      - socket has been closed
  */
-int W32_CALL sock_sselect (const sock_type *s, int waitstate)
+int sock_sselect (const sock_type *s, int waitstate)
 {
   /* are we connected ?
    */
@@ -39,7 +39,7 @@ int W32_CALL sock_sselect (const sock_type *s, int waitstate)
  * Returns 'simplified' enum telling what state the tcp socket is currently
  * in, GvB 2002-09
  */
-enum TCP_SIMPLE_STATE W32_CALL tcp_simple_state (const _tcp_Socket *s)
+enum TCP_SIMPLE_STATE tcp_simple_state (const _tcp_Socket *s)
 {
   if (s->ip_type != TCP_PROTO ||
       s->state == tcp_StateCLOSED)

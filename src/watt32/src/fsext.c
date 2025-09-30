@@ -2,9 +2,9 @@
  * File System extensions for djgpp.
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -45,9 +45,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#ifndef S_IFSOCK
 #define S_IFSOCK 0x10000
-#endif
 
 #if (DJGPP_MINOR < 4)
 #define blksize_t off_t
@@ -73,7 +71,7 @@ struct wstat {
 /*
  * Handle printing of function names
  */
-static const struct search_list fs_func[] = {
+static struct search_list fs_func[] = {
                       { __FSEXT_nop,   "nop"    },
                       { __FSEXT_open,  "open"   },
                       { __FSEXT_creat, "creat"  },
@@ -116,7 +114,7 @@ int _fsext_demux (__FSEXT_Fnumber func, int *rv, va_list _args)
 
   SOCK_DEBUGF (("\n_fsext_demux: fd %d%c, func %d = \"%s\", cmd %08lX, arg %08lX",
                 fd, sock ? 's' : 'f', func,
-                list_lookup(func, fs_func, DIM(fs_func)),
+                list_lookup (func, fs_func, DIM(fs_func)),
                 (DWORD)cmd, (DWORD)arg));
 
   /* fd is not a valid socket, pass on to lower layer
@@ -192,8 +190,14 @@ int _fsext_demux (__FSEXT_Fnumber func, int *rv, va_list _args)
          return (1);
 
     case __FSEXT_dup2:    /* dup2 (oldfd,newfd) */
-         close (cmd);     /* close (newd) */
-         *rv = socket (sock->so_family, sock->so_type, sock->so_proto);
+         {
+           int family = sock->so_family;
+           int type   = sock->so_type;
+           int proto  = sock->so_proto;
+
+           close (cmd);   /* close (newd) */
+           *rv = socket (family, type, proto);
+         }
          return (1);
 
     case __FSEXT_fstat:

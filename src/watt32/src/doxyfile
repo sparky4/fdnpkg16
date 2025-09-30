@@ -1,5 +1,5 @@
 PROJECT_NAME           = "Watt-32 tcp/ip"
-PROJECT_NUMBER         = "2.2 dev-rel.10"
+PROJECT_NUMBER         = "2.2 dev-rel.9"
 OUTPUT_DIRECTORY       = watt-doc
 EXTRACT_ALL            = NO
 EXTRACT_LOCAL_CLASSES  = YES
@@ -14,14 +14,14 @@ CASE_SENSE_NAMES       = NO
 JAVADOC_AUTOBRIEF      = YES
 DETAILS_AT_TOP         = YES
 TAB_SIZE               = 8
-SHORT_NAMES            = NO # !! YES
+SHORT_NAMES            = YES
 
 GENERATE_TODOLIST      = YES
 GENERATE_TESTLIST      = YES
 GENERATE_BUGLIST       = YES
 GENERATE_LATEX         = NO
 
-ENABLED_SECTIONS       = USE_IPV6
+ENABLED_SECTIONS       = # USE_IPV6
 OPTIMIZE_OUTPUT_FOR_C  = YES
 SHOW_USED_FILES        = NO # YES
 
@@ -29,7 +29,7 @@ SHOW_USED_FILES        = NO # YES
 # configuration options related to warning and progress messages
 #---------------------------------------------------------------------------
 WARNINGS               = YES
-WARN_IF_UNDOCUMENTED   = NO # !!YES
+WARN_IF_UNDOCUMENTED   = YES
 WARN_IF_DOC_ERROR      = YES
 WARN_FORMAT            = "$file:$line: $text"
 WARN_LOGFILE           = doxygen.log
@@ -44,8 +44,7 @@ WARN_LOGFILE           = doxygen.log
 # with spaces.
 
 INPUT = . ../inc/. ../inc/sys/. ../inc/arpa/. ../inc/net/. ../inc/netinet/. \
-        ../inc/netinet6/. ../inc/protocol/. ../inc/rpc/. ../inc/rpcsvc/. \
-        ../inc/w32-fakes/. ./doxy-dox
+        ../inc/netinet6/. ../inc/protocol/. ../inc/rpc/. ../inc/rpcsvc/.
 
 
 # If the value of the INPUT tag contains directories, you can use the
@@ -55,7 +54,7 @@ INPUT = . ../inc/. ../inc/sys/. ../inc/arpa/. ../inc/net/. ../inc/netinet/. \
 # *.c *.cc *.cxx *.cpp *.c++ *.java *.ii *.ixx *.ipp *.i++ *.inl *.h *.hh *.hxx *.hpp
 # *.h++ *.idl *.odl
 
-FILE_PATTERNS = *.c *.h *.dox
+FILE_PATTERNS = *.c *.h *.l
 
 # The RECURSIVE tag can be used to turn specify whether or not subdirectories
 # should be searched for input files as well. Possible values are YES and NO.
@@ -67,9 +66,9 @@ RECURSIVE = NO # !! YES
 # excluded from the INPUT source files. This way you can easily exclude a
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE = ../inc/winsock.h get_xbyr.c pcpkt2.c pcslip.c \
-          ../inc/netinet6/ip6.h pkt_stub.h ffs.nas dxe_map.h \
-          dxe_map.c dxe_sym.h dllinit.c djimport.c array-bounds.c
+EXCLUDE = ../inc/WINSOCK.H LANGUAGE.C GET_XBYR.C PCPKT2.C PCSLIP.C \
+          ../inc/netinet6/IP6.H BTREE.* PKT_STUB.H FFS.NAS DXE_MAP.H \
+          DXE_MAP.C DXE_SYM.H DLLINIT.C DJIMPORT.C
 
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or directories
@@ -81,7 +80,7 @@ EXCLUDE_SYMLINKS       = YES
 # EXCLUDE_PATTERNS tag to specify one or more wildcard patterns to exclude
 # certain files from those directories.
 
-EXCLUDE_PATTERNS       =  btree.* bugtrap*.*
+EXCLUDE_PATTERNS       =
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or
 # directories that contain example code fragments that are included (see
@@ -211,7 +210,7 @@ HTML_FOOTER            =
 # fine-tune the look of the HTML output. If the tag is left blank doxygen
 # will generate a default style sheet
 
-HTML_STYLESHEET        = # !! watt-doc.css
+HTML_STYLESHEET        = watt-doc.css
 
 # If the HTML_ALIGN_MEMBERS tag is set to YES, the members of classes,
 # files or namespaces will be aligned in HTML using tables. If set to
@@ -238,7 +237,7 @@ CHM_FILE               = watt-32.chm
 # the HTML help compiler (hhc.exe). If non empty doxygen will try to run
 # the html help compiler on the generated index.hhp.
 
-HHC_LOCATION           = "c:\Program Files (x86)\HTML Help Workshop\hhc.exe"
+HHC_LOCATION           = g:\vc\sdk\bin\hhc.exe
 
 # If the GENERATE_HTMLHELP tag is set to YES, the GENERATE_CHI flag
 # controls if a separate .chi index file is generated (YES) or that
@@ -337,7 +336,7 @@ PERLMOD_MAKEVAR_PREFIX =
 # evaluate all C-preprocessor directives found in the sources and include
 # files.
 
-ENABLE_PREPROCESSING   = NO  # !!
+ENABLE_PREPROCESSING   = NO # !!YES
 
 # If the MACRO_EXPANSION tag is set to YES Doxygen will expand all macro
 # names in the source code. If set to NO (the default) only conditional
@@ -422,7 +421,7 @@ EXTERNAL_GROUPS        = YES
 # The PERL_PATH should be the absolute path and name of the perl script
 # interpreter (i.e. the result of `which perl').
 
-PERL_PATH              = g:/Cygwin/bin/perl.exe
+PERL_PATH              = c:/perl/perl.exe
 
 #---------------------------------------------------------------------------
 # Configuration options related to the dot tool
@@ -434,20 +433,20 @@ PERL_PATH              = g:/Cygwin/bin/perl.exe
 # option is superceded by the HAVE_DOT option below. This is only a fallback.
 # It is recommended to install and use dot, since it yield more powerful graphs.
 
-CLASS_DIAGRAMS         = YES
+CLASS_DIAGRAMS         = NO
 
 # If set to YES, the inheritance and collaboration graphs will hide
 # inheritance and usage relations if the target is undocumented
 # or is not a class.
 
-HIDE_UNDOC_RELATIONS   = NO # !! YES
+HIDE_UNDOC_RELATIONS   = YES
 
 # If you set the HAVE_DOT tag to YES then doxygen will assume the dot tool is
 # available from the path. This tool is part of Graphviz, a graph visualization
 # toolkit from AT&T and Lucent Bell Labs. The other options in this section
 # have no effect if this option is set to NO (the default)
 
-HAVE_DOT               = YES
+HAVE_DOT               = NO
 
 # If the CLASS_GRAPH and HAVE_DOT tags are set to YES then doxygen
 # will generate a graph for each documented class showing the direct and
@@ -496,29 +495,13 @@ DOT_IMAGE_FORMAT       = png
 # The tag DOT_PATH can be used to specify the path where the dot tool can be
 # found. If left blank, it is assumed the dot tool can be found on the path.
 
-DOT_PATH               = f:\ProgramFiler\Graphviz-2.28\bin\dot.exe
-
-# The MSCFILE_DIRS tag can be used to specify one or more directories that
-# contain msc files that are included in the documentation (see the
-# \mscfile command).
-
-MSCFILE_DIRS           =
+DOT_PATH               =
 
 # The DOTFILE_DIRS tag can be used to specify one or more directories that
 # contain dot files that are included in the documentation (see the
 # \dotfile command).
 
 DOTFILE_DIRS           =
-
-# The DOT_GRAPH_MAX_NODES tag can be used to set the maximum number of
-# nodes that will be shown in the graph. If the number of nodes in a graph
-# becomes larger than this value, doxygen will truncate the graph, which is
-# visualized by representing a node as a red box. Note that doxygen if the
-# number of direct children of the root node in a graph is already larger than
-# DOT_GRAPH_MAX_NODES then the graph will not be shown at all. Also note
-# that the size of a graph can be further restricted by MAX_DOT_GRAPH_DEPTH.
-
-DOT_GRAPH_MAX_NODES    = 100
 
 # The MAX_DOT_GRAPH_WIDTH tag can be used to set the maximum allowed width
 # (in pixels) of the graphs generated by dot. If a graph becomes larger than
@@ -536,24 +519,6 @@ MAX_DOT_GRAPH_WIDTH    = 1024
 
 MAX_DOT_GRAPH_HEIGHT   = 1024
 
-# The MAX_DOT_GRAPH_DEPTH tag can be used to set the maximum depth of the
-# graphs generated by dot. A depth value of 3 means that only nodes reachable
-# from the root by following a path via at most 3 edges will be shown. Nodes
-# that lay further from the root node will be omitted. Note that setting this
-# option to 1 or 2 may greatly reduce the computation time needed for large
-# code bases. Also note that the size of a graph can be further restricted by
-# DOT_GRAPH_MAX_NODES. Using a depth of 0 means no depth restriction.
-
-MAX_DOT_GRAPH_DEPTH    = 1000
-
-# Set the DOT_TRANSPARENT tag to YES to generate images with a transparent
-# background. This is disabled by default, because dot on Windows does not
-# seem to support this out of the box. Warning: Depending on the platform used,
-# enabling this option may lead to badly anti-aliased labels on the edges of
-# a graph (i.e. they become hard to read).
-
-DOT_TRANSPARENT        = YES
-
 # If the GENERATE_LEGEND tag is set to YES (the default) Doxygen will
 # generate a legend page explaining the meaning of the various boxes and
 # arrows in the dot generated graphs.
@@ -570,22 +535,8 @@ DOT_CLEANUP            = YES
 # Configuration::addtions related to the search engine
 #---------------------------------------------------------------------------
 
-# When the SEARCHENGINE tag is enabled doxygen will generate a search box
-# for the HTML output. The underlying search engine uses javascript
-# and DHTML and should work on any modern browser. Note that when using
-# HTML help (GENERATE_HTMLHELP), Qt help (GENERATE_QHP), or docsets
-# (GENERATE_DOCSET) there is already a search function so this one should
-# typically be disabled. For large projects the javascript based search engine
-# can be slow, then enabling SERVER_BASED_SEARCH may provide a better solution.
+# The SEARCHENGINE tag specifies whether or not a search engine should be
+# used. If set to NO the values of all tags below this one will be ignored.
 
-SEARCHENGINE           = YES
+SEARCHENGINE = NO
 
-# When the SERVER_BASED_SEARCH tag is enabled the search engine will be
-# implemented using a PHP enabled web server instead of at the web client
-# using Javascript. Doxygen will generate the search PHP script and index
-# file to put on the web server. The advantage of the server
-# based approach is that it scales better to large projects and allows
-# full text search. The disadvantages are that it is more difficult to setup
-# and does not have live searching capabilities.
-
-SERVER_BASED_SEARCH    = NO

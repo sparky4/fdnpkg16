@@ -2,9 +2,9 @@
  * BSD getsockname(), getpeername().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -40,22 +40,18 @@
 
 #if defined(USE_BSD_API)
 
-int W32_CALL getsockname (int s, struct sockaddr *name, socklen_t *namelen)
+int W32_CALL getsockname (int s, struct sockaddr *name, int *namelen)
 {
-  Socket   *socket = _socklist_find (s);
-  socklen_t sa_len;
+  Socket *socket = _socklist_find (s);
+  int     sa_len;
 
   SOCK_PROLOGUE (socket, "\ngetsockname:%d", s);
-
-  if (!socket)
-     goto einval;
 
   sa_len = (socket->so_family == AF_INET6) ? sizeof(struct sockaddr_in6) :
                                              sizeof(struct sockaddr_in);
 
   if (!name || !namelen || (*namelen < sa_len))
   {
-einval:
     SOCK_DEBUGF ((", EINVAL"));
     SOCK_ERRNO (EINVAL);
     if (namelen)
@@ -66,7 +62,7 @@ einval:
   if (!socket->local_addr)
   {
     SOCK_DEBUGF ((", EINVAL"));
-    SOCK_ERRNO (EINVAL);       /* according to HP/UX manpage */
+    SOCK_ERRNO (EINVAL);    /* according to HP/UX manpage */
     return (-1);
   }
 
@@ -94,10 +90,10 @@ einval:
   return (0);
 }
 
-int W32_CALL getpeername (int s, struct sockaddr *name, socklen_t *namelen)
+int W32_CALL getpeername (int s, struct sockaddr *name, int *namelen)
 {
-  Socket   *socket = _socklist_find (s);
-  socklen_t sa_len;
+  Socket *socket = _socklist_find (s);
+  int     sa_len;
 
   SOCK_PROLOGUE (socket, "\ngetpeername:%d", s);
 
@@ -119,7 +115,6 @@ int W32_CALL getpeername (int s, struct sockaddr *name, socklen_t *namelen)
     SOCK_ERRNO (ENOTCONN);
     return (-1);
   }
-
   VERIFY_RW (name, *namelen);
 
   *namelen = sa_len;
@@ -129,7 +124,6 @@ int W32_CALL getpeername (int s, struct sockaddr *name, socklen_t *namelen)
   if (socket->so_family == AF_INET6)
   {
     const struct sockaddr_in6 *ra = (const struct sockaddr_in6*)socket->remote_addr;
-
     SOCK_DEBUGF ((", %s (%d)", _inet6_ntoa(&ra->sin6_addr), ntohs(ra->sin6_port)));
     ARGSUSED (ra);
   }
@@ -137,7 +131,6 @@ int W32_CALL getpeername (int s, struct sockaddr *name, socklen_t *namelen)
 #endif
   {
     const struct sockaddr_in *ra = socket->remote_addr;
-
     SOCK_DEBUGF ((", %s (%d)", inet_ntoa(ra->sin_addr), ntohs(ra->sin_port)));
     ARGSUSED (ra);
   }

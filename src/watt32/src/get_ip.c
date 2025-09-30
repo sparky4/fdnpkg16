@@ -28,7 +28,7 @@
 
 #include "socket.h"
 #include "get_xby.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 
 #if defined(USE_BSD_API)
 

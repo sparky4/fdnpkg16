@@ -1,6 +1,6 @@
 /*!\file pcconfig.c
  *
- * Watt-32 config file handling.
+ * WatTCP config file handling.
  *
  */
 #include <stdio.h>
@@ -18,7 +18,7 @@
 #include "misc.h"
 #include "timer.h"
 #include "language.h"
-#include "pcdns.h"
+#include "udp_dom.h"
 #include "netaddr.h"
 #include "bsdname.h"
 #include "pcqueue.h"
@@ -38,16 +38,11 @@
 #include "loopback.h"
 #include "get_xby.h"
 #include "printk.h"
-#include "profile.h"
 #include "pcconfig.h"
 
 #if defined(USE_IPV6)
 #include "pcicmp6.h"
 #include "teredo64.h"
-#endif
-
-#if (DOSX & DJGPP)
-  #include <crt0.h>
 #endif
 
 #if (DOSX & PHARLAP)
@@ -59,35 +54,31 @@
 #endif
 
 
-int  debug_on          = 2;    /* general debug level */
+int  debug_on          = 0;    /* general debug level */
 int  ctrace_on         = 0;    /* tracing; on/off (High-C only) */
 int  sock_delay        = 30;
 int  sock_inactive     = 0;    /* defaults to forever */
 int  sock_data_timeout = 0;    /* timeout sending no data (forever) */
 WORD multihomes        = 0;    /* We have more than 1 IP-addresses */
-BOOL dynamic_host      = 0;    /* Reverse resolve assigned IP to true FQDN */
-int  stkwalk_details   = 1;    /* Win: simple (1) or detailed(2) stack-trace. */
-                               /* Effective only with USE_STACKWALKER. */
-int  fortify_fail_rate = 0;    /* The fail-rate for Fortify mallocer. */
-                               /* Effective only with USE_FORTIFY. */
+BOOL dynamic_host      = 0;    /* reverse resolve assigned IP to true FQDN */
 
 DWORD cookies [MAX_COOKIES];
 WORD  last_cookie = 0;
 
-static void          deprecated_key    (const char *old_key, const char *new_key);
-static void W32_CALL keyword_not_found (const char *key, const char *value);
+static void deprecated_key    (const char *old_key, const char *new_key);
+static void keyword_not_found (const char *key, const char *value);
 
-void (W32_CALL *print_hook) (const char*) = NULL;
-void (W32_CALL *usr_init)   (const char*, const char*) = keyword_not_found;
+void (*print_hook) (const char*) = NULL;
+void (*usr_init)   (const char*, const char*) = keyword_not_found;
 
 /** Hook to a function called after we're initialised.
  */
-void (W32_CALL *usr_post_init) (void) = NULL;
+void (*usr_post_init) (void) = NULL;
 
-static char *config_name  = (char*) "WATTCP.CFG";  /* name of config file */
+static char *config_name  = "WATTCP.CFG";  /* name of config file */
 static char *current_file = NULL;
 static UINT  current_line = 0;
-static BOOL  got_eol      = FALSE;  /* got end-of-line in 'current_line' */
+static BOOL  got_eol      = FALSE;  /* got end-of-line in current_line */
 
 static const char *environ_names[] = {
                   "WATTCP.CFG",    /* pointer to config-file */
@@ -113,51 +104,17 @@ enum ParseMode {
             } \
           } while (0)
 
-  static const char *type_name (int type)
-  {
-    return (type == ARG_ATOI    ? "ATOI   " :
-            type == ARG_ATOB    ? "ATOB   " :
-            type == ARG_ATOW    ? "ATOW   " :
-            type == ARG_ATOIP   ? "ATOIP  " :
-            type == ARG_ATOX_B  ? "ATOX_B " :
-            type == ARG_ATOX_W  ? "ATOX_W " :
-            type == ARG_FUNC    ? "FUNC   " :
-            type == ARG_RESOLVE ? "RESOLVE" :
-            type == ARG_STRDUP  ? "STRDUP " :
-            type == ARG_STRCPY  ? "STRCPY " : "??");
-  }
-
   #define RANGE_CHECK(val,low,high) \
           do { \
             if (((val) < (low)) || ((val) > (high))) \
                CONFIG_DBG_MSG (0, ("Value %ld exceedes range [%d - %d]\n", \
-                                   val, low, high)); \
+                               val, low, high)); \
           } while (0)
 #else
   #define CONFIG_DBG_MSG(lvl, args)  ((void)0)
   #define RANGE_CHECK(val,low,high)  ((void)0)
 #endif
 
-
-#if defined(USE_BSD_API)
-  /*
-   * Since ARG_FUNC handlers expect the calling-convention specified
-   * in the makefile, we must call the get_xby.h functions via these
-   * small stub-functions.
-   * Some makefiles can specify '-Gr' (fastcall for MSVC) and not
-   * W32_CALL which normally is 'cdecl'.
-   */
-  #define FUNC_TO_W32CALL(func) \
-  static void _##func (const char *fname) { func (fname); }
-  FUNC_TO_W32CALL (ReadHostsFile)
-  FUNC_TO_W32CALL (ReadServFile)
-  FUNC_TO_W32CALL (ReadProtoFile)
-  FUNC_TO_W32CALL (ReadNetworksFile)
-  FUNC_TO_W32CALL (InitEthersFile)
-#if defined(USE_IPV6)
-  FUNC_TO_W32CALL (ReadHosts6File)
-#endif
-#endif
 
 /*
  * Set 'debug_on' if not already set before tcp_config() called.
@@ -200,32 +157,26 @@ static void set_ethip (const char *value)
 
   /* Add IPv4-addr to ARP-cache.
    */
-  _arp_cache_add (ip4, (const eth_address*)&eth, FALSE);
+  _arp_add_cache (ip4, (const eth_address*)&eth, FALSE);
 }
 
-void _add_server (WORD *counter, DWORD *array, int array_dim, DWORD value)
+void _add_server (WORD *counter, WORD max, DWORD *array, DWORD value)
 {
-  if (value && *counter < array_dim)
-  {
-    int i, duplicate = 0;
+  int i, duplicate = 0;
 
+  if (value && *counter < max)
+  {
     for (i = 0; i < *counter; i++)
         if (array[i] == value)
-        {
-          duplicate = 1;
-          CONSOLE_MSG (3, ("value %lu duplicated in array %p\n", (u_long)value, array));
-        }
+           duplicate = 1;
 
     if (!duplicate)
        array [(*counter)++] = value;
   }
-  if (*counter >= array_dim)
-     CONSOLE_MSG (1, ("array %p to small\n", array));
 }
 
 /**
  * Return a string with a environment variable expanded (only one).
- * Never returns NULL.
  *
  * E.g. if environment variable ETC is "c:\network\watt\bin",
  * "$(ETC)\hosts" becomes "c:\network\watt\bin\hosts"
@@ -233,7 +184,7 @@ void _add_server (WORD *counter, DWORD *array, int array_dim, DWORD value)
 
  * \todo support several $(x) in one line and malloc the result.
  */
-const char *expand_var_str (const char *str)
+const char *ExpandVarStr (const char *str)
 {
   static char buf [MAX_PATHLEN+MAX_VALUELEN+1];
   char   env [30];
@@ -266,16 +217,11 @@ const char *expand_var_str (const char *str)
   return strcat (buf, p+1);
 }
 
-const char *_w32_ExpandVarStr (const char *str)
-{
-  return expand_var_str (str);
-}
-
 /**
  * This function eventually gets called if no keyword was matched.
  * Prints a warning (file+line) in debug-mode >= 2.
  */
-static void W32_CALL keyword_not_found (const char *key, const char *value)
+static void keyword_not_found (const char *key, const char *value)
 {
   CONFIG_DBG_MSG (2, ("unhandled key/value: \"%s = %s\"\n", key, value));
   ARGSUSED (key);
@@ -295,9 +241,9 @@ static BOOL set_value (BOOL is_hex, const char *value, void *arg, int size)
 
 #if (DOSX)
   if (is_hex)
-     ok = (sscanf(s,"0x%8lX",&val) == 1 || sscanf(s,"x%8lX",&val) == 1);
+     ok = (sscanf(s,"0x%lX",&val) == 1 || sscanf(s,"x%lX",&val) == 1);
   if (!ok)
-     ok = (sscanf(s,"%10ld",&val) == 1);   /* "2147483647"; 10 digits */
+     ok = (sscanf(s,"%ld",&val) == 1);
 #else
   if (is_hex)
   {
@@ -354,7 +300,7 @@ static BOOL set_value (BOOL is_hex, const char *value, void *arg, int size)
          RANGE_CHECK (val, INT_MIN, INT_MAX);
          *(int*)arg = (int) min (max(val,INT_MIN), INT_MAX);
 #else
-         RANGE_CHECK (val, 0, (int)USHRT_MAX);
+         RANGE_CHECK (val, 0, USHRT_MAX);
          *(WORD*)arg = (WORD) min (val, USHRT_MAX);
 #endif
          break;
@@ -364,14 +310,14 @@ static BOOL set_value (BOOL is_hex, const char *value, void *arg, int size)
 
     default:
 #if (DOSX)
-        if (!valid_addr(arg,sizeof(int)))
+        if (!valid_addr((DWORD)arg,sizeof(int)))
         {
-          CONFIG_DBG_MSG (0, ("Illegal `arg' addr %" ADDR_FMT "\n", ADDR_CAST(arg)));
-          return (FALSE);
+          CONFIG_DBG_MSG (0, ("Illegal 'arg' addr %08lX\n", (DWORD)arg));
+	  return (FALSE);
         }
 #endif
-        *(int*)arg = val;
-        break;
+         *(int*)arg = val;
+         break;
   }
   return (TRUE);
 }
@@ -381,10 +327,10 @@ static BOOL set_value (BOOL is_hex, const char *value, void *arg, int size)
  * ('section'+'.'+)'name' either store variable to 'value' or
  * call function with 'value'.
  */
-int W32_CALL parse_config_table (const struct config_table *tab,
-                                 const char *section,
-                                 const char *name,
-                                 const char *value)
+int parse_config_table (const struct config_table *tab,
+                        const char *section,
+                        const char *name,
+                        const char *value)
 {
   for ( ; tab && tab->keyword; tab++)
   {
@@ -400,7 +346,7 @@ int W32_CALL parse_config_table (const struct config_table *tab,
       strcat (keyword, tab->keyword);   /* "SECTION.KEYWORD" */
     }
     else
-      _strlcpy (keyword, tab->keyword, sizeof(keyword));
+      StrLcpy (keyword, tab->keyword, sizeof(keyword));
 
     if (strcmp(name,keyword))
        continue;
@@ -408,8 +354,8 @@ int W32_CALL parse_config_table (const struct config_table *tab,
     arg = tab->arg_func;   /* storage or function to call */
     if (!arg)
     {
-      CONFIG_DBG_MSG (2, ("No storage for \"%s\", type %s (%d)\n",
-                      keyword, type_name(tab->type), tab->type));
+      CONFIG_DBG_MSG (2, ("No storage for \"%s\", type %d\n",
+                      keyword, tab->type));
       return (1);
     }
 
@@ -443,8 +389,8 @@ int W32_CALL parse_config_table (const struct config_table *tab,
            *(DWORD*)arg = aton (value);
            break;
 
-      case ARG_FUNC:  /* This only works if 'arg' is __cdecl */
-           (*(void(*)(const char*, size_t))arg) (value, strlen(value));
+      case ARG_FUNC:
+           (*(void(*)(const char*, int))arg) (value, strlen(value));
            break;
 
       case ARG_RESOLVE:
@@ -473,21 +419,32 @@ int W32_CALL parse_config_table (const struct config_table *tab,
            break;
 
       case ARG_STRCPY:
-           _strlcpy ((char*)arg, value, MAX_VALUELEN);
+           StrLcpy ((char*)arg, value, MAX_VALUELEN);
            break;
 
       default:
 #if defined(USE_DEBUG)
            fprintf (stderr, "Something wrong in parse_config_table().\n"
-                    "Section %s; `%s' = `%s'. type = %s (%d)\n",
-                    section, name, value, type_name(tab->type), tab->type);
+                    "Section %s; `%s' = `%s'\n", section, name, value);
            exit (-1);
 #endif
            break;
     }
 
-    CONSOLE_MSG (3, ("ARG_%s, matched `%s' = `%s'\n",
-                     type_name(tab->type), keyword, value));
+    TCP_CONSOLE_MSG (3,
+       ("ARG_%s, matched `%s' = `%s'\n",
+        tab->type == ARG_ATOI    ? "ATOI   " :
+        tab->type == ARG_ATOB    ? "ATOB   " :
+        tab->type == ARG_ATOW    ? "ATOW   " :
+        tab->type == ARG_ATOIP   ? "ATOIP  " :
+        tab->type == ARG_ATOX_B  ? "ATOX_B " :
+        tab->type == ARG_ATOX_W  ? "ATOX_W " :
+        tab->type == ARG_FUNC    ? "FUNC   " :
+        tab->type == ARG_RESOLVE ? "RESOLVE" :
+        tab->type == ARG_STRDUP  ? "STRDUP " :
+        tab->type == ARG_STRCPY  ? "STRCPY " : "??",
+        keyword, value));
+
     return (1);
   }
   return (0);
@@ -506,7 +463,7 @@ static void set_my_ip (const char *value)
 
 static void set_hostname (const char *value)
 {
-  _strlcpy (hostname, value, sizeof(hostname));
+  StrLcpy (hostname, value, sizeof(hostname));
 }
 
 static void set_gateway (const char *value)
@@ -516,17 +473,13 @@ static void set_gateway (const char *value)
 
 static void set_nameserv (const char *value)
 {
-  DWORD ip = resolve (value);
-
-  _add_server (&last_nameserver, def_nameservers,
-               DIM(def_nameservers), ip);
+  _add_server (&last_nameserver, MAX_NAMESERVERS,
+               def_nameservers, resolve(value));
 }
 
 static void set_cookie (const char *value)
 {
-  DWORD ip = resolve (value);
-
-  _add_server (&last_cookie, cookies, DIM(cookies), ip);
+  _add_server (&last_cookie, MAX_COOKIES, cookies, resolve(value));
 }
 
 /**
@@ -553,7 +506,7 @@ static void set_eaddr (const char *value)
        * call dbug_open() again in sock_ini.c
        */
 #if defined(USE_DEBUG)
-     if (debug_xmit)
+     if (_dbugxmit)
         dbug_open();
 #endif
       _rarptimeout = 2;     /* use only 2 sec timeout */
@@ -631,7 +584,11 @@ static long do_include_file (const char *value, int len)
     return (0);
   }
 
-  if (FILE_EXIST(p))
+#ifdef __DJGPP__
+  if (_chmod(p, 0) != -1)
+#else
+  if (access(p, 0) == 0)
+#endif
   {
     /* Recursion, but we're reentrant.
      * !!Fix-me: recursion depth should be limited.
@@ -713,14 +670,17 @@ const char *get_argv0 (void)
   while (*(env+1))
         env += 1 + strlen (env);
   env += 2;
-  _strlcpy (buf, env, sizeof(buf));
+  StrLcpy (buf, env, sizeof(buf));
   free (start);
   ret = buf;
 
 #elif defined(__DMC__)
   ret = __argv[0];
 
-#elif defined(__DJGPP__)
+#elif defined (__DJGPP__)
+  #if !defined(WATT32_DOS_DLL)
+  extern char **__crt0_argv;
+  #endif
   ret = __crt0_argv[0];
 
 #elif defined(_MSC_VER)
@@ -777,7 +737,7 @@ static const struct config_table normal_cfg[] = {
        { "MTU",           ARG_ATOI,   (void*)&_mtu              },
 
        { "DOMAIN.SUFFIX", ARG_FUNC,   (void*)set_domain         },
-       { "DOMAIN.TIMEOUT",ARG_ATOW,   (void*)&dns_timeout       },
+       { "DOMAIN.TIMEOUT",ARG_ATOI,   (void*)&dns_timeout       },
        { "DOMAIN.RECURSE",ARG_ATOI,   (void*)&dns_recurse       },
        { "DOMAIN.IDNA",   ARG_ATOI,   (void*)&dns_do_idna       },
        { "DOMAIN.DO_IPV6",ARG_ATOI,   (void*)&dns_do_ipv6       },
@@ -803,19 +763,16 @@ static const struct config_table normal_cfg[] = {
        { "PROFILE.ENABLE",ARG_ATOI,   (void*)&profile_enable    },
        { "PROFILE.FILE",  ARG_STRCPY, (void*)&profile_file      },
 #endif
-#if defined(USE_LANGUAGE)
+#if defined (USE_LANGUAGE)
        { "LANGUAGE",      ARG_FUNC,   (void*)lang_init          },
 #endif
-#if defined(USE_BSD_API)
-       { "HOSTS",         ARG_FUNC,   (void*)_ReadHostsFile     },
-#if defined(USE_IPV6)
-       { "HOSTS6",        ARG_FUNC,   (void*)_ReadHosts6File    },
-#endif
-       { "SERVICES",      ARG_FUNC,   (void*)_ReadServFile      },
-       { "PROTOCOLS",     ARG_FUNC,   (void*)_ReadProtoFile     },
-       { "NETWORKS",      ARG_FUNC,   (void*)_ReadNetworksFile  },
+#if defined (USE_BSD_API)
+       { "HOSTS",         ARG_FUNC,   (void*)ReadHostsFile      },
+       { "SERVICES",      ARG_FUNC,   (void*)ReadServFile       },
+       { "PROTOCOLS",     ARG_FUNC,   (void*)ReadProtoFile      },
+       { "NETWORKS",      ARG_FUNC,   (void*)ReadNetworksFile   },
        { "NETDB_ALIVE",   ARG_ATOI,   (void*)&netdbCacheLife    },
-       { "ETHERS",        ARG_FUNC,   (void*)_InitEthersFile    },
+       { "ETHERS",        ARG_FUNC,   (void*)InitEthersFile     },
 #endif
        { "IP.DEF_TTL",    ARG_ATOI,   (void*)&_default_ttl      },
        { "IP.DEF_TOS",    ARG_ATOX_B, (void*)&_default_tos      },
@@ -846,21 +803,16 @@ static const struct config_table normal_cfg[] = {
        { "TCP.BLACKHOLE_DETECT",ARG_ATOI, (void*)&mtu_blackhole     },
        { "TCP.RECV_WIN",        ARG_FUNC, (void*)set_recv_win       },
 #endif
-       { "MEMDBG.STACK_DUMP",   ARG_ATOI, (void*)&stkwalk_details   },  /* put this somewehere else */
-       { "MEMDBG.FORTIFY_FAIL", ARG_ATOI, (void*)&fortify_fail_rate },  /* put this somewehere else */
-
        { NULL, 0, NULL }
      };
 
 /**
- * Old comptibility function. Callable from apps using Watt-32 only.
- * Only allow apps to set a higher level than specified in cfg-file.
- * Default: 'debug_on == 0'.
+ * Used when DEBUG=x is defined in the config file
+ * Moved from pctcp.c
  */
-void W32_CALL tcp_set_debug_state (WORD val)
+void tcp_set_debug_state (WORD x)
 {
-  if (val >= debug_on)
-     debug_on = val;
+  debug_on = x;
 }
 
 /**
@@ -868,8 +820,7 @@ void W32_CALL tcp_set_debug_state (WORD val)
  * Take 'value' and possibly expand any $(var) in it.
  * Pass key/value to config_table parser.
  */
-static void
-tcp_inject_config_direct (
+static void tcp_inject_config_direct (
             const struct config_table *cfg,
             const char                *key,
             const char                *value)
@@ -877,18 +828,18 @@ tcp_inject_config_direct (
   WATT_ASSERT (key);
   WATT_ASSERT (value);
 
-  if (W32_CLANG_NONNULL(key) || !key[0])
+  if (!key[0])
   {
     CONFIG_DBG_MSG (1, ("empty keyword\n"));
     return;
   }
-  if (W32_CLANG_NONNULL(key) || !value[0])  /* don't pass empty values to the parser */
+  if (!value[0])  /* don't pass empty values to the parser */
   {
     CONFIG_DBG_MSG (1, ("keyword `%s' with no value\n", key));
     return;
   }
 
-  value = expand_var_str (value);
+  value = ExpandVarStr (value);
   if (!parse_config_table(cfg, NULL, key, value) && usr_init)
      (*usr_init) (key, value);
 }
@@ -898,9 +849,9 @@ tcp_inject_config_direct (
  * the normal WATTCP.CFG is loaded and parsed.
  * See '_watt_user_config' in sock_ini.c.
  */
-void W32_CALL tcp_inject_config (const struct config_table *cfg,
-                                 const char                *key,
-                                 const char                *value)
+void tcp_inject_config (const struct config_table *cfg,
+                        const char                *key,
+                        const char                *value)
 {
   char  theKey  [MAX_NAMELEN +1];
   char  theValue[MAX_VALUELEN+1];
@@ -938,23 +889,23 @@ void W32_CALL tcp_inject_config (const struct config_table *cfg,
 
 /*
  * Read a character:
- *  - if failed (EOF/26) or read a ^Z, set 'eof' and return '\0'.
+ *  - if failed (EOF) or read a ^Z, set 'eof' and return '\0'.
  *  - else update 'num_read' counter and return char read.
  */
-#define READ_NEXT_CH(ch, f) \
-        (ch = 0, (FREAD(&(ch), f) == 1) && (ch != 26) ? (++num_read, ch) : \
+#define READNEXTCH(ch, f) \
+        ((FREAD(&(ch), f) == 1) && (ch != 26) ? (++num_read, ch) : \
           (last_eol = got_eol, got_eol = eof = TRUE, ch = '\0'))
 
 /* Either read a char or retrieve the one "read ahead" before.
  */
-#define READ_CH(ch, next, f) \
-        (next ? (ch = next, next = '\0', ch) : READ_NEXT_CH(ch, f))
+#define READCH(ch, next, f) \
+        (next ? (ch = next, next = '\0', ch) : READNEXTCH(ch, f))
 
 long tcp_parse_file (WFILE f, const struct config_table *cfg)
 {
   char   key  [MAX_NAMELEN+1];
   char   value[MAX_VALUELEN+1];
-  int    ch, nextch;  /* !! was 'char' */
+  char   ch, nextch;
   size_t num;            /* # of char in key/value */
   long   num_read;       /* # of bytes read */
   enum   ParseMode mode;
@@ -980,16 +931,16 @@ long tcp_parse_file (WFILE f, const struct config_table *cfg)
 
     for (;;)
     {
-      switch (READ_CH(ch, nextch, f))
+      switch (READCH(ch, nextch, f))
       {
         case '\0':
              if (!last_eol && num)
                 CONFIG_DBG_MSG (0, ("Missing line-termination "
-                                    "could break old WatTcp programs.\n"));
+                                "could break old WatTcp programs.\n"));
              break;
 
         case '\r':
-             if (READ_NEXT_CH(nextch, f) == '\n')
+             if (READNEXTCH(nextch, f) == '\n')
                 nextch = '\0';
              /* Fall through */
 
@@ -1026,7 +977,7 @@ long tcp_parse_file (WFILE f, const struct config_table *cfg)
               * Ex.: SETTING_1 = "This is a ""quoted"" string."
               *      SETTING_2 = This_is_a_""quoted""_string.
               */
-              if (READ_NEXT_CH(nextch, f) == '\"')
+              if (READNEXTCH(nextch, f) == '\"')
               {
                 nextch = '\0'; /* Ignore next, but keep this 'ch' */
               }
@@ -1094,7 +1045,7 @@ long tcp_parse_file (WFILE f, const struct config_table *cfg)
 /*
  * Public only because of tcpinfo program.
  */
-int W32_CALL tcp_config_name (char *name, int max)
+int tcp_config_name (char *name, int max)
 {
   char *path, *temp;
   int   i;
@@ -1104,7 +1055,7 @@ int W32_CALL tcp_config_name (char *name, int max)
     path = getenv (environ_names[i]);
     if (path)
     {
-      path = _strlcpy (name, path, max-2);
+      path = StrLcpy (name, path, max-2);
       break;
     }
   }
@@ -1118,8 +1069,12 @@ int W32_CALL tcp_config_name (char *name, int max)
       *temp = '\0';
     }
   }
-  else if (FILE_EXIST(config_name))  /* found in current directory */
-  {
+#ifdef __DJGPP__
+  else if (_chmod(config_name,0) != -1)
+#else
+  else if (access(config_name,0) == 0)
+#endif
+  { /* found in current directory */
     strcpy (name, ".\\");
     path = name;
   }
@@ -1130,13 +1085,13 @@ int W32_CALL tcp_config_name (char *name, int max)
     if (!argv0 || !argv0[0])
        return (0);
 
-    _strlcpy (name, argv0, max);
+    StrLcpy (name, argv0, max);
     strreplace ('/', '\\', name);
 
     /* If path == "x:", extract path.
      * temp -> last '\\' in path.
      */
-    path = (isalpha((int)name[0]) && name[1] == ':') ? name+2 : name;
+    path = (isalpha(name[0]) && name[1] == ':') ? name+2 : name;
     temp = strrchr (path, '\\');
     if (!temp)
        temp = (char*)path;
@@ -1144,7 +1099,7 @@ int W32_CALL tcp_config_name (char *name, int max)
     *temp = '\0';             /* 'name' = path of program ("x:\path\") */
   }
 
-  i = max - (int)strlen(name) - 1;
+  i = max - strlen (name) - 1;
   if (i < 0)
      return (0);
 
@@ -1154,12 +1109,12 @@ int W32_CALL tcp_config_name (char *name, int max)
 }
 
 /*
- * Hack for pcpkt.c/winpkt.c: Bypass parsing of "normal_cfg".
- * tcp_config() is called in pcpkt.c/winpkt.c with another config-table.
+ * Hack for pcpkt.c/winpcap.c: Bypass parsing of "normal_cfg".
+ * tcp_config() is called in pcpkt.c/winpcap.c with another config-table.
  */
 const struct config_table *watt_init_cfg = normal_cfg;
 
-long W32_CALL tcp_config (const char *path)
+long tcp_config (const char *path)
 {
   char  name[MAX_PATHLEN] = { 0 };
   char *fname = config_name;
@@ -1185,18 +1140,22 @@ long W32_CALL tcp_config (const char *path)
   else
   {
     fname = name;
-    _strlcpy (name, path, sizeof(name));
-    if (!FILE_EXIST(fname))
+    StrLcpy (name, path, sizeof(name));
+#ifdef __DJGPP__
+    if (_chmod(fname,0) == -1)
+#else
+    if (access(fname,0) != 0)
+#endif
        goto not_found;
   }
 
-  if (!FOPEN_BIN(file,fname))  /* shouldn't happen */
+  if (!FOPEN(file,fname))  /* shouldn't happen */
      goto not_found;
 
   current_file = name;
   current_line = 0;
 
-  CONSOLE_MSG (2, ("Parsing `%s' (pass %d)\n", fname, pass));
+  TCP_CONSOLE_MSG (2, ("Parsing `%s' (pass %d)\n", fname, pass));
 
   len = tcp_parse_file (file, watt_init_cfg);
 
@@ -1205,7 +1164,7 @@ long W32_CALL tcp_config (const char *path)
 
 not_found:
 
-  /* Warn unless parsing from pcpkt.c/winpkt.c.
+  /* Warn unless parsing from pcpkt.c/winpcap.c.
    */
   if (watt_init_cfg == normal_cfg)
   {
@@ -1225,7 +1184,7 @@ int netdb_init (void)
   int rc, save = _watt_do_exit;
 
   _watt_do_exit = 0;    /* don't make watt_sock_init() call exit() */
-  rc = watt_sock_init (0, 0, sizeof(time_t));
+  rc = watt_sock_init (0, 0);
   _watt_do_exit = save;
   return (rc == 0);
 }
@@ -1242,16 +1201,17 @@ void netdb_warn (const char *fname)
 
 #if defined(TEST_PROG)
 
+#include "getopt.h"
+
 const char *cfg_file;
 
-static void W32_CALL not_found2 (const char *key, const char *value)
+static void not_found2 (const char *key, const char *value)
 {
   size_t len = strlen (value);
   DWORD  ret = 0;
 
   printf ("Unmatched: key `%s', value `%s', len %lu  %s\n",
-          key, value, (unsigned long)len,
-          (len >= MAX_VALUELEN-1) ? "(truncated)" : "");
+          key, value, len, len >= MAX_VALUELEN-1 ? "(truncated)" : "");
 
   if (!stricmp("HEX_BYTE",key))
      set_value (TRUE, value, &ret, sizeof(BYTE));
@@ -1283,17 +1243,6 @@ void Usage (void)
   exit (0);
 }
 
-#ifdef __CYGWIN__
-  #include <sys/stat.h>
-  static long filelength (int fd)
-  {
-    struct stat st;
-    if (fstat(fd,&st) != 0)
-       return (-1);
-    return (st.st_size);
-  }
-#endif
-
 int main (int argc, char **argv)
 {
   int  ch, cfg_len;
@@ -1314,24 +1263,25 @@ int main (int argc, char **argv)
 
   argc -= optind;
   argv += optind;
-  cfg_file = NULL;    /* use the default wattcp.cfg */
+  cfg_file = NULL;    /* the default one */
 
   if (*argv)
   {
-    WFILE cfg;
+    FILE *cfg;
 
     cfg_file = *argv;
-    if (FOPEN_BIN(cfg,cfg_file))
+    cfg = fopen (cfg_file, "rb");
+    if (cfg)
     {
       file_len = filelength (fileno(cfg));
-      FCLOSE (cfg);
+      fclose (cfg);
     }
   }
 
   usr_init = not_found2;
   cfg_len  = tcp_config (cfg_file);
 
-  if (file_len > 0)
+  if (file_len)
      printf ("filesize %ld, %d bytes parsed\n", file_len, cfg_len);
 
   printf ("\nTest the config injector:\n");

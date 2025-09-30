@@ -22,7 +22,7 @@ typedef struct PM_driver {
 
 extern int (*_pkt32_drvr)(IREGS*);
 
-extern const struct PM_driver pm_driver_list[];
+extern struct PM_driver pm_driver_list[];
 
 extern int         pkt32_drvr_probe (const PM_driver *drivers);
 extern int         pkt32_drvr_init  (int driver, mac_address *addr);

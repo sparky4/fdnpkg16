@@ -5,7 +5,7 @@
  *  Handles tracing of entry/exit functions and replaces the buggy
  *  system() routine.
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -49,7 +49,7 @@
  * HighC's putenv() doesn't modify the inherited environment.
  * We must do it ourself.
  */
-static char *setup_environment (void)
+static char *SetupEnvironment (void)
 {
   char  *copy;
   char  *start;
@@ -80,14 +80,16 @@ static char *setup_environment (void)
   return (start);
 }
 
-static int execute (const char *path, const char *args, const char *env)
+static int Execute (const char *path, const char *args, char **env)
 {
   union  REGS reg;
   EXEC_BLK    blk;
   char        buf[256];
   int         len;
   ULONG       minPages, maxPages;
+  UCHAR      *our_env = (UCHAR*) SetupEnvironment();
 
+  *env = our_env;
   len  = strlen (args);
   if (len > sizeof(buf)-2)
      return (0);
@@ -98,10 +100,10 @@ static int execute (const char *path, const char *args, const char *env)
   buf [0]   = len++;
   buf [len] = '\r';
 
-  /* if `env' is NULL we'll inherit the environment without any
+  /* if `our_env' is NULL we'll inherit the environment without any
    * variables added by `putenv()'
    */
-  blk.ex_eoff = (UCHAR*)env;    /* pass new environment */
+  blk.ex_eoff = our_env;        /* pass new environment */
   blk.ex_eseg = SS_DATA;
   blk.ex_coff = (UCHAR*) buf;   /* command line address */
   blk.ex_cseg = SS_DATA;
@@ -127,11 +129,10 @@ static int execute (const char *path, const char *args, const char *env)
 int _mw_watt_system (const char *cmd)
 {
   char  buf[150];
-  const char *env;
-  const char *comspec = getenv ("COMSPEC");
+  char *env_copy, *env = getenv ("COMSPEC");
   int   rc;
 
-  if (!comspec || access(comspec,0))
+  if (!env || access(env,0))
   {
     (*_printf) ("Bad COMSPEC variable\n");
     return (0);
@@ -141,11 +142,10 @@ int _mw_watt_system (const char *cmd)
        _bprintf (buf, sizeof(buf), " /c %s", cmd);
   else _bprintf (buf, sizeof(buf), "%s", cmd);
 
-  env = setup_environment();
-  rc  = execute (comspec, buf, env);
+  rc = Execute (env, buf, &env_copy);
 
-  if (env)
-     free (env);
+  if (env_copy)
+     free (env_copy);
   return (rc);
 }
 

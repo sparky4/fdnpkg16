@@ -1,5 +1,5 @@
 /*!\file pcrecv.h
- */
+ */            
 #ifndef _w32_PCRECV_H
 #define _w32_PCRECV_H
 
@@ -25,4 +25,9 @@ typedef struct recv_buf {
         BYTE        buf_data [ETH_MAX]; /* sock_packet_peek() needs 1514 */
       } recv_buf;
 
+extern int sock_recv_init (sock_type *s, void *space, unsigned len);
+extern int sock_recv_used (const sock_type *s);
+extern int sock_recv      (sock_type *s, void *buffer, unsigned len);
+extern int sock_recv_from (sock_type *s, void *hisip, WORD *hisport,
+                           void *buffer, unsigned len, int peek);
 #endif

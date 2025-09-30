@@ -3,12 +3,12 @@
  *  A djgpp-like DOS memory interface for Borland's DOS extender (32rtm).
  *  Only Borland's BCC32 v4.5+ supported.
  *
- *  by G. Vanem <gvanem@yahoo.no>  Nov 2002
+ *  by G. Vanem <giva@bgnett.no>  Nov 2002
  *
  *  Running PowerPak under plain DOS, the 32rtm extender tries to emulate
  *  a subset of the Win32 API. Running the same app. under Win32 uses the
- *  real Win32 API (from kernel32.dll etc.). Therefore we cannot use int386()
- *  etc., but must use native calls. This isn't finished yet (if at all
+ *  real Win32 API (from kernel32.dll etc.). So then we cannot use int386()
+ *  etc., but must use native calls. This isn't finished yet (I at all
  *  possible).
  */
 

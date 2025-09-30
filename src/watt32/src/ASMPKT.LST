@@ -1,0 +1,399 @@
+     1                                  ; !\asmpkt.nas
+     2                                  ;
+     3                                  ; Packet-driver receiver upcall handler. This module is used for all
+     4                                  ; targets if USE_FAST_PKT is defined in config.h. Not needed otherwise.
+     5                                  ; For 32-bit targets this code is patched and copied to allocated DOS
+     6                                  ; memory at runtime.
+     7                                  ;
+     8                                  ; Requires NASM 0.98+ to assemble. Use the one in ..\util.
+     9                                  ;
+    10                                  
+    11                                  BITS 16
+    12                                  ORG  0
+    13                                  
+    14                                  %define DEBUG              0
+    15                                  %define RX_BUFS            40           ; same as in pcqueue.h
+    16                                  %define ETH_MAX            1514         ; max Ethernet size
+    17                                  %define RX_SIZE            (ETH_MAX+10) ; add some margin
+    18                                  
+    19                                  %define IP4_TYPE           0x0008       ; these are in network order
+    20                                  %define IP6_TYPE           0xDD86
+    21                                  %define ARP_TYPE           0x0608
+    22                                  %define RARP_TYPE          0x3580
+    23                                  %define PPPOE_DISC_TYPE    0x6388
+    24                                  %define PPPOE_SESS_TYPE    0x6488
+    25                                  
+    26                                  struc RX_ELEMENT                ; struct pkt_rx_element
+    27 00000000 <res 00000008>                rx_tstamp_put: resd  2    ; RDTSC timestamp on put
+    28 00000008 <res 00000008>                rx_tstamp_get: resd  2    ; RDTSC timestamp on get
+    29 00000010 <res 00000002>                rx_handle:     resw  1    ; handle for this Rx upcall
+    30 00000012 <res 00000002>                rx_length_1:   resw  1    ; packet length on 1st upcall
+    31 00000014 <res 00000002>                rx_length_2:   resw  1    ; packet length on 2nd upcall
+    32 00000016 <res 00000002>                rx_filler      resw  1    ; align on DWORD boundary
+    33                                      RX_ELEMENT_HEAD:            ; (24)
+    34 00000018 <res 000005F4>                rx_buf:        resb (RX_SIZE)
+    35                                      RX_ELEMENT_SIZE:
+    36                                  endstruc
+    37                                  
+    38                                  struc PKT_RINGBUF
+    39 00000000 <res 00000002>                in_index:      resw  1    ; queue index head
+    40 00000002 <res 00000002>                out_index:     resw  1    ; queue index tail
+    41 00000004 <res 00000002>                buf_size:      resw  1    ; size of each buffer
+    42 00000006 <res 00000002>                num_buf:       resw  1    ; number of buffers
+    43 00000008 <res 00000004>                num_drop:      resd  1    ; number of dropped pkts
+    44 0000000C <res 00000004>                buf_start:     resd  1    ; start of buffer pool      (not used here)
+    45 00000010 <res 00000002>                dos_ofs:       resw  1    ; DOS offset of RX_ELEMENTs (not used here)
+    46                                      PKT_RINGBUF_SIZE:           ; (18)
+    47                                  endstruc
+    48                                  
+    49                                  ;
+    50                                  ; Only used indirectly by reading 'size_chk' in pcpkt2.c to check
+    51                                  ; the structure layouts are the same here and in pcpkt.h.
+    52                                  ;
+    53                                  struc PKT_INFO
+    54 00000000 <res 00000006>                rm_sel_seg_ofs: resw  3                       ; not used here (6)
+    55 00000006 <res 00000002>                dos_ds:         resw  1                       ;   -- " --
+    56 00000008 <res 00000002>                use_near        resw  1                       ;   -- " --
+    57 0000000A <res 00000002>                handle:         resw  1                       ;   -- " --
+    58 0000000C <res 00000002>                is_serial:      resw  1                       ;   -- " --     16 total
+    59 0000000E <res 00000002>                pkt_ip_ofs:     resw  1
+    60 00000010 <res 00000002>                pkt_type_ofs:   resw  1
+    61                                    ;   error:          resd  1                       ; ofs 32
+    62 00000012 <res 00000012>                pkt_queue:      resb  PKT_RINGBUF_SIZE        ; size 18
+    63 00000024 <res 0000F1E0>                rx_bufs:        resb (RX_BUFS*RX_ELEMENT_SIZE)
+    64                                      PKT_INFO_SIZE:
+    65                                  endstruc
+    66                                  
+    67 00000000 00000000                asmpkt_inf   dd 0                  ; CS:0
+    68 00000004 FFFF                    index        dw -1                 ; CS:4
+    69 00000006 [5600]                  patch_nop    dw @patch_it          ; CS:6
+    70 00000008 04F2                    size_chk     dw PKT_INFO_SIZE      ; CS:8
+    71 0000000A 4006                    xy_pos       dw 160*10             ; CS:10
+    72                                  
+    73                                  %macro PUTCH 1
+    74                                     %if DEBUG
+    75                                         push es
+    76                                         push di
+    77                                         push ax
+    78                                         mov  ax, 0xB800             ; colour screen segment
+    79                                         mov  es, ax
+    80                                         mov  di, word [cs:xy_pos]
+    81                                         mov  al, %1                 ; AL = arg 1
+    82                                         mov  ah, 15+16              ; white on blue
+    83                                         stosw
+    84                                         add  word [cs:xy_pos], 2    ; increment X-pos
+    85                                         pop  ax
+    86                                         pop  di
+    87                                         pop  es
+    88                                    %endif
+    89                                  %endmacro
+    90                                  
+    91                                  
+    92                                  pkt_receiver_rm:
+    93 0000000C 0FA8                            push gs
+    94 0000000E 0FA0                            push fs                    ; I suspect NDIS3PKT changes FS/GS
+    95 00000010 9C                              pushf
+    96 00000011 FA                              cli                        ; no interruptions now
+    97 00000012 08C0                            or   al, al                ; AL = 0 if 1st call from pkt-driver
+    98 00000014 7505                            jnz  @enque                ; AL <>0, 2nd call; enqueue packet
+    99                                  
+   100                                          PUTCH ' '
+   101                              <1>  %if DEBUG
+   102                              <1>  push es
+   103                              <1>  push di
+   104                              <1>  push ax
+   105                              <1>  mov ax, 0xB800
+   106                              <1>  mov es, ax
+   107                              <1>  mov di, word [cs:xy_pos]
+   108                              <1>  mov al, %1
+   109                              <1>  mov ah, 15+16
+   110                              <1>  stosw
+   111                              <1>  add word [cs:xy_pos], 2
+   112                              <1>  pop ax
+   113                              <1>  pop di
+   114                              <1>  pop es
+   115                              <1>  %endif
+   116                                          PUTCH '0'
+   117                              <1>  %if DEBUG
+   118                              <1>  push es
+   119                              <1>  push di
+   120                              <1>  push ax
+   121                              <1>  mov ax, 0xB800
+   122                              <1>  mov es, ax
+   123                              <1>  mov di, word [cs:xy_pos]
+   124                              <1>  mov al, %1
+   125                              <1>  mov ah, 15+16
+   126                              <1>  stosw
+   127                              <1>  add word [cs:xy_pos], 2
+   128                              <1>  pop ax
+   129                              <1>  pop di
+   130                              <1>  pop es
+   131                              <1>  %endif
+   132                                  
+   133 00000016 E80B00                          call pkt_get_buffer        ; get a buffer, return ES:DI (may be 0:0)
+   134 00000019 EB03                            jmp short @quit
+   135                                  
+   136                                          ;
+   137                                          ; enque packet, DS:SI=ES:DI from 1st call, i.e. DS=CS
+   138                                          ;
+   139                                  @enque:
+   140                                        ; call pkt_filter            ; not any point really
+   141                                        ; jc @quit
+   142                                  
+   143                                          PUTCH '1'
+   144                              <1>  %if DEBUG
+   145                              <1>  push es
+   146                              <1>  push di
+   147                              <1>  push ax
+   148                              <1>  mov ax, 0xB800
+   149                              <1>  mov es, ax
+   150                              <1>  mov di, word [cs:xy_pos]
+   151                              <1>  mov al, %1
+   152                              <1>  mov ah, 15+16
+   153                              <1>  stosw
+   154                              <1>  add word [cs:xy_pos], 2
+   155                              <1>  pop ax
+   156                              <1>  pop di
+   157                              <1>  pop es
+   158                              <1>  %endif
+   159 0000001B E88D00                          call pkt_enqueue           ; copy packet at DS:SI to queue-head
+   160                                  @quit:
+   161 0000001E 9D                              popf
+   162 0000001F 0FA1                            pop fs
+   163 00000021 0FA9                            pop gs
+   164 00000023 CB                              retf
+   165                                  
+   166                                  ;
+   167                                  ; If room in ring-buffer, return next head buffer, else NULL.
+   168                                  ;
+   169                                  ; static unsigned short index;
+   170                                  ;
+   171                                  ; char * pkt_get_buffer (int rx_len)
+   172                                  ; {
+   173                                  ;   struct _far pkt_ringbuf *queue = asmpkt_inf->pkt_queue;
+   174                                  ;
+   175                                  ;   if (rx_len > queue->buf_size - 4)
+   176                                  ;   {
+   177                                  ;     queue->num_drop++;
+   178                                  ;     return (NULL);
+   179                                  ;   }
+   180                                  ;
+   181                                  ;   index = queue->in_index + 1;
+   182                                  ;   if (index >= queue->num_buf)
+   183                                  ;       index = 0;
+   184                                  ;
+   185                                  ;   if (index == queue->out_index)
+   186                                  ;   {
+   187                                  ;     queue->num_drop++;
+   188                                  ;     return (NULL);
+   189                                  ;   }
+   190                                  ;   return MK_FP (_ES, queue->dos_ofs + (queue->buf_size * queue->in_index);
+   191                                  ; }
+   192                                  ;
+   193                                  ; BX = protocol handle
+   194                                  ; CX = buffer size
+   195                                  ;
+   196                                  ; return ES:DI, AX,BX,DX changed
+   197                                  
+   198                                  pkt_get_buffer:
+   199 00000024 1E                              push ds                           ; save DS
+   200 00000025 8CC8                            mov  ax, cs
+   201 00000027 8ED8                            mov  ds, ax                       ; DS = CS
+   202 00000029 C43E[0000]                      les  di, [asmpkt_inf]
+   203                                  
+   204 0000002D 81C71200                        add  di, pkt_queue                ; ES:DI = queue
+   205 00000031 B8F005                          mov  ax, RX_SIZE-4
+   206 00000034 39C1                            cmp  cx, ax                       ; if (rx_len > queue->buf_size - 4)
+   207 00000036 772D                            ja   @drop_it                     ;    goto drop it
+   208                                  
+   209 00000038 8B05                            mov  ax, [di+in_index]
+   210 0000003A 40                              inc  ax
+   211 0000003B 3D2800                          cmp  ax, RX_BUFS                  ; index < queue->num_buf?
+   212 0000003E 7202                            jb   @no_wrap                     ; no, don't wrap
+   213 00000040 31C0                            xor  ax, ax                       ; yes, wrap it.
+   214                                  
+   215                                          PUTCH 'w'
+   216                              <1>  %if DEBUG
+   217                              <1>  push es
+   218                              <1>  push di
+   219                              <1>  push ax
+   220                              <1>  mov ax, 0xB800
+   221                              <1>  mov es, ax
+   222                              <1>  mov di, word [cs:xy_pos]
+   223                              <1>  mov al, %1
+   224                              <1>  mov ah, 15+16
+   225                              <1>  stosw
+   226                              <1>  add word [cs:xy_pos], 2
+   227                              <1>  pop ax
+   228                              <1>  pop di
+   229                              <1>  pop es
+   230                              <1>  %endif
+   231                                  
+   232                                  @no_wrap:
+   233 00000042 A3[0400]                        mov  [index], ax                  ; remember in_index for 2nd upcall
+   234 00000045 3B4502                          cmp  ax, [di+out_index]
+   235 00000048 741B                            je   @drop_it                     ; if (index == queue->out_index)
+   236                                                                            ;   drop packet (queue full)
+   237 0000004A B80C06                          mov  ax, RX_ELEMENT_SIZE
+   238 0000004D F725                            mul  word [di+in_index]           ; AX += (queue->buf_size * queue->in_index)
+   239 0000004F 01F8                            add  ax, di
+   240 00000051 051200                          add  ax, rx_bufs - pkt_queue      ; AX = rx_bufs[queue->in_in_index]
+   241 00000054 89C7                            mov  di, ax
+   242                                  
+   243                                  @patch_it:
+   244 00000056 E87700                          call get_tstamp
+   245 00000059 895D10                          mov  word [di+rx_handle], bx      ; save the handle and length for
+   246 0000005C 894D12                          mov  word [di+rx_length_1], cx    ; pkt_poll_recv()
+   247                                  
+   248 0000005F 81C71800                        add  di, RX_ELEMENT_HEAD          ; ES:DI -> receive buffer
+   249                                  
+   250                                          PUTCH '!'
+   251                              <1>  %if DEBUG
+   252                              <1>  push es
+   253                              <1>  push di
+   254                              <1>  push ax
+   255                              <1>  mov ax, 0xB800
+   256                              <1>  mov es, ax
+   257                              <1>  mov di, word [cs:xy_pos]
+   258                              <1>  mov al, %1
+   259                              <1>  mov ah, 15+16
+   260                              <1>  stosw
+   261                              <1>  add word [cs:xy_pos], 2
+   262                              <1>  pop ax
+   263                              <1>  pop di
+   264                              <1>  pop es
+   265                              <1>  %endif
+   266 00000063 1F                              pop  ds
+   267 00000064 C3                              ret                               ; return ES:DI
+   268                                  
+   269                                  @drop_it:
+   270                                          PUTCH 'd'
+   271                              <1>  %if DEBUG
+   272                              <1>  push es
+   273                              <1>  push di
+   274                              <1>  push ax
+   275                              <1>  mov ax, 0xB800
+   276                              <1>  mov es, ax
+   277                              <1>  mov di, word [cs:xy_pos]
+   278                              <1>  mov al, %1
+   279                              <1>  mov ah, 15+16
+   280                              <1>  stosw
+   281                              <1>  add word [cs:xy_pos], 2
+   282                              <1>  pop ax
+   283                              <1>  pop di
+   284                              <1>  pop es
+   285                              <1>  %endif
+   286                                  
+   287 00000065 8145080100                      add  word [di+num_drop+0], 1
+   288 0000006A 81550A0000                      adc  word [di+num_drop+2], 0
+   289 0000006F 31FF                            xor  di, di
+   290 00000071 8EC7                            mov  es, di                       ; return (NULL)
+   291 00000073 1F                              pop  ds
+   292 00000074 C3                              ret
+   293                                  
+   294                                  ;
+   295                                  ; NOT USED
+   296                                  ;
+   297                                  ; If not using a serial driver, filter off the protocol types we're
+   298                                  ; not interested in.
+   299                                  ;
+   300                                  ; int pkt_filter (const unsigned char *rx_buf == DS:SI)
+   301                                  ; {
+   302                                  ;   WORD typ;
+   303                                  ;
+   304                                  ;   if (asmpkt_inf->pkt_type_ofs == 0)
+   305                                  ;      return (NOCARRY);
+   306                                  ;
+   307                                  ;   typ = *(unsigned short*)rx_buf[asmpkt_inf->pkt_type_ofs];
+   308                                  ;   if (typ == IP4_TYPE || typ == IP6_TYPE || typ == ARP_TYPE ||
+   309                                  ;       typ == RARP_TYPE || typ == PPPOE_DISC_TYPE || typ == PPPOE_SESS_TYPE)
+   310                                  ;      return (NOCARRY);
+   311                                  ;   return (CARRY);
+   312                                  ; }
+   313                                  
+   314                                  pkt_filter:
+   315 00000075 C43E[0000]                    les  di, [asmpkt_inf]
+   316 00000079 817D100000                    cmp  word [di+pkt_type_ofs], 0
+   317 0000007E 7429                          je   @pass_it
+   318 00000080 037510                        add  si, [di+pkt_type_ofs]
+   319 00000083 813C0800                      cmp  word [si], IP4_TYPE
+   320 00000087 7420                          je   @pass_it
+   321 00000089 813C86DD                      cmp  word [si], IP6_TYPE
+   322 0000008D 741A                          je   @pass_it
+   323 0000008F 813C0806                      cmp  word [si], ARP_TYPE
+   324 00000093 7414                          je   @pass_it
+   325 00000095 813C8035                      cmp  word [si], RARP_TYPE
+   326 00000099 740E                          je   @pass_it
+   327 0000009B 813C8863                      cmp  word [si], PPPOE_DISC_TYPE
+   328 0000009F 7408                          je   @pass_it
+   329 000000A1 813C8864                      cmp  word [si], PPPOE_SESS_TYPE
+   330 000000A5 7402                          je   @pass_it
+   331 000000A7 F9                            stc
+   332 000000A8 C3                            ret
+   333                                  @pass_it:
+   334 000000A9 F8                            clc
+   335 000000AA C3                            ret
+   336                                  
+   337                                  
+   338                                  ;
+   339                                  ; Enqueue a packet to the head of queue.
+   340                                  ;
+   341                                  ; DS:SI = receiver buffer to enqueue.
+   342                                  ; CX    = rx_len
+   343                                  ;
+   344                                  pkt_enqueue:
+   345                                          PUTCH '*'
+   346                              <1>  %if DEBUG
+   347                              <1>  push es
+   348                              <1>  push di
+   349                              <1>  push ax
+   350                              <1>  mov ax, 0xB800
+   351                              <1>  mov es, ax
+   352                              <1>  mov di, word [cs:xy_pos]
+   353                              <1>  mov al, %1
+   354                              <1>  mov ah, 15+16
+   355                              <1>  stosw
+   356                              <1>  add word [cs:xy_pos], 2
+   357                              <1>  pop ax
+   358                              <1>  pop di
+   359                              <1>  pop es
+   360                              <1>  %endif
+   361 000000AB C43E[0000]                      les  di, [asmpkt_inf]
+   362                                  
+   363 000000AF 09F6                            or   si, si                ; NULL-ptr is not valid
+   364 000000B1 7412                            jz   @no_enque
+   365 000000B3 8CC0                            mov  ax, es
+   366 000000B5 8CDA                            mov  dx, ds
+   367 000000B7 39C2                            cmp  dx, ax
+   368 000000B9 750A                            jne  @no_enque             ; DS != ES on 1st upcall
+   369                                  
+   370 000000BB 894CFC                          mov  [si-RX_ELEMENT_HEAD+rx_length_2], cx
+   371 000000BE A1[0400]                        mov  ax, [index]
+   372 000000C1 894512                          mov  [di+pkt_queue+in_index], ax  ; update queue->in_index
+   373 000000C4 C3                              ret
+   374                                  
+   375                                  @no_enque:
+   376 000000C5 81451A0100                      add  word [di+pkt_queue+num_drop+0], 1
+   377 000000CA 81551C0000                      adc  word [di+pkt_queue+num_drop+2], 0
+   378 000000CF C3                              ret
+   379                                  
+   380                                  ;
+   381                                  ; Fill in RDTSC timestamp at [ES:DI]
+   382                                  ; (the call to this function will be patched to NOPs if not a Pentium+ CPU)
+   383                                  ;
+   384                                  get_tstamp:
+   385 000000D0 6650                            push eax
+   386 000000D2 6652                            push edx
+   387 000000D4 0F31                            rdtsc
+   388 000000D6 668905                          mov  dword [di+rx_tstamp_put], eax
+   389 000000D9 66895504                        mov  dword [di+rx_tstamp_put+4], edx
+   390 000000DD 665A                            pop  edx
+   391 000000DF 6658                            pop  eax
+   392 000000E1 C3                              ret
+   393                                  
+   394 000000E2 CB<rept>                align 16, db 0xCB
+   395                                  
+   396                                  ;
+   397                                  ; asmpkt_inf gets allocated here at run time
+   398                                  ;
+   399                                  ;end

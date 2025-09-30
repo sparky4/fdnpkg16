@@ -41,10 +41,6 @@
 #ifndef _NETINET6_ESP6_H_
 #define _NETINET6_ESP6_H_
 
-#ifndef __SYS_MBUF_H
-#include <sys/mbuf.h>
-#endif
-
 #ifdef _KERNEL
 extern int esp6_output __P((struct mbuf *, u_char *, struct mbuf *,
 	struct ipsecrequest *));

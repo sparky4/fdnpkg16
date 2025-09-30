@@ -41,10 +41,7 @@
   #define TCP_TRACE  ((void)0)
 #endif
 
-typedef int (*tcp_StateProc)  (_tcp_Socket**,    /* in/out: TCP socket, can change on output */
-                               const in_Header*, /* in: IP header */
-                               tcp_Header*,      /* in: TCP header */
-                               int);             /* in: TCP flags */
+typedef int (*tcp_StateProc)  (_tcp_Socket**, const in_Header*, tcp_Header*, int);
 
 static int  tcp_listen_state  (_tcp_Socket**, const in_Header*, tcp_Header*, int);
 static int  tcp_resolve_state (_tcp_Socket**, const in_Header*, tcp_Header*, int);
@@ -64,19 +61,19 @@ static void tcp_set_window   (_tcp_Socket *s, const tcp_Header *tcp);
 static int  tcp_process_ACK  (_tcp_Socket *s, long *unack);
 
 static tcp_StateProc tcp_state_tab [] = {
-       tcp_listen_state,   /* tcp_StateLISTEN  : listening for connection */
-       tcp_resolve_state,  /* tcp_StateRESOLVE : resolving IP, waiting on ARP reply */
-       tcp_synsent_state,  /* tcp_StateSYNSENT : SYN sent, active open */
-       tcp_synrec_state,   /* tcp_StateSYNREC  : SYN received, SYN+ACK sent (listen TCB) */
-       tcp_estab_state,    /* tcp_StateESTAB   : established */
-       tcp_estcl_state,    /* tcp_StateESTCL   : established, but will FIN */
-       tcp_finwt1_state,   /* tcp_StateFINWT1  : sent FIN */
-       tcp_finwt2_state,   /* tcp_StateFINWT2  : sent FIN, received FIN+ACK */
-       tcp_closewt_state,  /* tcp_StateCLOSWT  : received FIN waiting for close */
-       tcp_closing_state,  /* tcp_StateCLOSING : sent FIN, received FIN (waiting for FIN+ACK) */
-       tcp_lastack_state,  /* tcp_StateLASTACK : FIN received, ACK+FIN sent */
-       tcp_timewt_state,   /* tcp_StateTIMEWT  : dally after sending final FIN+ACK */
-     };
+  tcp_listen_state,   /* tcp_StateLISTEN  : listening for connection */
+  tcp_resolve_state,  /* tcp_StateRESOLVE : resolving IP, waiting on ARP reply */
+  tcp_synsent_state,  /* tcp_StateSYNSENT : SYN sent, active open */
+  tcp_synrec_state,   /* tcp_StateSYNREC  : SYN received, SYN+ACK sent (listen TCB) */
+  tcp_estab_state,    /* tcp_StateESTAB   : established */
+  tcp_estcl_state,    /* tcp_StateESTCL   : established, but will FIN */
+  tcp_finwt1_state,   /* tcp_StateFINWT1  : sent FIN */
+  tcp_finwt2_state,   /* tcp_StateFINWT2  : sent FIN, received FIN+ACK */
+  tcp_closewt_state,  /* tcp_StateCLOSWT  : received FIN waiting for close */
+  tcp_closing_state,  /* tcp_StateCLOSING : sent FIN, received FIN (waiting for FIN+ACK) */
+  tcp_lastack_state,  /* tcp_StateLASTACK : FIN received, ACK+FIN sent */
+  tcp_timewt_state,   /* tcp_StateTIMEWT  : dally after sending final FIN+ACK */
+};
 
 static BOOL  is_ip4;         /* TRUE: input packet is IPv4, else IPv6 */
 static DWORD acknum, seqnum; /* ACK/SEQ of current segment */
@@ -87,6 +84,7 @@ static DWORD acknum, seqnum; /* ACK/SEQ of current segment */
 
 static int tcp_reassemble (_tcp_Socket *s, const tcp_Header *tcp,
                            UINT len, int flags);
+
 struct tcp_reasm {
        struct {
          DWORD left;
@@ -109,16 +107,17 @@ int _tcp_fsm (_tcp_Socket **sp, const in_Header *ip)
   _tcp_Socket *s = *sp;
   BYTE         flags;
   int          rc;
-  UINT         in_state = s->state;
+  int          in_state = s->state;
 
   if (s->state >= tcp_StateCLOSED)
      return (0);
 
-#if defined(NEED_SPLIT)
-  tcp    = (tcp_Header*) pkt_get_type_in (TYPE_TCP_HEAD)->data;
   is_ip4 = (ip->ver == 4);
+
+#if defined(NEED_SPLIT)
+  tcp = (tcp_Header*) pkt_get_type_in (TYPE_TCP_HEAD)->data;
 #else
-  tcp     = (tcp_Header*) ((BYTE*)ip + in_GetHdrLen (ip));
+  tcp = (tcp_Header*) ((BYTE*)ip + in_GetHdrLen (ip));
   is_ip4 = TRUE;  /* assume IPv4 */
 #endif
 
@@ -130,13 +129,13 @@ int _tcp_fsm (_tcp_Socket **sp, const in_Header *ip)
   s  = *sp;
 
 #if defined(USE_DEBUG)
-  if (debug_on >= 3 && in_state != s->state)
+  if (debug_on >= 3)
   {
     const char *st_in  = tcpStateName (in_state);
     const char *st_out = tcpStateName (s->state);
 
-    SIO_TRACE (("tcp-state: %s -> %s ", st_in, st_out));
-    TCP_CONSOLE_MSG (3, ("tcp-state: %s -> %s\n", st_in, st_out));
+    SIO_TRACE (("tcp-state: %s -> %s", st_in, st_out));
+    TCP_CONSOLE_MSG (3, ("tcp-state: %s -> %s", st_in, st_out));
   }
 #endif
 
@@ -236,8 +235,8 @@ static int tcp_synsent_state (_tcp_Socket **sp, const in_Header *ip,
        */
       if (acknum == s->send_next + 1)
       {
-        int   len;
         const in6_Header *ip6 = (const in6_Header*) ip;
+        int   len;
 
         if (is_ip4)
              len = intel16 (ip->length) - in_GetHdrLen (ip);
@@ -287,7 +286,7 @@ static int tcp_synsent_state (_tcp_Socket **sp, const in_Header *ip,
       return (1);
     }
   }
-  else   /* didn't get a SYN back. Reset it */
+  else
   {
     TCP_SEND_RESET (s, ip, tcp);
     return (0);
@@ -334,7 +333,7 @@ static int tcp_estab_state (_tcp_Socket **sp, const in_Header *ip,
                             tcp_Header *tcp, int flags)
 {
   const in6_Header *ip6 = (const in6_Header*) ip;
-  _tcp_Socket *s   = *sp;
+  _tcp_Socket      *s   = *sp;
   int   len;
   long  ldiff;      /* how much still ACK'ed */
   BOOL  did_tx;
@@ -427,7 +426,7 @@ static int tcp_estab_state (_tcp_Socket **sp, const in_Header *ip,
                   "UNA %ld, MS-right %ld\n",
                   __LINE__, ldiff, s->send_una,
                   s->missed_seq[0] != s->missed_seq[1] ?
-                  (u_long)(s->missed_seq[0] - s->recv_next) : 0));
+                  s->missed_seq[0] - s->recv_next : 0));
       s->karn_count = 0;
       s->flags |= tcp_FlagPUSH;
       TCP_SEND (s);
@@ -447,7 +446,7 @@ static int tcp_estab_state (_tcp_Socket **sp, const in_Header *ip,
   }
 
   /* Check if we need to reply to keep-alive segment
-   */
+   */                                               
   if (!did_tx && (len == 0) && (seqnum == s->recv_next-1) &&
       ((flags & tcp_FlagACK) == tcp_FlagACK) &&  /* ACK only */
       (s->state == tcp_StateESTAB))
@@ -486,7 +485,7 @@ static int tcp_finwt1_state (_tcp_Socket **sp, const in_Header *ip,
                              tcp_Header *tcp, int flags)
 {
   const in6_Header *ip6 = (const in6_Header*) ip;
-  _tcp_Socket *s   = *sp;
+  _tcp_Socket      *s   = *sp;
   long  ldiff;
   int   len;
 
@@ -797,55 +796,43 @@ static void tcp_process_options (_tcp_Socket *s, const tcp_Header *tcp,
  *
  * In the tcp_Socket structure:
  *
- *   - 'rx_datalen' is the index in the receive buffer where the next
+ *   - rx_datalen is the index in the receive buffer where the next
  *     in-order data should be written.
- *
- *   - 'recv_next' is the TCP sequence number of the start of the next
+ *   - recv_next is the TCP sequence number of the start of the next
  *     in-order data.
- *
- *   - 'missed_seq[0]' is the TCP sequence number of the first octet of
+ *   - missed_seq[0] is the TCP sequence number of the first octet of
  *     the buffered out-of-order data.
- *
- *   - 'missed_seq[1]' is the TCP sequence number of the first octet
+ *   - missed_seq[1] is the TCP sequence number of the first octet
  *     following the buffered out-of-order data.  If missed_seq[0] and
  *     missed_seq[1] are equal, there is no buffered out-of-order data.
  *
- * 'ldiff' is the difference between the received sequence number and
- * the expected sequence number.  If 'ldiff' is zero or positive, and
- * 'ldiff' is less than the length of the packet, data can be appended
- * to the receive buffer.  If 'ldiff' is negative, data may be prepended
+ * ldiff is the difference between the received sequence number and
+ * the expected sequence number.  If ldiff is zero or positive, and
+ * ldiff is less than the length of the packet, data can be appended
+ * to the receive buffer.  If ldiff is negative, data may be prepended
  * and/or appended to the buffered out-of-order data.
  *
- * Packets are discarded without processing if the *end* of the packet
- * is before 'recv_next', in which case we've already processed the
- * data, or after the advertised receive window ('s->adv_win').
+ * Packets are discarded without processing if the _end_ of the packet
+ * is before recv_next, in which case we've already processed the
+ * data, or after the advertised receive window.
  *
- * For 'ldiff >= 0', there are four cases to handle:
- *
+ * For ldiff >= 0, there are four cases to handle:
  *  1) No out-of-order buffer: append the packet data and add the
- *     length to 'recv_next'.
- *
+ *     length to recv_next.
  *  2) No overlap with out-of-order buffer: same as (1).
- *
  *  3) New data reaches but doesn't extend out-of-order buffer:
- *     copy up to buffer, set 'recv_next' to 'missed_seq[1]', and
- *     clear 'missed_seq[0]' and 'missed_seq[1]'.
- *
+ *     copy up to buffer, set recv_next to missed_seq[1], and
+ *     clear missed_seq[0] and missed_seq[1].
  *  4) New data extends past out-of-order buffer: same as (1),
- *     also clearing 'missed_seq[0]' and 'missed_seq[1]'.
+ *     also clearing missed_seq[0] and missed_seq[1].
  *
- * For 'ldiff < 0', there are four further cases to handle:
- *
+ * For ldiff < 0, there are four further cases to handle:
  *  5) No out-of-order buffer: copy the packet data and set
- *     'missed_seq[0]' and 'missed_seq[1]'.
- *
- *  6) Data starts at 'missed_seq[1]': append to out-of-order buffer
- *     and update 'missed_seq[1]'.
- *
- *  7) Data extends start: copy new data and update 'missed_seq[0]'.
- *
- *  8) Data extends end: copy new data and updated 'missed_seq[1]'.
- *
+ *     missed_seq[0] and missed_seq[1].
+ *  6) Data starts at missed_seq[1]: append to out-of-order buffer
+ *     and update missed_seq[1].
+ *  7) Data extends start: copy new data and update missed_seq[0].
+ *  8) Data extends end: copy new data and updated missed_seq[1].
  * Case 7 and case 8 are not exclusive.
  *
  * When an out-of-order packet is received, -1 is returned so that a
@@ -854,7 +841,7 @@ static void tcp_process_options (_tcp_Socket *s, const tcp_Header *tcp,
  */
 
 /*
- * Add data at 'rx_datalen', updating 'rx_datalen' and 'recv_next'.
+ * Add data at rx_datalen, updating rx_datalen and recv_next.
  */
 static void
 copy_in_order (_tcp_Socket *s, const BYTE *data, unsigned len)
@@ -862,7 +849,7 @@ copy_in_order (_tcp_Socket *s, const BYTE *data, unsigned len)
   TCP_TRACE (("copy_in_order (%u): Append %u bytes at %u-%u\n",
               __LINE__, len, s->rx_datalen, s->rx_datalen + len));
   memcpy (s->rx_data + s->rx_datalen, data, len);
-  s->recv_next  += len;
+  s->recv_next += len;
   s->rx_datalen += len;
 }
 
@@ -903,29 +890,28 @@ data_in_order (_tcp_Socket *s, const BYTE *data, unsigned len, unsigned diff)
     /* Update offset and length to incorporate out-of-order data.
      */
     TCP_TRACE (("data_in_order (%u): Use %lu out-of-order bytes\n",
-                __LINE__, (u_long)(s->missed_seq[1] - s->missed_seq[0])));
-    s->rx_datalen   += (s->missed_seq[1] - s->missed_seq[0]);
-    s->recv_next     = s->missed_seq[1];
+                __LINE__, s->missed_seq[1] - s->missed_seq[0]));
+    s->rx_datalen += (s->missed_seq[1] - s->missed_seq[0]);
+    s->recv_next = s->missed_seq[1];
     s->missed_seq[0] = s->missed_seq[1] = 0;
 
     if (len > ms_end)
     {
-      /* (4) Extend out-of-order data, if received past end.
-       */
+      /* (4) Extend out-of-order data, if received past end. */
       copy_in_order (s, data + ms_end, len - ms_end);
     }
   }
 
   TCP_TRACE (("data_in_order (%u): edges %lu/%lu, recv.next %lu\n",
-              __LINE__, (u_long)s->missed_seq[0], (u_long)s->missed_seq[1],
-              (u_long)s->recv_next));
+              __LINE__, s->missed_seq[0], s->missed_seq[1],
+              s->recv_next));
 
   TCP_TRACE (("data_in_order (%u): new data now ends at %u\n",
               __LINE__, s->rx_datalen));
 }
 
 /*
- * Add data before 'missed_seq[0]', updating its value.
+ * Add data before missed_seq[0], updating its value.
  */
 static void
 prepend_out_of_order (_tcp_Socket *s, const BYTE *data, unsigned len)
@@ -939,7 +925,7 @@ prepend_out_of_order (_tcp_Socket *s, const BYTE *data, unsigned len)
 }
 
 /*
- * Add data after 'missed_seq[1]', updating its value.
+ * Add data after missed_seq[1], updating its value.
  */
 static void
 append_out_of_order (_tcp_Socket *s, const BYTE *data, unsigned len)
@@ -960,15 +946,13 @@ data_out_of_order (_tcp_Socket *s, const BYTE *data, unsigned len, unsigned diff
 {
   if (s->missed_seq[0] == s->missed_seq[1])
   {
-    /* (5) First out-of-order data.
-     */
+    /* (5) First out-of-order data. */
     s->missed_seq[0] = s->missed_seq[1] = seqnum;
     append_out_of_order (s, data, len);
   }
   else if (seqnum == s->missed_seq[1])
   {
-    /* (6) Common case: immediately following last out-of-order packet.
-     */
+    /* (6) Common case: immediately following last out-of-order packet. */
     append_out_of_order (s, data, len);
   }
   else
@@ -996,7 +980,7 @@ data_out_of_order (_tcp_Socket *s, const BYTE *data, unsigned len, unsigned diff
   }
 
   TCP_TRACE (("data_out_of_order (%u): edges %lu/%lu, recv.next %lu\n",
-              __LINE__, (u_long)s->missed_seq[0], (u_long)s->missed_seq[1], (u_long)s->recv_next));
+              __LINE__, s->missed_seq[0], s->missed_seq[1], s->recv_next));
 }
 
 /**
@@ -1053,7 +1037,7 @@ static int tcp_process_data (_tcp_Socket *s, const tcp_Header *tcp,
    * SYN/RST segments shouldn't carry any data.
    * But SYN-ACK can (?)
    */
-  if (*flags & (tcp_FlagSYN | tcp_FlagRST))
+  if (*flags & (tcp_FlagSYN|tcp_FlagRST))
      return (0);
 
   if (ldiff)   /* Out-of-Sequence data */
@@ -1072,33 +1056,20 @@ static int tcp_process_data (_tcp_Socket *s, const tcp_Header *tcp,
   if (len == 0)
      return (0);
 
-  /* Check that *end* of packet is valid, i.e. will fit in advertised receive
-   * window ('adv_win'). If it's before 'recv_next', we've seen it all before;
-   * if it's after then the peer (or someone else) sent more than we said we
-   * could take.
+  /* Check that _end_ of packet is valid, i.e. will fit in advertised window.
+   * If it's before recv_next, we've seen it all before; if it's after
+   * then the peer (or someone else) sent more than we said we could take.
    */
-#if 0
-  if ((unsigned)len - ldiff > s->adv_win)
-#else
-  /*
-   * Thanks to Mikulas Patocka <mikulas@twibright.com> for finding a problem
-   * with the above 'if-test':
-   *   if we receive a sequence of packets, all the packets are checked
-   *   against 's->adv_win', but 's->adv_win' is not decreased as the packets are
-   *   received, it remains the same. Consequently a packet that is out of window
-   *   is errorneously accepted and corrupts memory.
-   *
-   * Hence this 'if-test' is used instead:
-   */
-  if ((unsigned)len - ldiff > s->max_rx_data - s->rx_datalen)
-#endif
+  if ( ((unsigned)len - ldiff > s->max_rx_data - s->rx_datalen) ||
+       (ldiff > len) /* https://github.com/gvanem/Watt-32/issues/2 */ )
   {
-    TCP_TRACE (("tcp_process_data (%u): packet ends outside %lu/%lu\n",
-                __LINE__, (u_long)s->recv_next, (u_long)(s->recv_next + s->adv_win)));
+    TCP_TRACE (("tcp_ProcessData (%u): packet ends outside %lu/%lu\n",
+                __LINE__, s->recv_next, s->recv_next + s->adv_win));
+    STAT (tcpstats.tcps_rcvpackafterwin++);
     return (0);
   }
 
-  /* Handle any new data that increments the 'recv_next' index.
+  /* Handle any new data that increments the 'recv_next' index
    */
 
   if (ldiff >= 0)
@@ -1199,16 +1170,14 @@ static void tcp_set_window (_tcp_Socket *s, const tcp_Header *tcp)
     size_t size;
     BYTE  *buf;
 
-#if defined(__MSDOS__)
     if (_eth_ndis3pkt)       /* limit NDIS3PKT's in-transit bytes */
        window = min (window, 6*_mss);
-#endif
 
     size = window + 8;       /* add size for markers */
     buf  = malloc (size);
 
     TCP_TRACE (("tcp_set_window (%u): buf %p, size %lu, datalen %u\n",
-                __LINE__, buf, (u_long)size, s->tx_datalen));
+                __LINE__, buf, (DWORD)size, s->tx_datalen));
     if (!buf)
        return;
 
@@ -1243,24 +1212,20 @@ static int tcp_reassemble (_tcp_Socket *s, const tcp_Header *tcp,
   }
 
   left_edge  = s->recv_next - s->rx_datalen;
-#if 0
-  right_edge = s->recv_next + s->adv_win;
-#else
   right_edge = s->recv_next + s->max_rx_data - s->rx_datalen;
-#endif
 
   /* segment is left of expected recv-window
    */
-  if (SEQ_LEQ(seqnum, left_edge) &&
-      SEQ_LEQ(seqnum + len, left_edge))
+  if(SEQ_LEQ(seqnum, left_edge) &&
+     SEQ_LEQ(seqnum + len, left_edge))
   {
     return (0);
   }
 
   /* Some of the segment is left of expected recv-window
    */
-  if (SEQ_LEQ(seqnum, left_edge) &&
-      SEQ_BETWEEN(seqnum + len, left_edge+1, right_edge))
+  if(SEQ_LEQ(seqnum, left_edge) &&
+     SEQ_BETWEEN(seqnum + len, left_edge+1, right_edge))
   {
     size = seqnum + len - left_edge;
     ofs  = left_edge - seqnum;

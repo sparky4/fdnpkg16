@@ -9,8 +9,8 @@
 
 #if (DOSX & (DOS4GW|POWERPAK))
 
-  #include "misc.h"        /* IREGS */
-  #include <sys/pack_on.h>
+  #include "misc.h"       /* IREGS */
+  #include <sys/packon.h>
 
   struct FAULT_STRUC {   /* Exception structure (only used by CauseWay) */
          DWORD  ebp, edi, esi, edx, ecx, ebx, eax;
@@ -32,7 +32,7 @@
          BOOL   mode;  /* 0: exception in pmode, 1: real-mode */
        };
 
-  #include <sys/pack_off.h>
+  #include <sys/packoff.h>
 
   #define SEG_OFS_TO_LIN(seg,ofs) (void*)(((WORD)(seg) << 4) + (WORD)(ofs))
 
@@ -54,14 +54,13 @@
   extern BOOL  dpmi_is_dos32a   (void);
   extern BOOL  dpmi_is_dos4gw   (void);
   extern BOOL  dpmi_is_causeway (void);
-  extern BOOL  dpmi_is_hxdos    (void);
 
   typedef void (*exceptionHook) (const struct FAULT_STRUC *);
 
   extern int dpmi_except_handler (exceptionHook exc_func);
   extern const char *dos4gw_extender_name (void);
 
-  #define stack_rewind  W32_NAMESPACE (stack_rewind)
+  #define stack_rewind  NAMESPACE (stack_rewind)
   extern void stack_rewind (DWORD start, DWORD base);
 #endif
 

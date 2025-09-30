@@ -2,7 +2,7 @@
  * IPv4 output routines.
  */
 
-/*  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+/*  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -37,7 +37,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
 
 #include "wattcp.h"
@@ -96,7 +95,7 @@ int _ip4_output (in_Header  *ip,        /* ip-structure to fill in */
                  unsigned    line)      /*  and line was _ip4_output called */
 {
   int len = sizeof(*ip) + data_len;
-
+ 
  /*
   * Note: the 'ip->frag_ofs' field isn't normally set here (it's
   *       cleared in eth_formatpacket() causing IP_DF bit to off).
@@ -131,8 +130,8 @@ int _ip4_output (in_Header  *ip,        /* ip-structure to fill in */
  */
 static __inline in_Header *make_ip_pkt (DWORD host, BOOL first, char **data)
 {
-  eth_address dest;
-  in_Header  *ip;
+  static eth_address dest;
+  in_Header *ip;
 
   if (first && !_arp_resolve(intel(host),&dest))
   {
@@ -205,7 +204,7 @@ static __inline in_Header *make_udp_pkt (const _udp_Socket *s, BOOL first,
     udp->srcPort  = intel16 (s->myport);
     udp->dstPort  = intel16 (s->hisport);
     udp->checksum = 0;
-    udp->length   = intel16 ((WORD)(sizeof(*udp) + len));
+    udp->length   = intel16 (sizeof(*udp) + len);
     memset (&ph, 0, sizeof(ph));
     ph.src = intel (s->myaddr);
     ph.dst = intel (s->hisaddr);

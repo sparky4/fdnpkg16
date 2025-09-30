@@ -40,6 +40,4 @@ int main (void)
 
   return (0);
 }
-#else
-#error For Watcom only
 #endif

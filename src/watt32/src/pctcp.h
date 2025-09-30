@@ -19,6 +19,8 @@
 #define DEF_RST_TIME      100UL     /* # of msec before sending RST */
 #define DEF_RETRAN_TIME   10UL      /* do retransmit logic every 10ms */
 #define DEF_RECV_WIN     (16*1024)  /* default receive window, 16kB */
+#define MAX_DAEMONS       20        /* max # of background daemons */
+#define DAEMON_PERIOD     500       /* run daemons every 500msec */
 
 
 /*
@@ -29,7 +31,7 @@
  */
 #define tcp_TIMEWT_TO 2000UL
 
-#if !defined(__NETINET_TCP_SEQ_H)
+#ifndef __NETINET_TCP_SEQ_H
 
   /**
    * \def SEQ_* macros.
@@ -48,7 +50,6 @@
 
 /**
  * \def INIT_SEQ
- *
  * We use 32-bit from system-timer as initial sequence number
  * (ISN, network order). Maybe not the best choice (easy guessable).
  * The ISN should wrap only once a day.
@@ -89,29 +90,41 @@
  * MTU defaults to 1500 (ETH_MAX_DATA).
  * TCP_OVERHEAD == 40.
  */
-#define MSS_MAX       (_mtu - TCP_OVERHEAD)
-#define MSS_MIN       (576 - TCP_OVERHEAD)
-#define MSS_REDUCE     20   /* do better than this (exponentially decrease) */
+#define MSS_MAX     (_mtu - TCP_OVERHEAD)
+#define MSS_MIN     (576 - TCP_OVERHEAD)
+#define MSS_REDUCE  20   /* do better than this (exponentially decrease) */
 
-#define my_ip_addr     W32_NAMESPACE (my_ip_addr)
-#define sin_mask       W32_NAMESPACE (sin_mask)
-#define block_tcp      W32_NAMESPACE (block_tcp)
-#define block_udp      W32_NAMESPACE (block_udp)
-#define block_ip       W32_NAMESPACE (block_ip)
-#define block_icmp     W32_NAMESPACE (block_icmp)
-#define use_rand_lport W32_NAMESPACE (use_rand_lport)
+#define my_ip_addr      NAMESPACE (my_ip_addr)
+#define sin_mask        NAMESPACE (sin_mask)
+#define block_tcp       NAMESPACE (block_tcp)
+#define block_udp       NAMESPACE (block_udp)
+#define block_ip        NAMESPACE (block_ip)
+#define block_icmp      NAMESPACE (block_icmp)
+#define use_rand_lport  NAMESPACE (use_rand_lport)
 
-#define mtu_discover   W32_NAMESPACE (mtu_discover)
-#define mtu_blackhole  W32_NAMESPACE (mtu_blackhole)
+#define hostname        NAMESPACE (hostname)
+#define _mtu            NAMESPACE (_mtu)
+#define _mss            NAMESPACE (_mss)
+#define mtu_discover    NAMESPACE (mtu_discover)
+#define mtu_blackhole   NAMESPACE (mtu_blackhole)
+#define tcp_nagle       NAMESPACE (tcp_nagle)
+#define tcp_keep_idle   NAMESPACE (tcp_keep_idle)
+#define tcp_keep_intvl  NAMESPACE (tcp_keep_intvl)
+#define tcp_max_idle    NAMESPACE (tcp_max_idle)
+#define tcp_opt_ts      NAMESPACE (tcp_opt_ts)
+#define tcp_opt_sack    NAMESPACE (tcp_opt_sack)
+#define tcp_opt_wscale  NAMESPACE (tcp_opt_wscale)
+#define tcp_recv_win    NAMESPACE (tcp_recv_win)
 
-#define tcp_nagle      W32_NAMESPACE (tcp_nagle)
-#define tcp_keep_idle  W32_NAMESPACE (tcp_keep_idle)
-#define tcp_keep_intvl W32_NAMESPACE (tcp_keep_intvl)
-#define tcp_max_idle   W32_NAMESPACE (tcp_max_idle)
-#define tcp_opt_ts     W32_NAMESPACE (tcp_opt_ts)
-#define tcp_opt_sack   W32_NAMESPACE (tcp_opt_sack)
-#define tcp_opt_wscale W32_NAMESPACE (tcp_opt_wscale)
-#define hostname       W32_NAMESPACE (hostname)
+W32_DATA unsigned _mtu, _mss;
+W32_DATA DWORD    my_ip_addr;
+W32_DATA DWORD    sin_mask;
+W32_DATA BOOL     block_tcp;
+W32_DATA BOOL     block_udp;
+W32_DATA BOOL     block_icmp;
+W32_DATA BOOL     block_ip;
+W32_DATA unsigned tcp_keep_idle, tcp_keep_intvl, tcp_max_idle;
+W32_DATA char     hostname [MAX_HOSTLEN+1];
 
 extern BOOL mtu_discover;
 extern BOOL mtu_blackhole;
@@ -121,25 +134,50 @@ extern BOOL tcp_opt_ts;
 extern BOOL tcp_opt_sack;
 extern BOOL tcp_opt_wscale;
 
-extern char hostname [MAX_HOSTLEN+1];
-
 extern _tcp_Socket *_tcp_allsocs;
 extern _udp_Socket *_udp_allsocs;
 
-extern void _udp_cancel (const in_Header *ip, int icmp_type, int icmp_code,
-                         const char *msg, const void *arg);
+/* Same as in <tcp.h>
+ */
+#define sock_wait_established(s,seconds,fn,statusptr) \
+        do {                                          \
+           if (_ip_delay0 (s,seconds,fn,statusptr))   \
+              goto sock_err;                          \
+        } while (0)
 
-extern void _tcp_cancel (const in_Header *ip, int icmp_type, int icmp_code,
-                         const char *msg, const void *arg);
+#define sock_wait_input(s,seconds,fn,statusptr)       \
+        do {                                          \
+           if (_ip_delay1 (s,seconds,fn,statusptr))   \
+              goto sock_err;                          \
+        } while (0)
 
-extern void _tcp_close     (_tcp_Socket *s);
-extern void  tcp_rtt_add   (const _tcp_Socket *s, UINT rto, UINT MTU);
-extern void  tcp_rtt_clr   (const _tcp_Socket *s);
-extern BOOL  tcp_rtt_get   (const _tcp_Socket *s, UINT *rto, UINT *MTU);
+#define sock_wait_closed(s,seconds,fn,statusptr)      \
+        do {                                          \
+           if (_ip_delay2(s,seconds,fn,statusptr))    \
+              goto sock_err;                          \
+        } while (0)
 
-extern int  _tcp_send      (_tcp_Socket *s, const char *file, unsigned line);
-extern int  _tcp_sendsoon  (_tcp_Socket *s, const char *file, unsigned line);
-extern int  _tcp_keepalive (_tcp_Socket *s);
+#define sock_tick(s, statusptr)                       \
+        do {                                          \
+           if (!tcp_tick(s)) {                        \
+              if (statusptr) *statusptr = 1;          \
+              goto sock_err;                          \
+           }                                          \
+        } while (0)
+
+
+extern void _udp_cancel (const in_Header*, int, int, const char *, const void *);
+extern void _tcp_cancel (const in_Header*, int, int, const char *, const void *);
+
+extern void _tcp_close    (_tcp_Socket *s);
+extern void  tcp_rtt_add  (const _tcp_Socket *s, UINT rto, UINT MTU);
+extern void  tcp_rtt_clr  (const _tcp_Socket *s);
+extern BOOL  tcp_rtt_get  (const _tcp_Socket *s, UINT *rto, UINT *MTU);
+
+extern int   tcp_established (const _tcp_Socket *s);
+extern int  _tcp_send        (_tcp_Socket *s, char *file, unsigned line);
+extern int  _tcp_sendsoon    (_tcp_Socket *s, char *file, unsigned line);
+extern int  _tcp_keepalive   (_tcp_Socket *s);
 
 extern void tcp_Retransmitter (BOOL force);
 
@@ -158,10 +196,59 @@ extern int          _tcp_send_reset (_tcp_Socket *s, const in_Header *ip,
 #define TCP_SEND_RESET(s, ip, tcp) \
        _tcp_send_reset(s, ip, tcp, __FILE__, __LINE__)
 
+/*
+ * Public API
+ */
+W32_DATA unsigned tcp_OPEN_TO;  /* these are really not publics (but tcpinfo needs them) */
+W32_DATA unsigned tcp_CLOSE_TO;
+W32_DATA unsigned tcp_RTO_ADD;
+W32_DATA unsigned tcp_RTO_BASE;
+W32_DATA unsigned tcp_RTO_SCALE;
+W32_DATA unsigned tcp_RST_TIME;
+W32_DATA unsigned tcp_RETRAN_TIME;
+W32_DATA unsigned tcp_MAX_VJSA;
+W32_DATA unsigned tcp_MAX_VJSD;
+W32_DATA DWORD    tcp_recv_win;
+
+W32_FUNC WORD tcp_tick   (sock_type *s);
+W32_FUNC int  tcp_open   (_tcp_Socket *s, WORD lport, DWORD ina, WORD port, ProtoHandler handler);
+W32_FUNC int  tcp_listen (_tcp_Socket *s, WORD lport, DWORD ina, WORD port, ProtoHandler handler, WORD timeout);
+W32_FUNC int  udp_open   (_udp_Socket *s, WORD lport, DWORD ina, WORD port, ProtoHandler handler);
+W32_FUNC int  udp_listen (_udp_Socket *s, WORD lport, DWORD ina, WORD port, ProtoHandler handler);
+W32_FUNC void udp_SetTTL (_udp_Socket *s, BYTE ttl);
+
+W32_FUNC void   sock_abort     (sock_type *s);
+W32_FUNC int    sock_read      (sock_type *s, BYTE *dp, int len);
+W32_FUNC int    sock_fastread  (sock_type *s, BYTE *dp, int len);
+W32_FUNC int    sock_write     (sock_type *s, const BYTE *dp, int len);
+W32_FUNC int    sock_fastwrite (sock_type *s, const BYTE *dp, int len);
+W32_FUNC int    sock_enqueue   (sock_type *s, const BYTE *dp, int len);
+W32_FUNC void   sock_noflush   (sock_type *s);
+W32_FUNC void   sock_flush     (sock_type *s);
+W32_FUNC void   sock_flushnext (sock_type *s);
+W32_FUNC BYTE   sock_putc      (sock_type *s, BYTE c);
+W32_FUNC int    sock_getc      (sock_type *s);
+W32_FUNC int    sock_puts      (sock_type *s, const BYTE *dp);
+W32_FUNC int    sock_gets      (sock_type *s, BYTE *dp, int n);
+W32_FUNC WORD   sock_dataready (sock_type *s);
+W32_FUNC int    sock_close     (sock_type *s);
+W32_FUNC void (*sock_yield     (_tcp_Socket *s, void (*fn)(void))) (void);
+W32_FUNC WORD   sock_mode      (sock_type *s, WORD mode);
+W32_FUNC int    sock_sselect   (const sock_type *s, int state);
+W32_FUNC int    sock_keepalive (sock_type *s);
+W32_FUNC int    addwattcpd     (void (*p)(void));
+W32_FUNC int    delwattcpd     (void (*p)(void));
+
+W32_FUNC int MS_CDECL sock_printf (sock_type *s, const char *fmt, ...)
+                      ATTR_PRINTF (2,3);
+
+W32_FUNC int MS_CDECL sock_scanf (sock_type *s, const char *fmt, ...)
+                      ATTR_SCANF (2,3);
+
 #define SET_ERR_MSG(s, msg) \
         do { \
-          if (s && s->err_msg == NULL && msg != NULL) \
-             s->err_msg = _strlcpy (s->err_buf, msg, sizeof(s->err_buf)); \
+          if (!s->err_msg && msg) \
+             s->err_msg = StrLcpy (s->err_buf, msg, sizeof(s->err_buf)); \
         } while (0)
 
 /*!\struct tcp_rtt
@@ -193,12 +280,23 @@ struct tcp_rtt {
   extern void * (MS_CDECL *_bsd_socket_hook) (enum BSD_SOCKET_OPS op, ...);
 #endif
 
+
 /* In ports.c
  */
-extern WORD init_localport  (void);
-extern WORD find_free_port  (WORD oldport, BOOL sleep_msl);
-extern int  grab_localport  (WORD port);
-extern int  reuse_localport (WORD port);
-extern int  maybe_reuse_localport (_tcp_Socket *s);
+extern WORD  init_localport  (void);
+extern WORD  find_free_port  (WORD oldport, BOOL sleep_msl);
+extern int   grab_localport  (WORD port);
+extern int   reuse_localport (WORD port);
+extern int   maybe_reuse_localport (_tcp_Socket *s);
+
+/* In sock_in.c
+ */
+W32_FUNC void  ip_timer_init    (sock_type *s, unsigned);
+W32_FUNC int   ip_timer_expired (const sock_type *s);
+W32_FUNC int  _ip_delay0        (sock_type *, int, UserHandler, int *);
+W32_FUNC int  _ip_delay1        (sock_type *, int, UserHandler, int *);
+W32_FUNC int  _ip_delay2        (sock_type *, int, UserHandler, int *);
+W32_FUNC int   sock_timeout     (sock_type *, int);
+W32_FUNC int   sock_established (sock_type *);
 
 #endif

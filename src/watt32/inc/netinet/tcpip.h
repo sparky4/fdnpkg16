@@ -41,9 +41,7 @@
 #ifndef __NETINET_TCPIP_H
 #define __NETINET_TCPIP_H
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /*
  * Tcp+ip header, after ip options removed.
@@ -64,9 +62,7 @@ struct full_tcpiphdr {
 };
 #endif /* notyet */
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 #define ti_next         ti_i.ih_next
 #define ti_prev         ti_i.ih_prev

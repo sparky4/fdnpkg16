@@ -45,9 +45,8 @@
 typedef u_long  tcp_seq;
 typedef u_long  tcp_cc;                 /* connection count per rfc1644 */
 
-W32_CLANG_PACK_WARN_OFF()
+#include <sys/packon.h>
 
-#include <sys/pack_on.h>
 
 /*
  * TCP header.
@@ -74,9 +73,7 @@ struct tcphdr {
         u_short th_urp;                 /* urgent pointer */
 };
 
-#include <sys/pack_off.h>
-
-W32_CLANG_PACK_WARN_DEF()
+#include <sys/packoff.h>
 
 #define TCPOPT_EOL              0
 #define TCPOPT_NOP              1

@@ -5,23 +5,23 @@
  *
  * Definitions of targets and macros for Waterloo tcp/ip.
  *
- * by G. Vanem <gvanem@yahoo.no> 1995 - 2015.
+ * by G. Vanem <giva@bgnett.no> 1995 - 2003
  */
 
 #ifndef _w32_WATTCP_H
 #error TARGET.H must be included inside or after WATTCP.H
 #endif
 
-#define DOS4GW       1             /**< Tenberry's DOS extender        (1+2)  */
-#define DJGPP        2             /**< GNU C/C++ and djgpp 2.0 target        */
-#define PHARLAP      4             /**< PharLap 386|DosX extender target (1)  */
-#define PHAR286      8             /**< PharLap 286|DosX extender target      */
-#define POWERPAK     16            /**< Borland's PowerPak DOS extender       */
-#define X32VM        32            /**< FlashTek X-32/X-32VM extender         */
-#define WINWATT      64            /**< Windows (32/64-bit) using WinPcap     */
-#define PHARLAP_DLL (0x80|PHARLAP) /**< PharLap DLL version target (not yet)  */
-#define DOS4GW_DLL  (0x80|DOS4GW)  /**< DOS4GW DLL version target (possible?) */
-#define DJGPP_DXE   (0x80|DJGPP)   /**< djgpp DXE target (not yet)            */
+#define DOS4GW       1             /*!< Tenberry's DOS extender        (1+2)  */
+#define DJGPP        2             /*!< GNU C/C++ and djgpp 2.0 target        */
+#define PHARLAP      4             /*!< PharLap 386|DosX extender target (1)  */
+#define PHAR286      8             /*!< PharLap 286|DosX extender target      */
+#define POWERPAK     16            /*!< Borland's PowerPak DOS extender       */
+#define X32VM        32            /*!< FlashTek X-32/X-32VM extender         */
+#define WINWATT      64            /*!< Experimental; Win32 DLL using WinPcap */
+#define PHARLAP_DLL (0x80|PHARLAP) /*!< PharLap DLL version target (not yet)  */
+#define DOS4GW_DLL  (0x80|DOS4GW)  /*!< DOS4GW DLL version target (possible?) */
+#define DJGPP_DXE   (0x80|DJGPP)   /*!< djgpp DXE target (not yet)            */
 
 /*
  * Notes:
@@ -40,8 +40,8 @@
  * (2) Several DOS-extenders supports Watcom-386. DOS4GW (from Tenberry)
  *     is a DPMI 0.9 host with limited API. Other compatible DOS-extenders
  *     can also be used without modifying Watt-32. These are:
- *     DOS4GW Pro, DOS4G, Pmode/W, CauseWay, DOS32A, EDOS, WDOSX, HX-DOS and
- *     Zurenava. Watcom-386 with FlashTek's X-32 hasn't been tested.
+ *     DOS4GW Pro, DOS4G, Pmode/W, CauseWay, DOS32A, EDOS, WDOSX and
+ *     Zurenava. Watcom with FlashTek's X-32 hasn't been tested.
  *
  */
 
@@ -69,15 +69,7 @@
   #error Unsupported memory model (medium/huge)
 #endif
 
-/* 32-bit Digital Mars Compiler defines __SMALL__. So take care when testing
- * for real __SMALL__.
- */
-#if defined(__DMC__) && (__INTSIZE==4) && defined(__SMALL__)
-  #define __SMALL32__
-  #define DMC386
-#endif
-
-#if (defined(__SMALL__) || defined(__LARGE__)) && !defined(__SMALL32__)
+#if defined(__SMALL__) || defined(__LARGE__)
   #undef  DOSX
   #define DOSX 0
 #endif
@@ -94,39 +86,28 @@
  * Watcom 11.x or OpenWatcom 1.x.
  */
 #if defined(__WATCOMC__) && defined(__386__)
-  #ifndef DOSX              /* If not set in watcom_*.mak file */
-    #undef  DOSX
-    #define DOSX    DOS4GW  /* may be DOS4GW, X32VM, PHARLAP or WINWATT */
-  #endif
-  #define WATCOM386 1
+  #undef  DOSX
+  #define DOSX      DOS4GW    /* may be DOS4GW/X32VM/PHARLAP */
+  #define WATCOM386
 #endif
 
 /*
  * Digital Mars Compiler 8.30+
  */
 #if defined(__DMC__) && (__INTSIZE==4)
-  #ifndef DOSX              /* If not set in dmars_*.mak file */
-    #undef  DOSX
-    #define DOSX   PHARLAP  /* may be X32VM, DOS4GW or PHARLAP */
-  #endif
+  #undef  DOSX
+  #define DOSX      X32VM     /* may also be DOS4GW/PHARLAP */
+  #define DMC386
 #endif
 
 /*
- * PellesC works with Win32 only.
- * Note: "pocc -Ze" sets _MSC_VER. Hence the #undef (would cause
- *       troubles otherwise).
+ * PellesC works with WIN32 only.
+ * Note: "pocc -Ze" sets _MSC_VER.
  */
 #if defined(__POCC__)
   #if !defined(__POCC__OLDNAMES)
-    #error Use the "pocc -Go" option.
+  #error Use the "pocc -Go" option.
   #endif
-
-  /*
-   * Lots of these:
-   *  warning #2116: Local '(no name)' is used without being initialized.
-   */
-  #pragma warn (disable: 2116)
-
   #undef  DOSX
   #define DOSX      WINWATT
   #undef _MSC_VER
@@ -134,7 +115,7 @@
 
 /*
  * Microsoft Visual-C 32-bit. Really not supported with PharLap,
- * but works with Win32 as target.
+ * but works with WIN32 as target.
  */
 #if defined(_MSC_VER) && (_M_IX86 >= 300)
   #undef  DOSX
@@ -143,16 +124,9 @@
 #endif
 
 /*
- * Metaware's High-C 3.x.
+ * Metaware's High-C 3.x
  */
 #if defined(__HIGHC__)
-  #if !defined(_I386) || (_I386 == 0)
-  #error What CPU are you for?
-  #endif
-  #if !defined(__i386__)
-  #define __i386__
-  #endif
-
   #undef  DOSX
   #define DOSX      PHARLAP   /* Is DOS4GW possible? */
 #endif
@@ -168,12 +142,13 @@
 #endif
 
 #if defined(__BORLANDC__) && defined(WIN32)
+  #define BORLAND_WIN32
   #undef  DOSX
-  #define DOSX      WINWATT
+  #define DOSX      WINWATT  /* experimental ATM */
 #endif
 
 /*
- * LadSoft (cc386 is rather buggy, so it's not really supported)
+ * LadSoft (cc386 is rather buggy, so not really supported)
  */
 #if defined(__CCDL__) && defined(__386__)
   #undef  DOSX
@@ -181,36 +156,27 @@
 #endif
 
 /*
- * Build for Windows (dll and static lib).
+ * Build a Windows DLL. Uses WinPcap as packet-driver replacement.
  */
-#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(__CYGWIN__)
+#if defined(WIN32) || defined(_WIN32)
   #undef  DOSX
   #define DOSX      WINWATT
 #endif
 
-#if defined(__CYGWIN__) && defined(_REENT_ONLY) && defined(WATT32_BUILD)
-  #error "CygWin with _REENT_ONLY is not supported."
-#endif
 
-#if !defined(DOSX)
+#ifndef DOSX
   #error DOSX target not defined
 #endif
 
-#if (defined(MSDOS) || defined(_MSDOS)) && !defined(__MSDOS__)
-#define __MSDOS__   /* dmc etc. defines only MSDOS+_MSDOS */
+/* 32-bit Digital Mars Compiler defines __SMALL__. So make a
+ * define for 16-bit __SMALL__ models.
+ */
+#if (DOSX == 0) && defined(__SMALL__)
+  #define __SMALL16__
 #endif
-
-#if (DOSX == 0) && !defined(__MSDOS__)
-  #error __MSDOS__ not defined for a real-mode DOS compiler!?
-#endif
-
-#if (DOSX & WINWATT) == 0 && !defined(__MSDOS__)
-  #define __MSDOS__
-#endif
-
 
 /*
- * Macros and hacks depending on target (i.e. DOS-extender or Windows).
+ * Macros and hacks depending on target (DOS-extender).
  */
 
 #if (DOSX & PHARLAP)
@@ -223,13 +189,12 @@
   #include <i86.h>
   #endif
 
-  extern REALPTR _watt_dosTbr;    /* Location and size of DOS transfer buffer */
+  extern REALPTR _watt_dosTbr;
   extern DWORD   _watt_dosTbSize;
 
-  #if !defined(DMC386) &&         /* It supports far-ptr, but don't use them */ \
-      (!BUGGY_FARPTR)  &&         /* Trust the compiler to handle far-ptr ? */  \
-      (__CMPLR_FEATURES__ & __FEATURE_FARPTR__)  /* compilers with far-ptrs */
-    #define HAVE_FARPPTR48                       /* i.e. HighC, Watcom386   */
+  #if (!BUGGY_FARPTR) &&         /* Trust the compiler to handle far-ptr ? */ \
+      (__CMPLR_FEATURES__ & __FEATURE_FARPTR__) /* compilers with far-ptrs */
+    #define HAS_FP                              /* i.e. HighC, Watcom386   */
     extern FARPTR _watt_dosFp;
 
     #define DOSMEM(s,o,t) *(t _far*)(_watt_dosFp + (DWORD)((o)|(s)<<4))
@@ -260,15 +225,15 @@
   #include <go32.h>
   #include <sys/farptr.h>
 
-  #define PEEKB(s,o)      _farpeekb (_dos_ds, (o)+((s)<<4))    /**< peek at a BYTE in DOS memory */
-  #define PEEKW(s,o)      _farpeekw (_dos_ds, (o)+((s)<<4))    /**< peek at a WORD in DOS memory */
-  #define PEEKL(s,o)      _farpeekl (_dos_ds, (o)+((s)<<4))    /**< peek at a DWORD in DOS memory */
-  #define POKEB(s,o,x)    _farpokeb (_dos_ds, (o)+((s)<<4), x) /**< poke a BYTE to DOS memory */
-  #define POKEW(s,o,x)    _farpokew (_dos_ds, (o)+((s)<<4), x) /**< poke a WORD to DOS memory */
-  #define POKEL(s,o,x)    _farpokel (_dos_ds, (o)+((s)<<4), x) /**< poke a DWORD to DOS memory */
+  #define PEEKB(s,o)      _farpeekb (_dos_ds, (o)+((s)<<4))    /*!< peek at a BYTE in DOS memory */
+  #define PEEKW(s,o)      _farpeekw (_dos_ds, (o)+((s)<<4))    /*!< peek at a WORD in DOS memory */
+  #define PEEKL(s,o)      _farpeekl (_dos_ds, (o)+((s)<<4))    /*!< peek at a DWORD in DOS memory */
+  #define POKEB(s,o,x)    _farpokeb (_dos_ds, (o)+((s)<<4), x) /*!< poke a BYTE to DOS memory */
+  #define POKEW(s,o,x)    _farpokew (_dos_ds, (o)+((s)<<4), x) /*!< poke a WORD to DOS memory */
+  #define POKEL(s,o,x)    _farpokel (_dos_ds, (o)+((s)<<4), x) /*!< poke a DWORD to DOS memory */
   #define BOOL            int
 
-#elif (DOSX & DOS4GW)      /* Watcom targets normally uses this section */
+#elif (DOSX & DOS4GW)
   #if defined(__DJGPP__)
     #include <dpmi.h>
     #include <go32.h>
@@ -297,7 +262,7 @@
   #include <x32.h>
 
   #if defined(DMC386) || defined(WATCOM386)
-    #define HAVE_FARPTR48
+    #define HAS_FP
     typedef BYTE _far *FARPTR;
     extern FARPTR _watt_dosFp;
   #endif
@@ -324,7 +289,7 @@
   #undef  BOOL
   #define BOOL int
 
-#elif (DOSX & POWERPAK)   /* Borland 32-bit DOS normally uses this section */
+#elif (DOSX & POWERPAK)
   #include <dos.h>
 
   extern WORD  _watt_dosTbSeg, _watt_dos_ds;
@@ -339,7 +304,7 @@
   #undef  BOOL
   #define BOOL int
 
-#elif !(DOSX & WINWATT)   /* All real-mode and non-Windows targets */
+#elif !(DOSX & WINWATT)   /* All real-mode and non-WIN32 targets */
   #include <dos.h>
   #define  BOOL           int
 
@@ -364,7 +329,7 @@
 /* Use Pharlap's definition of a DOS-memory address;
  *   segment in upper 16-bits, offset in lower 16-bits.
  */
-#if !(DOSX & PHARLAP) && !defined(REALPTR) && defined(__MSDOS__)
+#if !(DOSX & PHARLAP) && !defined(REALPTR) && !defined(WIN32)
   #define REALPTR  DWORD
 #endif
 
@@ -377,13 +342,19 @@
 #endif
 
 /*
- * Macros and hacks depending on compiler.
+ * Macros and hacks depending on vendor (compiler).
  */
 
-#if defined(__POCC__)
+#if defined(__TURBOC__) && (__TURBOC__ <= 0x301)
+  #include <mem.h>
+  #include <alloc.h>
+
+  #define OLD_TURBOC  /* TCC <= 2.01 doesn't have <malloc.h> and <memory.h> */
+  #define __cdecl _Cdecl
+  #define _far    far
+#elif defined(__POCC__)
   #include <string.h>
   #include <stdlib.h>
-
 #else
   #include <stdlib.h>
   #include <memory.h>
@@ -399,16 +370,9 @@
   #define DISABLE()       _inline (0xFA)      /* cli */
 #endif
 
-/*
- * This section also includes support "clang-cl" with some exceptions.
- */
 #if defined(_MSC_VER) && !defined(__POCC__)   /* "cl" and not "pocc -Ze" */
   #if (DOSX) && (DOSX != WINWATT) && (DOSX != PHARLAP)
-    #error Microsoft-C and non-Win32 or non-Pharlap targets not supported
-  #endif
-
-  #if !(defined(_M_IX86) || defined(_M_IA64) || defined(_M_X64) || defined(_M_AMD64))
-    #error Unsupported CPU-target
+    #error MSC and non-Win32 or non-Pharlap targets not supported
   #endif
 
   #undef cdecl
@@ -421,54 +385,18 @@
   #else
  /* #pragma warning (disable:4103 4113 4229) */
  /* #pragma warning (disable:4024 4047 4761 4791) */
-
-   /*
-    * 4244: "'function': convertion from '__w64' to 'int', possible
-    *        loss of data".
-    * 4267: "'=': convertion from 'size_t' to 'int', possible
-    *        loss of data".
-    * 4312: 'type cast' : conversion from 'int' to 'void *' of greater size.
-    * 4996: "The POSIX name for this item is deprecated. Instead, use
-    *       the ISO C++ conformant name...".
-    */
-    #if (_MSC_VER >= 1500)  /* VC9+ */
-      #pragma warning (disable:4090 4244 4267 4312 4996)
-      #ifndef _USE_32BIT_TIME_T
-/* !! #error Need to define "_USE_32BIT_TIME_T" for ABI compatability. No need? */
-      #endif
-    #endif
-
-    #if !defined(__cplusplus)  /* Included via stkwalk.cpp */
-      #define ENABLE()      __asm sti
-      #define DISABLE()     __asm cli
-      #define asm           __asm
-      #define cdecl         __cdecl
-    #endif
+    #define ENABLE()      __asm sti
+    #define DISABLE()     __asm cli
+    #define asm           __asm
+    #define cdecl         __cdecl
   #endif
 
-  /* Select what compiler built-in instructions to enable.
-   */
   #if (_MSC_VER >= 800)
     #pragma intrinsic (abs, memcmp, memcpy, memset)
     #pragma intrinsic (strcat, strcmp, strcpy, strlen)
     #if (DOSX == 0)
       #pragma intrinsic (_fmemcpy)
-
-    #elif (_MSC_VER >= 1500) && !defined(__clang__)
-      #include <intrin.h>
-
-      #pragma intrinsic   (__cpuid)
-      #pragma intrinsic   (_mm_popcnt_u32)
-      #define HAVE_POPCOUNT
-
-      #if defined(_M_X64)  /* 64-bit compiler */
-        #pragma intrinsic (_mm_popcnt_u64)
-      #endif
     #endif
-  #endif
-
-  #if !defined(__i386__) && defined(_M_IX86)
-    #define __i386__
   #endif
 
   #if (DOSX == 0)
@@ -478,8 +406,7 @@
     #undef  MK_FP
     #define MK_FP(s,o)    (void _far*) (((DWORD)(s) << 16) + (DWORD)(o))
   #endif
-#endif  /* _MSC_VER && !__POCC__ */
-
+#endif
 
 #if defined(__TURBOC__) || defined(__BORLANDC__)
   #if defined(__DPMI16__)
@@ -488,10 +415,8 @@
 
   #include <string.h>
 
-  #if !defined(WIN32)
-    #define ENABLE()      __emit__(0xFB)
-    #define DISABLE()     __emit__(0xFA)
-  #endif
+  #define ENABLE()        __emit__(0xFB)
+  #define DISABLE()       __emit__(0xFA)
 
   #pragma warn -bbf-     /* "Bitfields must be signed or unsigned int" warning */
   #pragma warn -sig-     /* "Conversion may loose significant digits" warning */
@@ -502,9 +427,8 @@
     #pragma warn -aus-   /* assigned a value that is never used */
   #endif
 
-  /* make string/memory functions inline (but not for DPMI32/WIN32)
-   */
-  #if defined(__BORLANDC__) && !defined(__DPMI32__) && !defined(WIN32)
+  /* make string/memory functions inline */
+  #if defined(__BORLANDC__) && !defined(__DPMI32__)
     #define strlen        __strlen__
     #define strncpy       __strncpy__
     #define strrchr       __strrchr__
@@ -514,22 +438,16 @@
     #define memcmp        __memcmp__
     #define memchr        __memchr__
   #endif
-#endif    /* __TURBOC__ || __BORLANDC__ */
-
+#endif
 
 #if defined(__GNUC__)
-  #if (__GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 1))
-    #error I need GCC 3.1 or later
+  #if (__GNUC__ < 2 || (__GNUC__ == 2 && __GNUC_MINOR__ < 7))
+    #error I need GCC 2.7 or later
   #endif
   #include <string.h>
 
-  #ifndef __fastcall
-  #define __fastcall      __attribute__((__fastcall__))   /* unsupported in gcc/djgpp */
-  #endif
-
-  #ifndef _fastcall
+  #define __fastcall      __attribute__((__fastcall__)) /* unsupported in gcc/djgpp */
   #define _fastcall       __attribute__((__fastcall__))
-  #endif
 
   #if !(DOSX & WINWATT)
     #define ENABLE()      __asm__ __volatile__ ("sti")
@@ -541,17 +459,8 @@
   #include <dos.h>
   #include <string.h>
 
-  #if !defined(_M_IX86)
+  #if !defined (_M_IX86)
   #error Only Watcom x86 supported
-  #endif
-
-  /* Code inside "W32_NO_8087" is meant to be excluded on a 8086 PC.
-   * Since they don't have a math processor, we should prevent the math
-   * emulation library to be linked in. The define "__SW_0" is set by
-   * "wcc -0".
-   */
-  #if defined(__SW_0) && !defined(__SW_FPI87)
-    #define W32_NO_8087
   #endif
 
   #pragma intrinsic (strcmp, memset)
@@ -560,7 +469,7 @@
   /* #pragma warning (disable:H3006 H3007) */
   #endif
 
-  #if defined(__MSDOS__)
+  #if !(DOSX & WINWATT)
     #define getvect(a)      _dos_getvect (a)
     #define setvect(a,b)    _dos_setvect (a, b)
     #define BOOL            int
@@ -572,48 +481,47 @@
   #endif
 #endif
 
-#if defined(WIN32) || defined(WIN64)
+#if defined(__DMC__) && !(DOSX & WINWATT)
+  #include <dos.h>
+  #include <dpmi.h>
+  #include <string.h>
+
+  #define ENABLE()        enable()
+  #define DISABLE()       disable()
+#endif
+
+#if defined(__CCDL__) && !(DOSX & WINWATT)
+  #include <string.h>
+  #include <dos.h>
+
+  #define cdecl           _cdecl
+  #define BOOL            int
+  #define ENABLE()        asm sti
+  #define DISABLE()       asm cli
+#endif
+
+#if (DOSX & WINWATT)
   extern CRITICAL_SECTION _watt_crit_sect;
 
   #if defined(__LCC__)
-    #define ENTER_CRIT()  EnterCriticalSection ((struct _CRITICAL_SECTION*)&_watt_crit_sect)
-    #define LEAVE_CRIT()  LeaveCriticalSection ((struct _CRITICAL_SECTION*)&_watt_crit_sect)
+    #define ENTER_CRIT()    EnterCriticalSection ((struct _CRITICAL_SECTION*)&_watt_crit_sect)
+    #define LEAVE_CRIT()    LeaveCriticalSection ((struct _CRITICAL_SECTION*)&_watt_crit_sect)
   #else
-    #define ENTER_CRIT()  EnterCriticalSection (&_watt_crit_sect)
-    #define LEAVE_CRIT()  LeaveCriticalSection (&_watt_crit_sect)
+    #define ENTER_CRIT()    EnterCriticalSection (&_watt_crit_sect)
+    #define LEAVE_CRIT()    LeaveCriticalSection (&_watt_crit_sect)
   #endif
 
   #undef  DISABLE
+  #define DISABLE()       ENTER_CRIT()
   #undef  ENABLE
-  #define DISABLE()  ENTER_CRIT()
-  #define ENABLE()   LEAVE_CRIT()
-
+  #define ENABLE()        LEAVE_CRIT()
 #else
-
-  #if defined(__DMC__)
-    #include <dos.h>
-    #include <dpmi.h>
-    #include <string.h>
-
-    #define ENABLE()        enable()
-    #define DISABLE()       disable()
-
-  #elif defined(__CCDL__)
-    #include <string.h>
-    #include <dos.h>
-
-    #define cdecl           _cdecl
-    #define BOOL            int
-    #define ENABLE()        asm sti
-    #define DISABLE()       asm cli
-  #endif
-
   #define ENTER_CRIT()    ((void)0)
   #define LEAVE_CRIT()    ((void)0)
-#endif  /* WIN32 || WIN64 */
+#endif
 
 
-#if !defined(cdecl) && defined(__GNUC__) && (defined(__MINGW32__) || defined(__CYGWIN__))
+#if !defined(cdecl) && defined(__GNUC__) && defined(__MINGW32__)
 #define cdecl __attribute__((__cdecl__))
 #endif
 
@@ -622,7 +530,7 @@
 #endif
 
 #if (DOSX & (DOS4GW|X32VM))
-#define HAVE_DOS_NEAR_PTR   /* Can use 32-ptr to access DOS-mem directly */
+#define HAVE_DOS_NEAR_PTR
 #endif
 
 #ifndef max
@@ -633,31 +541,80 @@
 #define min(a,b)   (((a) < (b)) ? (a) : (b))
 #endif
 
-#if (W32_GCC_VERSION >= 40410)
-  #define HAVE_POPCOUNT
+/*
+ * Macros to hide GNU-C features.
+ */
+#if defined(__GNUC__) && (__GNUC__ >= 3) && \
+   !defined(WATT32_DOS_DLL)  /* not djgpp for DXE */
+  #define ATTR_PRINTF(_1,_2) __attribute__((format(printf,_1,_2)))
+  #define ATTR_SCANF(_1,_2)  __attribute__((format(scanf,_1,_2)))
+#else
+  #define ATTR_PRINTF(_1,_2)
+  #define ATTR_SCANF(_1,_2)
 #endif
 
-/*
- * C-99 (?) __FUNCTION__
- */
+#if defined(__GNUC__)
+  #define ATTR_REGPARM(_n)   __attribute__((regparm(_n)))
+  #define ATTR_NORETURN()    __attribute__((noreturn))
+#else
+  #define ATTR_REGPARM(n)
+  #define ATTR_NORETURN()
+#endif
+
 #if defined(__LCC__) || defined(__POCC__)
   #define __FUNCTION__  __func__
-
-#elif (defined(_MSC_VER) && (_MSC_VER >= 1300)) || defined(__DMC__)
+#elif defined(_MSC_VER) && (_MSC_VER >= 1300)
   /* __FUNCTION__ is built-in */
-
 #elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
   #define __FUNCTION__  __func__
-
-#elif !defined(__GNUC__) && !defined(__WATCOMC__)
+#elif !defined(__GNUC__) && !defined(__WATCOMC__) && !defined(__DMC__)
   #define __FUNCTION__  "func?"
 #endif
 
+
 /*
- * Some checks for Borland on Windows
+ * Hack for Microsoft C.
+ *
+ * Quick-C/Visual-C insists that signal-handlers, atexit() and var-arg
+ * functions must be defined cdecl. But e.g. Watcom's register call
+ * doesn't need this. This becomes a problem if using _fastcall or
+ * "cl /Gr" globally.
  */
-#if defined(__DOS_H) && defined(__BORLANDC__) && defined(WIN32)
-  #error Do not include <dos.h> for Borland/WIN32
+#if defined(_MSC_VER) && !defined(__POCC__) && !defined(WIN32)
+  #undef  MS_CDECL
+  #define MS_CDECL  cdecl
+#else
+  #define MS_CDECL
+#endif
+
+
+/*
+ * Because kbhit() will pull in more conio function that we
+ * really need, use the simple kbhit() variant (without ungetch
+ * option). This also prevents multiple definition trouble when
+ * linking e.g. PD-curses and Watt-32 library.
+ */
+
+#if defined (__DJGPP__)
+  #ifdef __dj_include_conio_h_
+    #error "Don't include <conio.h>"
+  #endif
+  #include <pc.h>     /* simple kbhit() */
+
+#elif defined (__HIGHC__) || defined(__WATCOMC__) || defined(__DMC__)
+  #if defined(__portable_conio_h_) || defined(__metaware_conio_h_)
+    #error "Don't include <mw/conio.h>"
+  #endif
+  #include <conio.h>  /* simple kbhit() */
+
+#elif defined(_MSC_VER) && defined(__386__)
+  /*
+   * Problems including <conio.h> from Visual C 4.0
+   */
+  int __cdecl kbhit (void);
+
+#else                 /* no other option */
+  #include <conio.h>
 #endif
 
 #endif  /* _w32_TARGET_H */

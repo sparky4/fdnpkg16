@@ -1,0 +1,377 @@
+@ifndef BORLANDC TURBOC WATCOM DJGPP DJGPP_DXE HIGHC QUICKC VISUALC DIGMARS LADSOFT LCC MINGW32 PELLESC
+
+  This is a master makefile that from which all makefiles may be
+  derived.  A makefile for a particular system may be derived by
+  passing this through the standalone DOS executable ..\util\mkmake.
+  For example, to produce a makefile suitable for Watcom and small
+  model use:
+
+      ..\..\util\mkmake makefile.all WATCOM SMALL > watcom_s.mak
+
+  Currently supported compilers/targets include:
+
+     BORLANDC, TURBOC, WATCOM, DJGPP, DJGPP_DXE, HIGHC, QUICKC, VISUALC, DIGMARS, MINW32, PELLESC
+
+  Supported memory models include:
+
+     SMALL, LARGE, FLAT, WIN32, DEBUG, RELEASE
+
+@else
+#
+# NB! THIS MAKEFILE WAS AUTOMATICALLY GENERATED FROM ZLIB\MAKEFILE.ALL.
+#     DO NOT EDIT.
+#
+# Makefile for zlib in Watt-32
+#
+@ifdef VISUALC
+# Note: CFLAGS are passed from parent makefile
+#
+@endif
+
+SOURCE = adler32.c compress.c crc32.c gzio.c uncompr.c deflate.c \
+         trees.c zutil.c inflate.c infback.c inftrees.c inffast.c
+
+OBJS = $(OBJDIR)\adler32.obj  $(OBJDIR)\compress.obj \
+       $(OBJDIR)\crc32.obj    $(OBJDIR)\gzio.obj     \
+       $(OBJDIR)\uncompr.obj  $(OBJDIR)\deflate.obj  \
+       $(OBJDIR)\trees.obj    $(OBJDIR)\zutil.obj    \
+       $(OBJDIR)\inflate.obj  $(OBJDIR)\infback.obj  \
+       $(OBJDIR)\inftrees.obj $(OBJDIR)\inffast.obj
+
+########################################################################
+
+@ifdef DJGPP
+
+CC     = gcc
+CFLAGS = -O2 -g -gcoff -W -Wall -I../../inc
+OBJDIR = ../djgpp
+
+OBJS := $(subst \,/,$(OBJS))
+OBJS := $(OBJS:.obj=.o)
+
+all: $(OBJS)
+
+$(OBJDIR)/%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+clean:
+	rm -f $(OBJS)
+
+-include ../djgpp/zlib.dep
+
+########################################################################
+
+@elifdef DJGPP_DXE
+
+CC     = gcc
+CFLAGS = -O2 -g -gcoff -I../../inc -D_DLL -W -Wall
+OBJDIR = ../djgpp/dxe
+
+OBJS := $(subst \,/,$(OBJS))
+OBJS := $(OBJS:.obj=.o)
+
+all: $(OBJS)
+
+$(OBJDIR)/%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+clean:
+	rm -f $(OBJS)
+
+-include ../djgpp/zlib.dep
+
+########################################################################
+
+@elifdef BORLANDC
+
+@ifdef SMALL
+CC     = bcc
+CFLAGS = -ms -H -H=$(TEMP)\bcc_s.pch
+OBJDIR = ..\borland\small
+
+@elifdef LARGE
+CC     = bcc
+CFLAGS = -ml -H -H=$(TEMP)\bcc_l.pch
+OBJDIR = ..\borland\large
+
+@elifdef FLAT
+CC     = bcc32
+CFLAGS = -4- -RT- -WX
+OBJDIR = ..\borland\flat
+
+@elifdef WIN32
+CC     = bcc32
+CFLAGS = -RT-
+OBJDIR = ..\borland\win32
+@endif
+
+CFLAGS = -I.. -I..\..\inc -v -w -w+pro -n$(OBJDIR) $(CFLAGS)
+
+.SWAP
+
+all: $(OBJS)
+
+.c.obj:
+          $(CC) -c $(CFLAGS) $*.c
+
+clean:
+      @del $(OBJDIR)\*.obj
+
+!include ..\borland\zlib.dep
+
+########################################################################
+
+@elifdef TURBOC
+
+@ifdef SMALL
+CC     = tcc
+CFLAGS = -ms
+OBJDIR = ..\turboc\small
+
+@elifdef LARGE
+CC     = tcc
+CFLAGS = -ml
+OBJDIR = ..\turboc\large
+@endif
+
+CFLAGS = -I.. -I..\..\inc -y -O -a -d -f- -n$(OBJDIR) $(CFLAGS)
+
+all: $(OBJS)
+
+.c.obj:
+          $(CC) -c $(CFLAGS) $*.c
+
+clean:
+          @del $(OBJDIR)\*.obj
+
+!include ..\turboc\zlib.dep
+
+########################################################################
+
+@elifdef WATCOM
+
+@ifdef SMALL
+CC     = wcc
+CFLAGS = -ms -0 -os -zc -s -bt=dos
+OBJDIR = ..\watcom\small
+
+@elifdef LARGE
+CC     = wcc
+CFLAGS = -ml -0 -os -zc -s -bt=dos
+OBJDIR = ..\watcom\large
+
+@elifdef FLAT
+CC     = wcc386
+CFLAGS = -mf -3r -zff -zgf -zm -s -bt=dos -I$(%PHARLAP)\include -oilrtfm
+OBJDIR = ..\watcom\flat
+
+@elifdef WIN32
+CC     = wcc386
+CFLAGS = -3s -zw -zm -zw -bt=nt -oilrtfm
+OBJDIR = ..\watcom\win32
+@endif
+
+CFLAGS += -I..\..\inc -zq -fr=nul -wx -fpi
+
+all: $(OBJS)
+
+.ERASE
+.c{$(OBJDIR)}.obj:
+          *$(CC) $[@ $(CFLAGS) -fo=$@
+
+clean: .SYMBOLIC
+          @del $(OBJDIR)\*.obj
+
+-!include ..\watcom\zlib.dep
+
+########################################################################
+
+@elifdef QUICKC
+
+@ifdef SMALL
+CC     = cl
+CFLAGS = -AS
+OBJDIR = ..\quickc\small
+
+@elifdef LARGE
+CC     = cl
+CFLAGS = -AL
+OBJDIR = ..\quickc\large
+
+@else
+!error Unknown QUICKC model
+@endif
+
+CFLAGS = $(CFLAGS) -nologo -O -W2 -Gs -Gr -G1 -Zi -Oa -Os -I..\..\inc
+
+all: $(OBJS)
+
+.c{$(OBJDIR)}.obj:
+      $(CC) -c $(CFLAGS) -Fo$*.obj $<
+
+clean:
+      @del $(OBJDIR)\*.obj
+
+!include ..\quickc\zlib.dep
+
+########################################################################
+
+@elifdef VISUALC
+
+CC = cl
+
+@ifdef DEBUG
+OBJDIR = ..\visualc\debug
+@else
+OBJDIR = ..\visualc\release
+@endif
+
+all: $(OBJS)
+
+.c{$(OBJDIR)}.obj:
+      $(CC) -c -I..\..\inc $(CFLAGS) -Fo$*.obj $<
+
+clean:
+      @del $(OBJS)
+
+!include ..\visualc\zlib.dep
+
+########################################################################
+
+@elifdef PELLESC
+
+CC     = pocc
+CFLAGS = -I$(PELLESC)\include -I$(PELLESC)\include\win -I..\..\inc -Ze -Go
+OBJDIR = ..\pellesc
+
+all: $(OBJS)
+
+.c{$(OBJDIR)}.obj:
+      $(CC) -c $(CFLAGS) -Fo$*.obj $<
+
+clean:
+      @del $(OBJS)
+
+!include ..\pellesc\zlib.dep
+
+########################################################################
+
+@elifdef LCC
+
+CC = lcc
+
+OBJDIR = ..\lcc
+
+all: $(OBJS)
+
+.c{$(OBJDIR)}.obj:
+      $(CC) -c -I.. -I..\..\inc -g2 -O -A -o $*.obj $<
+
+clean:
+      @del $(OBJS)
+
+!include ..\lcc\zlib.dep
+
+########################################################################
+
+@elifdef HIGHC
+
+CC     = hc386
+CFLAGS = -w3 -g -O2 -Hnocopyr -I..\..\inc
+OBJDIR = ..\highc
+
+.SWAP
+
+all: $(OBJS)
+
+.c.obj:
+          $(CC) -c $(CFLAGS) -o $(OBJDIR)\$*.obj $*.c
+
+clean:
+      @del $(OBJDIR)\*.obj
+
+!include ..\highc\zlib.dep
+
+########################################################################
+
+@elifdef LADSOFT
+
+CC     = cc386
+CFLAGS = +v -O+a -O+i -C+N -C+S -I..\..\inc
+OBJDIR = ..\ladsoft
+
+.SWAP
+
+all: $(OBJS)
+
+.c.obj:
+          $(CC) -c $(CFLAGS) $*.c -o$(OBJDIR)\$*.asm
+          nasm -s -f obj -l $(OBJDIR)\$*.lst -o $(OBJDIR)\$*.obj $(OBJDIR)\$*.asm
+
+clean:
+      @del $(OBJDIR)\*.obj
+      @del $(OBJDIR)\*.lst
+      @del $(OBJDIR)\*.asm
+
+!include ..\ladsoft\zlib.dep
+
+########################################################################
+
+@elifdef DIGMARS
+
+@ifdef SMALL
+CC     = dmc
+CFLAGS = -ms
+OBJDIR = ..\digmars\small
+
+@elifdef LARGE
+CC     = dmc
+CFLAGS = -ml
+OBJDIR = ..\digmars\large
+
+@elifdef FLAT
+CC     = dmc
+CFLAGS = -mx
+OBJDIR = ..\digmars\flat
+
+@elifdef WIN32
+CC     = dmc
+CFLAGS = -mn
+OBJDIR = ..\digmars\win32
+@endif
+
+CFLAGS = $(CFLAGS) -r -Jm -I$(DIGMARS)\include -I..\..\inc
+
+all: $(OBJS)
+
+.c.obj:
+      $(CC) -c $(CFLAGS) $< -o$(OBJDIR)\$*.obj
+
+clean:
+      @del $(OBJDIR)\*.obj
+
+!include ..\digmars\zlib.dep
+
+########################################################################
+
+@elifdef MINGW32
+
+CC     = gcc
+CFLAGS = -O2 -g -Wall -W -I../../inc
+OBJDIR = ../mingw32
+
+OBJS := $(subst \,/,$(OBJS))
+OBJS := $(OBJS:.obj=.o)
+
+all:  $(OBJS)
+
+$(OBJDIR)/%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+clean:
+	rm -f $(OBJS)
+
+-include ../mingw32/zlib.dep
+
+@endif
+

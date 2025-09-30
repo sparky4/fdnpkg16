@@ -22,94 +22,59 @@
  /*
   * Changes for Watt-32:
   *  - Merged Packet32.c and AdInfo.c into one.
+  *  - Removed all WanPacket and Dag API support.
   *  - Rewritten for ASCII function (no Unicode).
   *  - Lots of simplifications.
   */
-#include "wattcp.h"
+#include <stdio.h>
+#include <stdarg.h>
+#include <io.h>
 
-#if defined(WIN32)  /* Rest of file */
+#if defined(WIN32) || defined(_WIN32)
+
+#define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
 #include <windowsx.h>       /* GlobalAllocPtr() */
 #include <winsvc.h>         /* SERVICE_ALL_ACCESS... */
+#include <arpa/inet.h>      /* inet_aton() */
 #include <sys/socket.h>     /* AF_INET etc. */
 #include <process.h>
 
+#include "wattcp.h"
 #include "misc.h"
 #include "timer.h"
-#include "profile.h"
 #include "strings.h"
 #include "pcconfig.h"
 #include "pcdbug.h"
-#include "pcpkt.h"
-#include "netaddr.h"
-#include "w32_ndis.h"
+#include "ntddndis.h"
 #include "cpumodel.h"
 #include "packet32.h"
-#include "winpkt.h"
-#include "win_dll.h"
+
+#if defined(USE_DYN_PACKET)
+struct dyn_table dyn_funcs;
+static HINSTANCE packet_mod = NULL;
+
+static BOOL LoadPacketFunctions (void);
+
+#else
 
 /**
  * Current NPF.SYS version.
  */
-static char npf_drv_ver[64] = "Unknown npf.sys version";
+static char npf_driver_version[64] = "Unknown npf.sys version";
 
 /**
- * Name constants (NPF).
+ * Name constants.
  */
 static const char NPF_service_name[]      = "NPF";
 static const char NPF_service_descr[]     = "Netgroup Packet Filter";
 static const char NPF_registry_location[] = "SYSTEM\\CurrentControlSet\\Services\\NPF";
-static const char NPF_prefix[]            = "\\Device\\NPF_";
 static const char NPF_driver_path[]       = "system32\\drivers\\npf.sys";
-static const char NPF_virtual_path[]      = "sysnative\\drivers\\npf.sys";
 
 /**
- * Name constants (Win10Pcap).
- */
-static const char Win10Pcap_service_name[]       = "Win10Pcap";
-static const char Win10Pcap_service_descr[]      = "Win10Pcap Packet Capture Driver";
-static const char Win10Pcap_registry_location[]  = "SYSTEM\\ControlSet\\Services\\Win10Pcap";
-static const char Win10Pcap_prefix[]             = "\\Device\\WTCAP_A_";
-static const char Win10Pcap_driver_path[]        = "system32\\drivers\\win10pcap.sys";
-static const char Win10Pcap_virtual_path[]       = "sysnative\\drivers\\win10pcap.sys";
-
-/**
- * Defaults to NPF.
- */
-static const char *service_name      = NPF_service_name;
-static const char *service_descr     = NPF_service_descr;
-static const char *registry_location = NPF_registry_location;
-static const char *driver_prefix     = NPF_prefix;
-static const char *driver_path       = NPF_driver_path;
-static const char *virtual_path      = NPF_virtual_path;
-
-
-#define ADD_VALUE(v)  { v, #v }
-
-static const struct search_list serv_stat[] = {
-                    ADD_VALUE (SERVICE_CONTINUE_PENDING),
-                    ADD_VALUE (SERVICE_PAUSE_PENDING),
-                    ADD_VALUE (SERVICE_PAUSED),
-                    ADD_VALUE (SERVICE_RUNNING),
-                    ADD_VALUE (SERVICE_START_PENDING),
-                    ADD_VALUE (SERVICE_STOP_PENDING),
-                    ADD_VALUE (SERVICE_STOPPED)
-                  };
-
-#define DEVICE_PREFIX  "\\Device\\"
-
-/*
- * The {4D36E972-E325-11CE-BFC1-08002BE10318} subkey represents the class
- * of network adapter devices that the system supports.
- */
-#define ADAPTER_KEY_CLASS \
-        "SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002BE10318}"
-
-
-/**
- * Head of the adapter information list. This list is populated
- * by AddAdapter().
+ * Head of the adapter information list. This list is populated when
+ * packet.dll is linked by the application.
  */
 static ADAPTER_INFO *adapters_list = NULL;
 
@@ -120,40 +85,30 @@ static ADAPTER_INFO *adapters_list = NULL;
  */
 static HANDLE adapters_mutex = INVALID_HANDLE_VALUE;
 
-/**
- * The WanPacket stuff; we can probably not send on this interface, but it
- * would be nice to sniff on it.
- */
-static BOOL use_wanpacket = FALSE;
-
 static BOOL PopulateAdaptersInfoList (void);
 static BOOL FreeAdaptersInfoList (void);
+static BOOL GetFileVersion (const char *file_name,
+                            char *version_buf,
+                            size_t version_buf_len);
+#endif
 
-static void set_char_pointers (const char *adapter)
-{
-  size_t len = strlen (Win10Pcap_prefix);
+/*
+ * Lack of a C99 compiler makes this a bit harder to trace.
+ */
+static const char *trace_func;
 
-  if (!strnicmp(adapter,Win10Pcap_prefix,len))
-  {
-    service_name      = Win10Pcap_service_name;
-    service_descr     = Win10Pcap_service_descr;
-    registry_location = Win10Pcap_registry_location;
-    driver_prefix     = Win10Pcap_prefix;
-    driver_path       = Win10Pcap_driver_path;
-    virtual_path      = Win10Pcap_virtual_path;
-  }
-  else
-  {
-    service_name      = NPF_service_name;
-    service_descr     = NPF_service_descr;
-    registry_location = NPF_registry_location;
-    driver_prefix     = NPF_prefix;
-    driver_path       = NPF_driver_path;
-    virtual_path      = NPF_virtual_path;
-  }
-}
+#if !defined(USE_DEBUG)
+  #define WINPCAP_TRACE(args)  ((void)0)
+#else
+  #define WINPCAP_TRACE(args) do { \
+          trace_line = __LINE__;   \
+          winpcap_trace args ;     \
+        } while (0)
 
-#if defined(USE_DEBUG)
+  static FILE *trace_file = NULL;
+  static UINT  trace_line;
+  static DWORD start_tick;
+
   /**
    * Dumps a registry key to disk in text format. Uses regedit.
    *
@@ -171,90 +126,78 @@ static void set_char_pointers (const char *adapter)
 
     /* Let regedit do the dirty work for us
      */
-    SNPRINTF (command, sizeof(command), "regedit /e %s %s", file_name, key_name);
+    _snprintf (command, sizeof(command), "regedit /e %s %s", file_name, key_name);
     system (command);
+  }
+
+  static void winpcap_trace (const char *fmt, ...)
+  {
+    static BOOL init = FALSE;
+    va_list args;
+
+    if (!trace_file)
+       return;
+
+    if (!init)
+       fputs ("dT [ms] line\n------------------------------------------"
+              "------------------------------------------\n", trace_file);
+    init = TRUE;
+
+    fprintf (trace_file, "%5lu, %4u %s(): ", GetTickCount() - start_tick,
+             trace_line, trace_func);
+    va_start (args, fmt);
+    vfprintf (trace_file, fmt, args);
+    fflush (trace_file);
+    if (ferror(trace_file))
+    {
+      TCP_CONSOLE_MSG (1, ("error writing WinPcap dump file; %s\n",
+                       strerror(errno)));
+      fclose (trace_file);
+      trace_file = NULL;
+    }
+    va_end (args);
   }
 #endif
 
-/*
- * The get_file_version() fails under Win-Vista+ since files under
- * '"%SystemRoot%\system32\drivers' are hidden from non-admin users.
- * So this function is used instead. I assume the true file-version of
- * NPF.sys is the same as "DisplayVersion" in Registry.
- */
-static BOOL get_npf_ver_from_registry (char *ret_ver, size_t ver_size)
-{
-  char  str[100];
-  BOOL  rc = FALSE;
-  DWORD size = sizeof(str);
-  HKEY  key = NULL;
-  LONG  status;
-
-  status = RegOpenKeyEx (HKEY_LOCAL_MACHINE,
-                         "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\WinPcapInst",
-                         0, KEY_READ, &key);
-
-  /* Note: WinPcap may be installed and working even though this key doesn't exist.
-   */
-  if (status != ERROR_SUCCESS)
-     goto fail;
-
-  status = RegQueryValueEx (key, "DisplayVersion", NULL, NULL, (BYTE*)&str, &size);
-  if (status != ERROR_SUCCESS)
-     goto fail;
-
-  _strlcpy (ret_ver, str, ver_size);
-  rc = TRUE;
-
-fail:
-  if (key)
-     RegCloseKey (key);
-  return (rc);
-}
-
-#if 0
 /**
- * \todo:
- * Do the same as these command does:
- *   if 'sc GetDisplayName npf' succeedes, follow by a
- *  'sc showsid npf'. Giving:
- *
- *   NAME: npf
- *   SERVICE SID: S-1-5-80-1598306103-1873062032-3786967184-80952375-3176933300
- *   STATUS: Inactive
+ * The winpcap init/deinit function (formerly DllMain).
  */
-static BOOL npf_sc_showsid (char *sid_buf, size_t sid_size)
+BOOL PacketInitModule (BOOL init, FILE *dump)
 {
-}
+  BOOL rc;
 
-/*
- * And as 'sc getdisplayname npf' does:
- *   [SC] GetServiceDisplayName SUCCESS
- *   Name = WinPcap Packet Driver (NPF)
- */
-static BOOL npf_sc_getdisplayname (char *name_buf, size_t name_size)
-{
-}
+  trace_func = "PacketInitModule";
+
+  if (!init)
+  {
+    WINPCAP_TRACE (("deinit\n"));
+
+#if defined(USE_DYN_PACKET)
+    if (packet_mod)
+       FreeLibrary (packet_mod);
+    packet_mod = NULL;
+    rc = TRUE;
+#else
+    FreeAdaptersInfoList();
+    rc = CloseHandle (adapters_mutex);
+    adapters_mutex = INVALID_HANDLE_VALUE;
 #endif
-
-/**
- * The winpcap init function (formerly DllMain).
- */
-BOOL PacketInitModule (void)
-{
-  const struct ADAPTER_INFO *ai;
-  BOOL  rc = FALSE;
-
-  winpkt_trace_func = "PacketInitModule";
-  WINPKT_TRACE ("\n");
+    return (rc);
+  }
 
 #if defined(USE_DEBUG)
-  if (winpkt_trace_level >= 3 && !_watt_is_win9x)
+  trace_file = dump;
+  start_tick = GetTickCount();
+  WINPCAP_TRACE (("init\n"));
+
+  if (debug_on >= 5 && !_watt_is_win9x)
   {
     /* dump a bunch of registry keys
      */
     PacketDumpRegistryKey (
-      "HKEY_LOCAL_MACHINE" ADAPTER_KEY_CLASS, "adapters.reg");
+      "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet"
+      "\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002BE10318}",
+      "adapters.reg");
     PacketDumpRegistryKey ("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet"
                            "\\Services\\Tcpip", "tcpip.reg");
     PacketDumpRegistryKey ("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet"
@@ -264,82 +207,78 @@ BOOL PacketInitModule (void)
   }
 #endif
 
+#if defined(USE_DYN_PACKET)
+  rc = LoadPacketFunctions();
+
+#else
   /* Create the mutex that will protect the adapter information list
    */
   adapters_mutex = CreateMutex (NULL, FALSE, NULL);
 
-  /*
-   * Retrieve NPF.sys version information from the file.
-   *
-   * \todo: Should maybe use an absolute path: "%SystemRoot%\system32\drivers\npf.sys" ?
-   *        Or we can assume %SystemRoot% is always in %PATH?
-   *
-   * The get_file_version() fails under Win-Vista+ since files under
-   * '"%SystemRoot%\system32\drivers' are hidden from non-admin users.
-   * Hence try the "%SystemRoot%\sysnative\drivers" directory first
-   * (a virtual directory). If that fails (or on < Vista), try
-   * "%SystemRoot%\system32\drivers".
-   *
-   * Instead of checking "%SystemRoot%\sysnative\drivers" directly, MSDN
-   * would recommend we use:
-   *   Wow64DisableWow64FsRedirection (...)
-   *   get_file_version (driver_path,...)
-   *   Wow64EnableWow64FsRedirection (....)
-   *
-   * But this can led to strange bugs.
-   *
-   * Refs: https://msdn.microsoft.com/en-us/library/windows/desktop/aa365743(v=vs.85).aspx
-   *       https://blogs.msdn.microsoft.com/oldnewthing/20130321-00/?p=4883/
-   *
-   * If both attempts fails, simply try to get the version from Registry.
-   *
-   * Ref. Section "Registry and file system" at:
-   *   http://en.wikipedia.org/wiki/WoW64
+  /* Retrieve NPF.sys version information from the file
    */
-  if (_watt_os_ver >= 0x0600)
-     rc = get_file_version (virtual_path, npf_drv_ver, sizeof(npf_drv_ver));
-
-  if (!rc)
-     rc = get_file_version (driver_path, npf_drv_ver, sizeof(npf_drv_ver));
-
-  WINPKT_TRACE ("get_file_version(): rc=%d, npf_drv_ver=\"%s\"\n", rc, npf_drv_ver);
-
-  if (!rc)
-  {
-    rc = get_npf_ver_from_registry (npf_drv_ver, sizeof(npf_drv_ver));
-    WINPKT_TRACE ("get_npf_ver_from_registry(): rc=%d, npf_drv_ver=\"%s\"\n",
-                  rc, npf_drv_ver);
-  }
+  GetFileVersion ("drivers\\npf.sys", npf_driver_version,
+                  sizeof(npf_driver_version));
 
   /* Populate the 'adapters_list' list.
    */
   rc = PopulateAdaptersInfoList();
 
-  winpkt_trace_func = "PacketInitModule";
-  WINPKT_TRACE ("Known WinPcap adapters:\n");
-
-  for (ai = PacketGetAdInfo(); ai; ai = ai->Next)
+#if defined(USE_DEBUG)
+  if (trace_file)
   {
-    winpkt_trace_func = "PacketInitModule";
-#if 0
-    WINPKT_TRACE ("%s, `%s'\n", ai->Name, ai->Description);
-#else
-    WINPKT_TRACE ("%s\n", ai->Name);
-#endif
-  }
-  WINPKT_TRACE ("rc %d\n", rc);
+    const struct ADAPTER_INFO *ai;
 
-  /* Check if we loaded WanPacket.dll okay. We don't care if it fails (since
-   * it's not critical for Watt-32/Win. These 'p_' func-ptr are et in win_dll.c
-   */
-  use_wanpacket = (p_WanPacketSetBpfFilter  && p_WanPacketOpenAdapter    &&
-                   p_WanPacketCloseAdapter  && p_WanPacketSetBufferSize  &&
-                   p_WanPacketReceivePacket && p_WanPacketSetMinToCopy   &&
-                   p_WanPacketGetStats      && p_WanPacketSetReadTimeout &&
-                   p_WanPacketSetMode       && p_WanPacketGetReadEvent   &&
-                   p_WanPacketTestAdapter);
+    fputs ("\nKnown adapters:\n", trace_file);
+    for (ai = adapters_list; ai; ai = ai->Next)
+        fprintf (trace_file, "  %s, `%s'\n", ai->Name, ai->Description);
+    fputs ("\n", trace_file);
+  }
+#endif
+#endif
+
   return (rc);
 }
+
+#if defined(USE_DYN_PACKET)
+
+typedef void (__cdecl *packet_func) (void);
+
+static BOOL GetPacketFunc (packet_func *func, const char *name)
+{
+  *func	= (packet_func) GetProcAddress (packet_mod, name);
+  trace_func = "GetPacketFunc";
+  WINPCAP_TRACE (("  %s -> 0x%p\n", name, *func));
+  if (!*func)
+     return (FALSE);
+  return (TRUE);
+}
+
+static BOOL LoadPacketFunctions (void)
+{
+  packet_mod = LoadLibrary ("packet.dll");
+  if (!packet_mod)
+  {
+    trace_func = "LoadPacketFunctions";
+    WINPCAP_TRACE (("Cannot load packet.dll; %s\n", win_strerror(GetLastError())));
+    return (FALSE);
+  }
+  if (!GetPacketFunc((packet_func*)&dyn_funcs.PacketOpenAdapter, "PacketOpenAdapter") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketCloseAdapter, "PacketCloseAdapter") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketRequest, "PacketRequest") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketGetDriverVersion, "PacketGetDriverVersion") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketSetMode, "PacketSetMode") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketSetBuff, "PacketSetBuff") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketSetMinToCopy, "PacketSetMinToCopy") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketSetReadTimeout, "PacketSetReadTimeout") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketGetStatsEx, "PacketGetStatsEx") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketReceivePacket, "PacketReceivePacket") ||
+      !GetPacketFunc((packet_func*)&dyn_funcs.PacketSendPacket, "PacketSendPacket"))
+     return (FALSE);
+  return (TRUE);
+}
+
+#else    /* rest of file */
 
 /**
  * Sets the maximum possible lookahead buffer for the driver's
@@ -360,7 +299,7 @@ static BOOL PacketSetMaxLookaheadsize (const ADAPTER *AdapterObject)
   } oid;
   BOOL rc;
 
-  winpkt_trace_func = "PacketSetMaxLookaheadsize";
+  trace_func = "PacketSetMaxLookaheadsize";
 
   /* Set the size of the lookahead buffer to the maximum available
    * by the the NIC driver.
@@ -370,19 +309,19 @@ static BOOL PacketSetMaxLookaheadsize (const ADAPTER *AdapterObject)
   oid.oidData.Length = sizeof(oid.filler);
   rc = PacketRequest (AdapterObject, FALSE, &oid.oidData);
 
-  winpkt_trace_func = "PacketSetMaxLookaheadsize";
-  WINPKT_TRACE ("lookahead %lu, rc %d; %s\n",
-                *(u_long*)&oid.oidData, rc,
-                !rc ? win_strerror(GetLastError()) : "okay");
+  trace_func = "PacketSetMaxLookaheadsize";
+  WINPCAP_TRACE (("lookahead %lu, rc %d; %s\n",
+                  *(DWORD*)&oid.oidData, rc,
+                  !rc ? win_strerror(GetLastError()) : "okay"));
 
   memset (&oid, 0, sizeof(oid));
   oid.oidData.Oid    = OID_GEN_CURRENT_LOOKAHEAD;
   oid.oidData.Length = sizeof(oid.filler);
   rc = PacketRequest (AdapterObject, TRUE, &oid.oidData);
 
-  winpkt_trace_func = "PacketSetMaxLookaheadsize";
-  WINPKT_TRACE ("rc %d; %s\n",
-                rc, !rc ? win_strerror(GetLastError()) : "okay");
+  trace_func = "PacketSetMaxLookaheadsize";
+  WINPCAP_TRACE (("rc %d; %s\n",
+                  rc, !rc ? win_strerror(GetLastError()) : "okay"));
   return (rc);
 }
 
@@ -396,37 +335,36 @@ static BOOL PacketSetMaxLookaheadsize (const ADAPTER *AdapterObject)
  * This function is used by PacketOpenAdapter() to retrieve the read event
  * from the driver by means of an ioctl call and set it in the ADAPTER
  * structure pointed by AdapterObject.
- *
- * PacketSetReadEvt3xx() only used by version '3' NPF.SYS drivers.
- * PacketSetReadEvt4xx() used by newer versions.
  */
-static BOOL PacketSetReadEvt3xx (ADAPTER *AdapterObject)
+static BOOL PacketSetReadEvt (ADAPTER *AdapterObject)
 {
   DWORD BytesReturned;
   char  EventName[40];
   WCHAR EventNameU[20];
 
-  winpkt_trace_func = "PacketSetReadEvt3xx";
-
-  /* retrieve the Unicode name of the shared event from the driver
-   */
-  memset (&EventNameU, 0, sizeof(EventNameU));
-  if (!DeviceIoControl(AdapterObject->hFile, pBIOCEVNAME, NULL, 0,
-                       EventNameU, sizeof(EventNameU), &BytesReturned, NULL))
-  {
-    WINPKT_TRACE ("error retrieving the event-name from the kernel\n");
-    return (FALSE);
-  }
+  trace_func = "PacketSetReadEvt";
 
   /* this tells the terminal service to retrieve the event from the global
    * namespace
    */
-  SNPRINTF (EventName, sizeof(EventName), "Global\\%.13S", EventNameU);
-  WINPKT_TRACE ("  event-name %s\n", EventName);
+  strcpy (EventName, "Global\\");
+
+  /* retrieve the Unicode name of the shared event from the driver
+   */
+  memset (&EventName, 0, sizeof(EventName));
+  if (!DeviceIoControl(AdapterObject->hFile, pBIOCEVNAME, NULL, 0,
+                       EventNameU, sizeof(EventNameU), &BytesReturned, NULL))
+  {
+    WINPCAP_TRACE (("error retrieving the event-name from the kernel\n"));
+    return (FALSE);
+  }
+
+  _snprintf (EventName, sizeof(EventName), "Global\\%.13S", EventNameU);
+  WINPCAP_TRACE (("  event-name %s\n", EventName));
 
   /* open the shared event
    */
-  AdapterObject->ReadEvent = CreateEventA (NULL, TRUE, FALSE, EventName);
+  AdapterObject->ReadEvent = CreateEvent (NULL, TRUE, FALSE, EventName);
 
   /* On Win-NT4 "Global\" is not automatically ignored: try to use
    * simply the event name.
@@ -437,62 +375,18 @@ static BOOL PacketSetReadEvt3xx (ADAPTER *AdapterObject)
        CloseHandle (AdapterObject->ReadEvent);
 
     /* open the shared event */
-    AdapterObject->ReadEvent = CreateEventA (NULL, TRUE, FALSE, EventName+7); /* skip "Global\" */
+    AdapterObject->ReadEvent = CreateEvent (NULL, TRUE, FALSE, EventName + 7);
   }
 
   if (AdapterObject->ReadEvent == INVALID_HANDLE_VALUE ||
       GetLastError() != ERROR_ALREADY_EXISTS)
   {
-    WINPKT_TRACE ("error retrieving the event from the kernel\n");
+    WINPCAP_TRACE (("error retrieving the event from the kernel\n"));
     return (FALSE);
   }
 
   AdapterObject->ReadTimeOut = 0;  /* block until something received */
-  WINPKT_TRACE ("okay\n");
   return (TRUE);
-}
-
-static BOOL PacketSetReadEvt4xx (ADAPTER *AdapterObject)
-{
-  DWORD  BytesReturned;
-  HANDLE hEvent;
-
-  winpkt_trace_func = "PacketSetReadEvt4xx";
-
-  if (AdapterObject->ReadEvent)
-  {
-    WINPKT_TRACE ("error\n");
-    SetLastError (ERROR_INVALID_FUNCTION);
-    return FALSE;
-  }
-
-  hEvent = CreateEvent (NULL, TRUE, FALSE, NULL);
-  if (!hEvent)
-  {
-    WINPKT_TRACE ("error creating event\n");
-    return FALSE;
-  }
-
-  if (!DeviceIoControl(AdapterObject->hFile, pBIOCSETEVENTHANDLE, &hEvent,
-                       sizeof(hEvent), NULL, 0, &BytesReturned, NULL))
-  {
-    WINPKT_TRACE ("error getting event-handle\n");
-    return (FALSE);
-  }
-
-  WINPKT_TRACE ("event-handle %lu\n", (u_long)HandleToUlong(hEvent));
-
-  AdapterObject->ReadEvent = hEvent;
-  AdapterObject->ReadTimeOut = 0;
-  WINPKT_TRACE ("okay\n");
-  return (TRUE);
-}
-
-static BOOL PacketSetReadEvt (ADAPTER *AdapterObject)
-{
-  if (npf_drv_ver[0] == '3')
-     return PacketSetReadEvt3xx (AdapterObject);
-  return PacketSetReadEvt4xx (AdapterObject);
 }
 
 /**
@@ -506,23 +400,23 @@ static BOOL PacketSetReadEvt (ADAPTER *AdapterObject)
  * This function installs the driver's service in the system using the
  * CreateService function.
  */
-static BOOL PacketInstallDriver (SC_HANDLE ascmHandle, SC_HANDLE *srvHandle)
+BOOL PacketInstallDriver (SC_HANDLE ascmHandle, SC_HANDLE *srvHandle)
 {
   BOOL  result = FALSE;
   DWORD error  = 0UL;
 
-  winpkt_trace_func = "PacketInstallDriver";
-  WINPKT_TRACE ("\n");
+  trace_func = "PacketInstallDriver";
+  WINPCAP_TRACE (("\n"));
 
-  *srvHandle = CreateServiceA (ascmHandle,
-                               service_name,
-                               service_descr,
-                               SERVICE_ALL_ACCESS,
-                               SERVICE_KERNEL_DRIVER,
-                               SERVICE_DEMAND_START,
-                               SERVICE_ERROR_NORMAL,
-                               driver_path, NULL, NULL,
-                               NULL, NULL, NULL);
+  *srvHandle = CreateService (ascmHandle,
+                              NPF_service_name,
+                              NPF_service_descr,
+                              SERVICE_ALL_ACCESS,
+                              SERVICE_KERNEL_DRIVER,
+                              SERVICE_DEMAND_START,
+                              SERVICE_ERROR_NORMAL,
+                              NPF_driver_path, NULL, NULL,
+                              NULL, NULL, NULL);
   if (!*srvHandle)
   {
     if (GetLastError() == ERROR_SERVICE_EXISTS)
@@ -537,24 +431,140 @@ static BOOL PacketInstallDriver (SC_HANDLE ascmHandle, SC_HANDLE *srvHandle)
     result = TRUE;
   }
 
-  if (result && *srvHandle)
+  if (result == TRUE && *srvHandle)
      CloseServiceHandle (*srvHandle);
 
-  if (!result)
+  if (result == FALSE)
   {
     error = GetLastError();
     if (error != ERROR_FILE_NOT_FOUND)
-       WINPKT_TRACE ("failed; %s\n", win_strerror(error));
+       WINPCAP_TRACE (("failed; %s\n", win_strerror(error)));
   }
-  else
-    WINPKT_TRACE ("okay\n");
 
   SetLastError (error);
   return (result);
 }
 
 /**
- * Opens an adapter using the NPF or Win10Pcap controlling service.
+ * Returns the version of a .dll or .exe file
+ */
+static BOOL GetFileVersion (const char *file_name,
+                            char       *version_buf,
+                            size_t      version_buf_len)
+{
+  DWORD     ver_info_size;         /* Size of version information block */
+  DWORD     err, ver_hnd = 0;      /* An 'ignored' parameter, always '0' */
+  UINT      bytes_read;
+  char      sub_block[64];
+  void     *res_buf, *vff_info = NULL;
+  HINSTANCE mod;
+  BOOL      rc = FALSE;
+
+  DWORD (WINAPI *_GetFileVersionInfoSize) (char *, DWORD*);
+  BOOL  (WINAPI *_GetFileVersionInfo) (char *, DWORD, DWORD, void *);
+  BOOL  (WINAPI *_VerQueryValue) (const void **, char *, void **, UINT *);
+
+  const struct LANG_AND_CODEPAGE {
+               WORD language;
+               WORD code_page;
+            } *lang_info;
+  void *lang_info_ptr;
+
+  trace_func = "GetFileVersion";
+
+  mod = LoadLibrary ("version.dll");
+  if (!mod)
+  {
+    WINPCAP_TRACE (("Didn't find version.dll\n"));
+    return (FALSE);
+  }
+
+  _GetFileVersionInfoSize = (DWORD (WINAPI*)(char*,DWORD*))
+                              GetProcAddress (mod, "GetFileVersionInfoSizeA");
+  _GetFileVersionInfo = (BOOL (WINAPI*)(char*,DWORD,DWORD,void*))
+                          GetProcAddress (mod, "GetFileVersionInfoA");
+  _VerQueryValue = (BOOL (WINAPI*)(const void**, char*,void**,UINT*))
+                     GetProcAddress (mod, "VerQueryValueA");
+
+  if (!_GetFileVersionInfoSize || !_GetFileVersionInfo || !_VerQueryValue)
+  {
+    WINPCAP_TRACE (("failed to load functons from version.dll\n"));
+    goto quit;
+  }
+
+  /* Pull out the version information
+   */
+  ver_info_size = (*_GetFileVersionInfoSize) ((char*)file_name, &ver_hnd);
+  WINPCAP_TRACE (("file %s, ver-size %lu\n", file_name, ver_info_size));
+
+  if (!ver_info_size)
+  {
+    err = GetLastError();
+    WINPCAP_TRACE (("failed to call GetFileVersionInfoSize; %s\n",
+                    win_strerror(err)));
+    goto quit;
+  }
+
+  vff_info = malloc (ver_info_size);
+  if (!vff_info)
+  {
+    WINPCAP_TRACE (("failed to allocate memory\n"));
+    goto quit;
+  }
+
+  if (!(*_GetFileVersionInfo) ((char*)file_name, ver_hnd,
+                               ver_info_size, vff_info))
+  {
+    WINPCAP_TRACE (("failed to call GetFileVersionInfo\n"));
+    goto quit;
+  }
+
+  /* Read the list of languages and code pages.
+   */
+  if (!(*_VerQueryValue) (vff_info, "\\VarFileInfo\\Translation",
+                          &lang_info_ptr, &bytes_read) ||
+      bytes_read < sizeof(*lang_info))
+  {
+    WINPCAP_TRACE (("failed to call VerQueryValue\n"));
+    goto quit;
+  }
+  lang_info = (const struct LANG_AND_CODEPAGE*) lang_info_ptr;
+
+  /* Create the file version string for the first (i.e. the only
+   * one) language.
+   */
+  sprintf (sub_block, "\\StringFileInfo\\%04x%04x\\FileVersion",
+           lang_info->language, lang_info->code_page);
+
+  /* Retrieve the file version string for the language. 'res_buf' will
+   * point into 'vff_info'. Hence it doesn't have to b freed.
+   */
+  if (!(*_VerQueryValue) (vff_info, sub_block, &res_buf, &bytes_read))
+  {
+    WINPCAP_TRACE (("failed to call VerQueryValue\n"));
+    goto quit;
+  }
+
+  WINPCAP_TRACE (("sub-block '%s' -> '%.*s'\n",
+                  sub_block, bytes_read, (const char*)res_buf));
+
+  if (strlen(res_buf) >= version_buf_len)
+  {
+    WINPCAP_TRACE (("input buffer too small\n"));
+    goto quit;
+  }
+  rc = TRUE;
+  strcpy (version_buf, res_buf);
+
+quit:
+  if (vff_info)
+     free (vff_info);
+  FreeLibrary (mod);
+  return (rc);
+}
+
+/**
+ * Opens an adapter using the NPF device driver.
  *
  * \param AdapterName A string containing the name of the device to open.
  * \return If the function succeeds, the return value is the pointer
@@ -562,34 +572,28 @@ static BOOL PacketInstallDriver (SC_HANDLE ascmHandle, SC_HANDLE *srvHandle)
  *         value is NULL.
  *
  * \note internal function used by PacketOpenAdapter() and AddAdapter().
- *
- * \todo: We can probably simplify this and assume 'registry_location'
- *        is always present and the NPF service is running. Thus removing
- *        lots of dead code.
  */
 static ADAPTER *PacketOpenAdapterNPF (const char *AdapterName)
 {
-  ADAPTER       *lpAdapter;
-  BOOL           QuerySStat, Result;
-  DWORD          error, KeyRes;
-  SC_HANDLE      svcHandle = NULL;
-  HKEY           PathKey;
-  char           SymbolicLink[128];
-  const char    *sym_link;
+  ADAPTER  *lpAdapter;
+  BOOL      QuerySStat, Result;
+  DWORD     error, KeyRes;
+  SC_HANDLE svcHandle = NULL;
+  HKEY      PathKey;
+  char      SymbolicLink[128], *npf;
   SERVICE_STATUS SStat;
-  SC_HANDLE      scmHandle, srvHandle;
-  size_t         prefix_len;
+  SC_HANDLE      scmHandle;
+  SC_HANDLE      srvHandle;
 
-  winpkt_trace_func = "PacketOpenAdapterNPF";
-  WINPKT_TRACE ("\n");
+  trace_func = "PacketOpenAdapterNPF";
 
-  set_char_pointers (AdapterName);
+  WINPCAP_TRACE (("\n"));
 
   scmHandle = OpenSCManager (NULL, NULL, GENERIC_READ);
   if (!scmHandle)
   {
     error = GetLastError();
-    WINPKT_TRACE ("OpenSCManager failed; %s\n", win_strerror(error));
+    WINPCAP_TRACE (("OpenSCManager failed; %s\n", win_strerror(error)));
   }
   else
   {
@@ -597,8 +601,8 @@ static ADAPTER *PacketOpenAdapterNPF (const char *AdapterName)
      * This means that the driver is already installed and that
      * we don't need to call PacketInstallDriver
      */
-    KeyRes = RegOpenKeyExA (HKEY_LOCAL_MACHINE, registry_location,
-                            0, KEY_READ, &PathKey);
+    KeyRes = RegOpenKeyEx (HKEY_LOCAL_MACHINE, NPF_registry_location,
+                           0, KEY_READ, &PathKey);
     if (KeyRes != ERROR_SUCCESS)
     {
       Result = PacketInstallDriver (scmHandle, &svcHandle);
@@ -609,32 +613,60 @@ static ADAPTER *PacketOpenAdapterNPF (const char *AdapterName)
       RegCloseKey (PathKey);
     }
 
-    winpkt_trace_func = "PacketOpenAdapterNPF";
-    WINPKT_TRACE ("Service %s: \n", service_name);
+    trace_func = "PacketOpenAdapterNPF";
 
     if (Result)
     {
-      srvHandle = OpenServiceA (scmHandle, service_name,
-                                SERVICE_START | SERVICE_QUERY_STATUS);
+      srvHandle = OpenService (scmHandle, NPF_service_name,
+                               SERVICE_START | SERVICE_QUERY_STATUS);
       if (srvHandle)
       {
         QuerySStat = QueryServiceStatus (srvHandle, &SStat);
 
-        WINPKT_TRACE ("state %s\n", list_lookup(SStat.dwCurrentState, serv_stat, DIM(serv_stat)));
+        switch (SStat.dwCurrentState)
+        {
+          case SERVICE_CONTINUE_PENDING:
+               WINPCAP_TRACE (("SERVICE_CONTINUE_PENDING\n"));
+               break;
+          case SERVICE_PAUSE_PENDING:
+               WINPCAP_TRACE (("SERVICE_PAUSE_PENDING\n"));
+               break;
+          case SERVICE_PAUSED:
+               WINPCAP_TRACE (("SERVICE_PAUSED\n"));
+               break;
+          case SERVICE_RUNNING:
+               WINPCAP_TRACE (("SERVICE_RUNNING\n"));
+               break;
+          case SERVICE_START_PENDING:
+               WINPCAP_TRACE (("SERVICE_START_PENDING\n"));
+               break;
+          case SERVICE_STOP_PENDING:
+               WINPCAP_TRACE (("SERVICE_STOP_PENDING\n"));
+               break;
+          case SERVICE_STOPPED:
+               WINPCAP_TRACE (("SERVICE_STOPPED\n"));
+               break;
+          default:
+               WINPCAP_TRACE (("state unknown %98lX\n",
+                                SStat.dwCurrentState));
+               break;
+        }
 
         if (!QuerySStat || SStat.dwCurrentState != SERVICE_RUNNING)
         {
-          WINPKT_TRACE ("Calling startservice\n");
-          if (!StartService(srvHandle, 0, NULL))
+          WINPCAP_TRACE (("Calling startservice\n"));
+          if (!StartService (srvHandle, 0, NULL))
           {
             error = GetLastError();
             if (error != ERROR_SERVICE_ALREADY_RUNNING &&
                 error != ERROR_ALREADY_EXISTS)
             {
               error = GetLastError();
-              CloseServiceHandle (scmHandle);
-              WINPKT_TRACE ("StartService failed; %s\n",
-                            win_strerror(error));
+              if (scmHandle)
+                 CloseServiceHandle (scmHandle);
+              scmHandle = NULL;
+              WINPCAP_TRACE (("StartService failed; %s\n",
+                              win_strerror(error)));
               SetLastError (error);
               return (NULL);
             }
@@ -646,30 +678,57 @@ static ADAPTER *PacketOpenAdapterNPF (const char *AdapterName)
       else
       {
         error = GetLastError();
-        WINPKT_TRACE ("OpenService failed; %s\n", win_strerror(error));
+        WINPCAP_TRACE (("OpenService failed; %s\n", win_strerror(error)));
         SetLastError (error);
       }
     }
-    else  /* Registry key not found or PacketInstallDriver() failed */
+    else
     {
       if (KeyRes != ERROR_SUCCESS)
            Result = PacketInstallDriver (scmHandle, &svcHandle);
       else Result = TRUE;
 
-      winpkt_trace_func = "PacketOpenAdapterNPF";
+      trace_func = "PacketOpenAdapterNPF";
 
       if (Result)
       {
-        srvHandle = OpenServiceA (scmHandle, service_name, SERVICE_START);
+        srvHandle = OpenService (scmHandle, NPF_service_name, SERVICE_START);
         if (srvHandle)
         {
           QuerySStat = QueryServiceStatus (srvHandle, &SStat);
 
-          WINPKT_TRACE ("state: %s\n", list_lookup(SStat.dwCurrentState, serv_stat, DIM(serv_stat)));
+          switch (SStat.dwCurrentState)
+          {
+            case SERVICE_CONTINUE_PENDING:
+                 WINPCAP_TRACE (("SERVICE_CONTINUE_PENDING\n"));
+                 break;
+            case SERVICE_PAUSE_PENDING:
+                 WINPCAP_TRACE (("SERVICE_PAUSE_PENDING\n"));
+                 break;
+            case SERVICE_PAUSED:
+                 WINPCAP_TRACE (("SERVICE_PAUSED\n"));
+                 break;
+            case SERVICE_RUNNING:
+                 WINPCAP_TRACE (("SERVICE_RUNNING\n"));
+                 break;
+            case SERVICE_START_PENDING:
+                 WINPCAP_TRACE (("SERVICE_START_PENDING\n"));
+                 break;
+            case SERVICE_STOP_PENDING:
+                 WINPCAP_TRACE (("SERVICE_STOP_PENDING\n"));
+                 break;
+            case SERVICE_STOPPED:
+                 WINPCAP_TRACE (("SERVICE_STOPPED\n"));
+                 break;
+            default:
+                 WINPCAP_TRACE (("state unknown 0x%08lX\n",
+                                 SStat.dwCurrentState));
+                 break;
+          }
 
           if (!QuerySStat || SStat.dwCurrentState != SERVICE_RUNNING)
           {
-            WINPKT_TRACE ("Calling startservice\n");
+            WINPCAP_TRACE (("Calling startservice\n"));
 
             if (StartService (srvHandle, 0, NULL) == 0)
             {
@@ -679,8 +738,8 @@ static ADAPTER *PacketOpenAdapterNPF (const char *AdapterName)
               {
                 if (scmHandle)
                    CloseServiceHandle (scmHandle);
-                WINPKT_TRACE ("StartService failed; %s\n",
-                              win_strerror(error));
+                WINPCAP_TRACE (("StartService failed; %s\n",
+                                win_strerror(error)));
                 SetLastError (error);
                 return (NULL);
               }
@@ -691,66 +750,54 @@ static ADAPTER *PacketOpenAdapterNPF (const char *AdapterName)
         else
         {
           error = GetLastError();
-          WINPKT_TRACE ("OpenService failed; %s", win_strerror(error));
+          WINPCAP_TRACE (("OpenService failed; %s", win_strerror(error)));
           SetLastError (error);
         }
       }
     }
-  }   /* OpenSCManager() */
+  }
 
   if (scmHandle)
      CloseServiceHandle (scmHandle);
-
-  /* skip "\Device" to create a symlink name
-   */
-  prefix_len = strlen (DEVICE_PREFIX);
-  if (strnicmp(AdapterName,driver_prefix,prefix_len))
-  {
-    WINPKT_TRACE ("Unexpected prefix for adapter \"%s\". Expected prefix: \"%s\"\n",
-                  AdapterName, driver_prefix);
-    return (NULL);
-  }
 
   lpAdapter = GlobalAllocPtr (GMEM_MOVEABLE | GMEM_ZEROINIT,
                               sizeof(*lpAdapter));
   if (!lpAdapter)
   {
-    WINPKT_TRACE ("Failed to allocate the adapter structure\n");
+    WINPCAP_TRACE (("Failed to allocate the adapter structure\n"));
     return (NULL);
   }
 
-  sym_link = AdapterName + prefix_len;
-  SNPRINTF (SymbolicLink, sizeof(SymbolicLink), "\\\\.\\%s", sym_link);
-
-  WINPKT_TRACE ("Creating SymbolicLink: \"%s\".\n", SymbolicLink);
+  /* skip "\Device" and create a symlink name
+   */
+  npf = strstr (AdapterName, "\\NPF_");
+  _snprintf (SymbolicLink, sizeof(SymbolicLink), "\\\\.\\%s", npf);
 
   /* try if it is possible to open the adapter immediately
    */
-  lpAdapter->hFile = CreateFileA (SymbolicLink, GENERIC_WRITE | GENERIC_READ,
-                                  0, NULL, OPEN_EXISTING, 0, 0);
+  lpAdapter->hFile = CreateFile (SymbolicLink, GENERIC_WRITE | GENERIC_READ,
+                                 0, NULL, OPEN_EXISTING, 0, 0);
 
   if (lpAdapter->hFile != INVALID_HANDLE_VALUE)
   {
     if (!PacketSetReadEvt(lpAdapter))
     {
       error = GetLastError();
-      (void) GlobalFreePtr (lpAdapter);
-      WINPKT_TRACE ("failed; %s\n", win_strerror(error));
+      GlobalFreePtr (lpAdapter);
+      WINPCAP_TRACE (("failed; %s\n", win_strerror(error)));
       SetLastError (error);
       return (NULL);
     }
 
-    /* Success!
-     */
     PacketSetMaxLookaheadsize (lpAdapter);
-    winpkt_trace_func = "PacketOpenAdapterNPF";
+    trace_func = "PacketOpenAdapterNPF";
+    StrLcpy (lpAdapter->Name, AdapterName, sizeof(lpAdapter->Name));
     return (lpAdapter);
   }
 
   error = GetLastError();
-  (void) GlobalFreePtr (lpAdapter);
-  WINPKT_TRACE ("CreateFileA (%s) failed; \n%-49s%s\n",
-                SymbolicLink, "", win_strerror(error));
+  GlobalFreePtr (lpAdapter);
+  WINPCAP_TRACE (("CreateFile failed; %s\n", win_strerror(error)));
   SetLastError (error);
   return (NULL);
 }
@@ -760,7 +807,7 @@ static ADAPTER *PacketOpenAdapterNPF (const char *AdapterName)
  */
 const char *PacketGetDriverVersion (void)
 {
-  return (npf_drv_ver);
+  return (npf_driver_version);
 }
 
 #ifdef NOT_NEEDED
@@ -777,15 +824,16 @@ const char *PacketGetDriverVersion (void)
  */
 BOOL PacketStopDriver (void)
 {
-  SC_HANDLE scmHandle, schService;
+  SC_HANDLE scmHandle;
+  SC_HANDLE schService;
   BOOL      rc = FALSE;
 
-  winpkt_trace_func = "PacketStopDriver";
+  trace_func = "PacketStopDriver";
 
   scmHandle = OpenSCManager (NULL, NULL, SC_MANAGER_ALL_ACCESS);
   if (scmHandle)
   {
-    schService = OpenService (scmHandle, service_name, SERVICE_ALL_ACCESS);
+    schService = OpenService (scmHandle, NPF_service_name, SERVICE_ALL_ACCESS);
     if (schService)
     {
       SERVICE_STATUS status;
@@ -796,10 +844,10 @@ BOOL PacketStopDriver (void)
     }
   }
 
-  WINPKT_TRACE ("rc %d\n", rc);
+  WINPCAP_TRACE (("rc %d\n", rc));
   return (rc);
 }
-#endif  /* NOT_NEEDED */
+#endif
 
 /**
  * Opens an adapter.
@@ -811,18 +859,10 @@ BOOL PacketStopDriver (void)
  */
 const ADAPTER *PacketOpenAdapter (const char *AdapterName)
 {
-  ADAPTER *ad;
+  trace_func = "PacketOpenAdapter";
+  WINPCAP_TRACE (("trying to open the adapter %s\n", AdapterName));
 
-  set_char_pointers (AdapterName);
-
-  winpkt_trace_func = "PacketOpenAdapter";
-  WINPKT_TRACE ("trying to open the adapter %s using service %s.\n", AdapterName, service_name);
-
-  ad = PacketOpenAdapterNPF (AdapterName);
-  if (ad)
-     ad->flags = INFO_FLAG_NDIS_ADAPTER;
-
-  return (ad);
+  return PacketOpenAdapterNPF (AdapterName);
 }
 
 /**
@@ -830,24 +870,20 @@ const ADAPTER *PacketOpenAdapter (const char *AdapterName)
  *
  * Closes the given adapter and frees the associated
  * ADAPTER structure.
- *
- * Since we only use one adapter, free the 'adapters_list'
- * and the 'adapters_mutex' too.
  */
-BOOL PacketCloseAdapter (ADAPTER *adapter)
+void PacketCloseAdapter (ADAPTER *adapter)
 {
-  BOOL rc = FALSE;
+  BOOL rc;
   int  err = 0;
 
-  winpkt_trace_func = "PacketCloseAdapter";
+  trace_func = "PacketCloseAdapter";
 
   if (!adapter || adapter->hFile == INVALID_HANDLE_VALUE)
   {
-    WINPKT_TRACE ("adapter already closed\n");
-    return (rc);
+    WINPCAP_TRACE (("adapter already closed\n"));
+    return;
   }
-
-  WINPKT_TRACE ("adapter file 0x%" ADDR_FMT "\n", ADDR_CAST(adapter->hFile));
+  WINPCAP_TRACE (("adapter file 0x%08lX\n", (DWORD)adapter->hFile));
 
   rc = CloseHandle (adapter->hFile);
   adapter->hFile = INVALID_HANDLE_VALUE;
@@ -856,29 +892,10 @@ BOOL PacketCloseAdapter (ADAPTER *adapter)
 
   SetEvent (adapter->ReadEvent);   /* might already be set */
   CloseHandle (adapter->ReadEvent);
-  (void) GlobalFreePtr (adapter);
+  GlobalFreePtr (adapter);
 
-  WINPKT_TRACE ("CloseHandle() rc %d: %s\n",
-                rc, !rc ? win_strerror(err) : "okay");
-  return (rc);
-
-}
-
-/**
- * Called from pkt_release()
- */
-BOOL PacketExitModule (void)
-{
-  BOOL rc;
-
-  winpkt_trace_func = "PacketExitModule";
-  WINPKT_TRACE ("\n");
-
-  FreeAdaptersInfoList();
-  ReleaseMutex (adapters_mutex);
-  rc = CloseHandle (adapters_mutex);
-  adapters_mutex = INVALID_HANDLE_VALUE;
-  return (rc);
+  WINPCAP_TRACE (("CloseHandle() rc %d: %s\n",
+                  rc, !rc ? win_strerror(err) : "okay"));
 }
 
 /**
@@ -887,21 +904,19 @@ BOOL PacketExitModule (void)
  * The data received with this function can be a group of packets.
  * The number of packets received with this function is variable. It
  * depends on the number of packets currently stored in the driver's
- * buffer, on the size of these packets and on 'buf_len' paramter.
+ * buffer, on the size of these packets and on 'len' paramter.
  *
- * Each packet (starting at 'buf') has a header consisting in a 'bpf_hdr'
+ * Each packet (inside 'pkt->Buffer') has a header consisting in a 'bpf_hdr'
  * structure that defines its length and timestamp. A padding field
  * is used to word-align the data in the buffer (to speed up the access
  * to the packets). The 'bh_datalen' and 'bh_hdrlen' fields of the
  * 'bpf_hdr' structures should be used to extract the packets from the
- * parameter 'buf'.
- *
+ * paramter 'buf'.
  */
-UINT MS_CDECL PacketReceivePacket (const ADAPTER *adapter, void *buf, UINT buf_len)
+int PacketReceivePacket (const ADAPTER *adapter, PACKET *pkt, BOOL sync)
 {
   HANDLE handle;
-  UINT   rc = 0;
-  DWORD  recv = 0;
+  int    rc = 0;
 
   if ((int)adapter->ReadTimeOut != -1)
      WaitForSingleObject (adapter->ReadEvent,
@@ -911,72 +926,30 @@ UINT MS_CDECL PacketReceivePacket (const ADAPTER *adapter, void *buf, UINT buf_l
   handle = adapter->hFile;
   if (handle == INVALID_HANDLE_VALUE)
        SetLastError (ERROR_INVALID_HANDLE);
-  else rc = ReadFile (handle, buf, buf_len, &recv, NULL);
+  else rc = ReadFile (handle, pkt->Buffer, pkt->Length, &pkt->ulBytesReceived, NULL);
 
-  winpkt_trace_func = "PacketReceivePacket";
-  WINPKT_TRACE ("recv %lu; rc: %d, %s\n",
-                (u_long)recv, rc, rc == 0 ? win_strerror(GetLastError()) : "okay");
-  return (UINT) recv;
+  trace_func = "PacketReceivePacket";
+  WINPCAP_TRACE (("rc %d; %s\n",
+                  rc, rc == 0 ? win_strerror(GetLastError()) : "okay"));
+  ARGSUSED (sync);
+  return (rc);
 }
 
 /**
  * Sends one packet to the network.
  */
-UINT PacketSendPacket (const ADAPTER *adapter, const void *buf, UINT len)
+int PacketSendPacket (const ADAPTER *AdapterObject, PACKET *pkt, BOOL sync)
 {
-  DWORD sent = 0UL;
+  DWORD BytesTransfered = 0UL;
   int   rc;
 
-  TCP_CONSOLE_MSG (4, ("%s(%u): Calling WriteFile()\n", __FILE__, __LINE__));
+  rc = WriteFile (AdapterObject->hFile, pkt->Buffer, pkt->Length, &BytesTransfered, NULL);
 
-  rc = WriteFile (adapter->hFile, buf, len, &sent, NULL);
-
-  winpkt_trace_func = "PacketSendPacket";
-  WINPKT_TRACE ("rc %d; %s\n",
-                rc, rc == 0 ? win_strerror(GetLastError()) : "okay");
-  return (sent);
-}
-
-BOOL PacketGetMacAddress (const ADAPTER *adapter, void *mac)
-{
-  struct {
-    PACKET_OID_DATA oidData;
-    mac_address     mac;
-  } oid;
-
-  memset (&oid, 0, sizeof(oid));
-
-  switch (_pktdevclass)
-  {
-    case PDCLASS_ETHER:
-         oid.oidData.Oid = OID_802_3_PERMANENT_ADDRESS;
-         break;
-    case PDCLASS_TOKEN:
-         oid.oidData.Oid = OID_802_5_PERMANENT_ADDRESS;
-         break;
-    case PDCLASS_FDDI:
-         oid.oidData.Oid = OID_FDDI_LONG_PERMANENT_ADDR;
-         break;
-    case PDCLASS_ARCNET:
-         oid.oidData.Oid = OID_ARCNET_PERMANENT_ADDRESS;
-         break;
-#if 0
-    case NdisMediumWan:
-         oid.oidData.Oid = OID_WAN_PERMANENT_ADDRESS;
-         break;
-    case NdisMediumWirelessWan:
-         oid.oidData.Oid = OID_WW_GEN_PERMANENT_ADDRESS;
-         break;
-#endif
-    default:
-         return (FALSE);
-  }
-  oid.oidData.Length = sizeof(oid.mac);
-
-  if (!PacketRequest(adapter, FALSE, &oid.oidData))
-     return (FALSE);
-  memcpy (mac, &oid.oidData.Data, sizeof(mac_address));
-  return (TRUE);
+  trace_func = "PacketSendPacket";
+  WINPCAP_TRACE (("rc %d; %s\n",
+                  rc, rc == 0 ? win_strerror(GetLastError()) : "okay"));
+  ARGSUSED (sync);
+  return (rc);
 }
 
 /**
@@ -1008,10 +981,10 @@ BOOL PacketSetMinToCopy (const ADAPTER *AdapterObject, int nbytes)
   rc = DeviceIoControl (AdapterObject->hFile, pBIOCSMINTOCOPY, &nbytes,
                         4, NULL, 0, &BytesReturned, NULL);
 
-  winpkt_trace_func = "PacketSetMinToCopy";
-  WINPKT_TRACE ("nbytes %d, rc %d; %s\n",
-                nbytes, rc, !rc ? win_strerror(GetLastError()) :
-                "okay");
+  trace_func = "PacketSetMinToCopy";
+  WINPCAP_TRACE (("nbytes %d, rc %d; %s\n",
+                  nbytes, rc, !rc ? win_strerror(GetLastError()) :
+                  "okay"));
   return (rc);
 }
 
@@ -1068,33 +1041,9 @@ BOOL PacketSetMode (const ADAPTER *AdapterObject, DWORD mode)
   rc = DeviceIoControl (AdapterObject->hFile, pBIOCSMODE, &mode,
                         sizeof(mode), NULL, 0, &BytesReturned, NULL);
 
-  winpkt_trace_func = "PacketSetMode";
-  WINPKT_TRACE ("mode %lu, rc %d; %s\n",
-                (u_long)mode, rc, !rc ? win_strerror(GetLastError()) : "okay");
-  return (rc);
-}
-
-/**
- * Sets the behavior of the NPF driver with packets sent by itself:
- * capture or drop. 'behavior' Can be one of the following:
- *  - NPF_ENABLE_LOOPBACK
- *  - NPF_DISABLE_LOOPBACK
- *
- * note: when opened, adapters have loopback capture enabled.
- * note: Effective on WinPcap 4.x+ only.
- */
-BOOL PacketSetLoopbackBehavior (const ADAPTER *AdapterObject, UINT behavior)
-{
-  DWORD BytesReturned;
-  BOOL  rc;
-
-  rc = DeviceIoControl (AdapterObject->hFile, pBIOCISETLOBBEH,
-                        &behavior, sizeof(UINT), NULL,
-                        0, &BytesReturned, NULL);
-
-  winpkt_trace_func = "PacketSetLoopbackBehavior";
-  WINPKT_TRACE ("behaviour %u, rc %d; %s\n",
-                behavior, rc, !rc ? win_strerror(GetLastError()) : "okay");
+  trace_func = "PacketSetMode";
+  WINPCAP_TRACE (("mode %lu, rc %d; %s\n",
+                  mode, rc, !rc ? win_strerror(GetLastError()) : "okay"));
   return (rc);
 }
 
@@ -1158,9 +1107,9 @@ BOOL PacketSetReadTimeout (ADAPTER *AdapterObject, int timeout)
   rc = DeviceIoControl (AdapterObject->hFile, pBIOCSRTIMEOUT, &driverTimeout,
                         sizeof(driverTimeout), NULL, 0, &BytesReturned, NULL);
 
-  winpkt_trace_func = "PacketSetReadTimeout";
-  WINPKT_TRACE ("timeout %d, rc %d; %s\n",
-                timeout, rc, !rc ? win_strerror(GetLastError()) : "okay");
+  trace_func = "PacketSetReadTimeout";
+  WINPCAP_TRACE (("timeout %d, rc %d; %s\n",
+                  timeout, rc, !rc ? win_strerror(GetLastError()) : "okay"));
   return (rc);
 }
 
@@ -1191,11 +1140,51 @@ BOOL PacketSetBuff (const ADAPTER *AdapterObject, DWORD dim)
   rc = DeviceIoControl (AdapterObject->hFile, pBIOCSETBUFFERSIZE,
                         &dim, sizeof(dim), NULL, 0, &BytesReturned, NULL);
 
-  winpkt_trace_func = "PacketSetBuff";
-  WINPKT_TRACE ("size %lu, rc %d; %s\n",
-                (u_long)dim, rc, !rc ? win_strerror(GetLastError()) : "okay");
+  trace_func = "PacketSetBuff";
+  WINPCAP_TRACE (("size %lu, rc %d; %s\n",
+                  dim, rc, !rc ? win_strerror(GetLastError()) : "okay"));
   return (rc);
 }
+
+#ifdef NOT_NEEDED
+/**
+ * Sets a kernel-level packet filter.
+ *
+ * \param AdapterObject Pointer to an ADAPTER structure.
+ * \param fp Pointer to a filtering program that will be associated
+ *        with this capture or monitoring instance and that will be
+ *        executed on every incoming packet.
+ * \return This function returns TRUE if the filter is set successfully,
+ *        FALSE if an error occurs or if the filter program is not accepted
+ *        after a safeness check by the driver.  The driver performs the check
+ *        in order to avoid system crashes due to buggy or malicious filters,
+ *        and it rejects non conformat filters.
+ *
+ * This function associates a new BPF filter to the adapter AdapterObject.
+ * The filter, pointed by fp, is a set of bpf_insn instructions.
+ *
+ * A filter can be automatically created by using the pcap_compile() function
+ * of wpcap. This function converts a human readable text expression with the
+ * syntax of WinDump (see the manual of WinDump at http://netgroup.polito.it/windump
+ * for details) into a BPF program. If your program doesn't link wpcap, but
+ * you need to know the code of a particular filter, you can launch WinDump
+ * with the -d or -dd or -ddd flags to obtain the pseudocode.
+ */
+BOOL PacketSetBpf (const ADAPTER *AdapterObject, const struct bpf_program *fp)
+{
+  DWORD BytesReturned;
+  BOOL  rc;
+
+  rc = DeviceIoControl (AdapterObject->hFile, pBIOCSETF, (char*)fp->bf_insns,
+                        fp->bf_len * sizeof(struct bpf_insn), NULL, 0,
+                        &BytesReturned, NULL);
+
+  trace_func = "PacketSetBpf";
+  WINPCAP_TRACE (("rc %d; %s\n",
+                  rc, !rc ? win_strerror(GetLastError()) : "okay"));
+  return (rc);
+}
+#endif
 
 /**
  * Returns statistic values about the current capture session.
@@ -1205,515 +1194,27 @@ BOOL PacketSetBuff (const ADAPTER *AdapterObject, DWORD dim)
  *        filled by the function.
  * \return If the function succeeds, the return value is nonzero.
  */
-BOOL PacketGetStatsEx (const ADAPTER *AdapterObject, struct bpf_stat *stat)
+BOOL PacketGetStatsEx (const ADAPTER *AdapterObject, struct bpf_stat *s)
 {
   struct bpf_stat tmp_stat;
-  DWORD  read;
+  DWORD  BytesReturned;
   BOOL   rc;
 
   memset (&tmp_stat, 0, sizeof(tmp_stat));
   rc = DeviceIoControl (AdapterObject->hFile,
                         pBIOCGSTATS, NULL, 0, &tmp_stat, sizeof(tmp_stat),
-                        &read, NULL);
+                        &BytesReturned, NULL);
 
-  winpkt_trace_func = "PacketGetStatsEx";
-  WINPKT_TRACE ("read: %lu, rc %d; %s\n",
-                (u_long)read, rc, !rc ? win_strerror(GetLastError()) : "okay");
+  trace_func = "PacketGetStatsEx";
+  WINPCAP_TRACE (("rc %d; %s\n",
+                  rc, !rc ? win_strerror(GetLastError()) : "okay"));
 
-  stat->bs_recv   = tmp_stat.bs_recv;
-  stat->bs_drop   = tmp_stat.bs_drop;
-  stat->ps_ifdrop = tmp_stat.ps_ifdrop;
-  stat->bs_capt   = tmp_stat.bs_capt;
+  s->bs_recv   = tmp_stat.bs_recv;
+  s->bs_drop   = tmp_stat.bs_drop;
+  s->ps_ifdrop = tmp_stat.ps_ifdrop;
+  s->bs_capt   = tmp_stat.bs_capt;
   return (rc);
 }
-
-#if defined(USE_DEBUG)
-static const struct search_list oid_list[] = {
-   ADD_VALUE (OID_802_11_ADD_KEY),
-   ADD_VALUE (OID_802_11_ADD_WEP),
-   ADD_VALUE (OID_802_11_ASSOCIATION_INFORMATION),
-   ADD_VALUE (OID_802_11_AUTHENTICATION_MODE),
-   ADD_VALUE (OID_802_11_BSSID),
-   ADD_VALUE (OID_802_11_BSSID_LIST),
-   ADD_VALUE (OID_802_11_BSSID_LIST_SCAN),
-   ADD_VALUE (OID_802_11_CAPABILITY),
-   ADD_VALUE (OID_802_11_CONFIGURATION),
-   ADD_VALUE (OID_802_11_DESIRED_RATES),
-   ADD_VALUE (OID_802_11_DISASSOCIATE),
-   ADD_VALUE (OID_802_11_ENCRYPTION_STATUS),
-   ADD_VALUE (OID_802_11_FRAGMENTATION_THRESHOLD),
-   ADD_VALUE (OID_802_11_INFRASTRUCTURE_MODE),
-   ADD_VALUE (OID_802_11_NETWORK_TYPES_SUPPORTED),
-   ADD_VALUE (OID_802_11_NETWORK_TYPE_IN_USE),
-   ADD_VALUE (OID_802_11_NUMBER_OF_ANTENNAS),
-   ADD_VALUE (OID_802_11_PMKID),
-   ADD_VALUE (OID_802_11_POWER_MODE),
-   ADD_VALUE (OID_802_11_PRIVACY_FILTER),
-   ADD_VALUE (OID_802_11_RELOAD_DEFAULTS),
-   ADD_VALUE (OID_802_11_REMOVE_KEY),
-   ADD_VALUE (OID_802_11_REMOVE_WEP),
-   ADD_VALUE (OID_802_11_RSSI),
-   ADD_VALUE (OID_802_11_RSSI_TRIGGER),
-   ADD_VALUE (OID_802_11_RTS_THRESHOLD),
-   ADD_VALUE (OID_802_11_RX_ANTENNA_SELECTED),
-   ADD_VALUE (OID_802_11_SSID),
-   ADD_VALUE (OID_802_11_STATISTICS),
-   ADD_VALUE (OID_802_11_SUPPORTED_RATES),
-   ADD_VALUE (OID_802_11_TEST),
-   ADD_VALUE (OID_802_11_TX_ANTENNA_SELECTED),
-   ADD_VALUE (OID_802_11_TX_POWER_LEVEL),
-   ADD_VALUE (OID_802_11_WEP_STATUS),
-   ADD_VALUE (OID_802_3_CURRENT_ADDRESS),
-   ADD_VALUE (OID_802_3_MAC_OPTIONS),
-   ADD_VALUE (OID_802_3_MAXIMUM_LIST_SIZE),
-   ADD_VALUE (OID_802_3_MULTICAST_LIST),
-   ADD_VALUE (OID_802_3_PERMANENT_ADDRESS),
-   ADD_VALUE (OID_802_3_RCV_ERROR_ALIGNMENT),
-   ADD_VALUE (OID_802_3_RCV_OVERRUN),
-   ADD_VALUE (OID_802_3_XMIT_DEFERRED),
-   ADD_VALUE (OID_802_3_XMIT_HEARTBEAT_FAILURE),
-   ADD_VALUE (OID_802_3_XMIT_LATE_COLLISIONS),
-   ADD_VALUE (OID_802_3_XMIT_MAX_COLLISIONS),
-   ADD_VALUE (OID_802_3_XMIT_MORE_COLLISIONS),
-   ADD_VALUE (OID_802_3_XMIT_ONE_COLLISION),
-   ADD_VALUE (OID_802_3_XMIT_TIMES_CRS_LOST),
-   ADD_VALUE (OID_802_3_XMIT_UNDERRUN),
-   ADD_VALUE (OID_802_5_ABORT_DELIMETERS),
-   ADD_VALUE (OID_802_5_AC_ERRORS),
-   ADD_VALUE (OID_802_5_BURST_ERRORS),
-   ADD_VALUE (OID_802_5_CURRENT_ADDRESS),
-   ADD_VALUE (OID_802_5_CURRENT_FUNCTIONAL),
-   ADD_VALUE (OID_802_5_CURRENT_GROUP),
-   ADD_VALUE (OID_802_5_CURRENT_RING_STATE),
-   ADD_VALUE (OID_802_5_CURRENT_RING_STATUS),
-   ADD_VALUE (OID_802_5_FRAME_COPIED_ERRORS),
-   ADD_VALUE (OID_802_5_FREQUENCY_ERRORS),
-   ADD_VALUE (OID_802_5_INTERNAL_ERRORS),
-   ADD_VALUE (OID_802_5_LAST_OPEN_STATUS),
-   ADD_VALUE (OID_802_5_LINE_ERRORS),
-   ADD_VALUE (OID_802_5_LOST_FRAMES),
-   ADD_VALUE (OID_802_5_PERMANENT_ADDRESS),
-   ADD_VALUE (OID_802_5_TOKEN_ERRORS),
-   ADD_VALUE (OID_ARCNET_CURRENT_ADDRESS),
-   ADD_VALUE (OID_ARCNET_PERMANENT_ADDRESS),
-   ADD_VALUE (OID_ARCNET_RECONFIGURATIONS),
-   ADD_VALUE (OID_ATM_ACQUIRE_ACCESS_NET_RESOURCES),
-   ADD_VALUE (OID_ATM_ALIGNMENT_REQUIRED),
-   ADD_VALUE (OID_ATM_ASSIGNED_VPI),
-   ADD_VALUE (OID_ATM_CELLS_HEC_ERROR),
-   ADD_VALUE (OID_ATM_DIGITAL_BROADCAST_VPIVCI),
-   ADD_VALUE (OID_ATM_GET_NEAREST_FLOW),
-   ADD_VALUE (OID_ATM_HW_CURRENT_ADDRESS),
-   ADD_VALUE (OID_ATM_ILMI_VPIVCI),
-   ADD_VALUE (OID_ATM_MAX_AAL0_PACKET_SIZE),
-   ADD_VALUE (OID_ATM_MAX_AAL1_PACKET_SIZE),
-   ADD_VALUE (OID_ATM_MAX_AAL34_PACKET_SIZE),
-   ADD_VALUE (OID_ATM_MAX_AAL5_PACKET_SIZE),
-   ADD_VALUE (OID_ATM_MAX_ACTIVE_VCI_BITS),
-   ADD_VALUE (OID_ATM_MAX_ACTIVE_VCS),
-   ADD_VALUE (OID_ATM_MAX_ACTIVE_VPI_BITS),
-   ADD_VALUE (OID_ATM_RCV_CELLS_DROPPED),
-   ADD_VALUE (OID_ATM_RCV_CELLS_OK),
-   ADD_VALUE (OID_ATM_RCV_INVALID_VPI_VCI),
-   ADD_VALUE (OID_ATM_RCV_REASSEMBLY_ERROR),
-   ADD_VALUE (OID_ATM_RELEASE_ACCESS_NET_RESOURCES),
-   ADD_VALUE (OID_ATM_SIGNALING_VPIVCI),
-   ADD_VALUE (OID_ATM_SUPPORTED_AAL_TYPES),
-   ADD_VALUE (OID_ATM_SUPPORTED_SERVICE_CATEGORY),
-   ADD_VALUE (OID_ATM_SUPPORTED_VC_RATES),
-   ADD_VALUE (OID_ATM_XMIT_CELLS_OK),
-   ADD_VALUE (OID_CO_ADDRESS_CHANGE),
-   ADD_VALUE (OID_CO_ADD_ADDRESS),
-   ADD_VALUE (OID_CO_ADD_PVC),
-   ADD_VALUE (OID_CO_DELETE_ADDRESS),
-   ADD_VALUE (OID_CO_DELETE_PVC),
-   ADD_VALUE (OID_CO_GET_ADDRESSES),
-   ADD_VALUE (OID_CO_GET_CALL_INFORMATION),
-   ADD_VALUE (OID_CO_SIGNALING_DISABLED),
-   ADD_VALUE (OID_CO_SIGNALING_ENABLED),
-   ADD_VALUE (OID_FDDI_ATTACHMENT_TYPE),
-   ADD_VALUE (OID_FDDI_DOWNSTREAM_NODE_LONG),
-   ADD_VALUE (OID_FDDI_FRAMES_LOST),
-   ADD_VALUE (OID_FDDI_FRAME_ERRORS),
-   ADD_VALUE (OID_FDDI_IF_ADMIN_STATUS),
-   ADD_VALUE (OID_FDDI_IF_DESCR),
-   ADD_VALUE (OID_FDDI_IF_IN_DISCARDS),
-   ADD_VALUE (OID_FDDI_IF_IN_ERRORS),
-   ADD_VALUE (OID_FDDI_IF_IN_NUCAST_PKTS),
-   ADD_VALUE (OID_FDDI_IF_IN_OCTETS),
-   ADD_VALUE (OID_FDDI_IF_IN_UCAST_PKTS),
-   ADD_VALUE (OID_FDDI_IF_IN_UNKNOWN_PROTOS),
-   ADD_VALUE (OID_FDDI_IF_LAST_CHANGE),
-   ADD_VALUE (OID_FDDI_IF_MTU),
-   ADD_VALUE (OID_FDDI_IF_OPER_STATUS),
-   ADD_VALUE (OID_FDDI_IF_OUT_DISCARDS),
-   ADD_VALUE (OID_FDDI_IF_OUT_ERRORS),
-   ADD_VALUE (OID_FDDI_IF_OUT_NUCAST_PKTS),
-   ADD_VALUE (OID_FDDI_IF_OUT_OCTETS),
-   ADD_VALUE (OID_FDDI_IF_OUT_QLEN),
-   ADD_VALUE (OID_FDDI_IF_OUT_UCAST_PKTS),
-   ADD_VALUE (OID_FDDI_IF_PHYS_ADDRESS),
-   ADD_VALUE (OID_FDDI_IF_SPECIFIC),
-   ADD_VALUE (OID_FDDI_IF_SPEED),
-   ADD_VALUE (OID_FDDI_IF_TYPE),
-   ADD_VALUE (OID_FDDI_LCONNECTION_STATE),
-   ADD_VALUE (OID_FDDI_LCT_FAILURES),
-   ADD_VALUE (OID_FDDI_LEM_REJECTS),
-   ADD_VALUE (OID_FDDI_LONG_CURRENT_ADDR),
-   ADD_VALUE (OID_FDDI_LONG_MAX_LIST_SIZE),
-   ADD_VALUE (OID_FDDI_LONG_MULTICAST_LIST),
-   ADD_VALUE (OID_FDDI_LONG_PERMANENT_ADDR),
-   ADD_VALUE (OID_FDDI_MAC_AVAILABLE_PATHS),
-   ADD_VALUE (OID_FDDI_MAC_BRIDGE_FUNCTIONS),
-   ADD_VALUE (OID_FDDI_MAC_COPIED_CT),
-   ADD_VALUE (OID_FDDI_MAC_CURRENT_PATH),
-   ADD_VALUE (OID_FDDI_MAC_DA_FLAG),
-   ADD_VALUE (OID_FDDI_MAC_DOWNSTREAM_NBR),
-   ADD_VALUE (OID_FDDI_MAC_DOWNSTREAM_PORT_TYPE),
-   ADD_VALUE (OID_FDDI_MAC_DUP_ADDRESS_TEST),
-   ADD_VALUE (OID_FDDI_MAC_ERROR_CT),
-   ADD_VALUE (OID_FDDI_MAC_FRAME_CT),
-   ADD_VALUE (OID_FDDI_MAC_FRAME_ERROR_FLAG),
-   ADD_VALUE (OID_FDDI_MAC_FRAME_ERROR_RATIO),
-   ADD_VALUE (OID_FDDI_MAC_FRAME_ERROR_THRESHOLD),
-   ADD_VALUE (OID_FDDI_MAC_FRAME_STATUS_FUNCTIONS),
-   ADD_VALUE (OID_FDDI_MAC_HARDWARE_PRESENT),
-   ADD_VALUE (OID_FDDI_MAC_INDEX),
-   ADD_VALUE (OID_FDDI_MAC_LATE_CT),
-   ADD_VALUE (OID_FDDI_MAC_LONG_GRP_ADDRESS),
-   ADD_VALUE (OID_FDDI_MAC_LOST_CT),
-   ADD_VALUE (OID_FDDI_MAC_MA_UNITDATA_AVAILABLE),
-   ADD_VALUE (OID_FDDI_MAC_MA_UNITDATA_ENABLE),
-   ADD_VALUE (OID_FDDI_MAC_NOT_COPIED_CT),
-   ADD_VALUE (OID_FDDI_MAC_NOT_COPIED_FLAG),
-   ADD_VALUE (OID_FDDI_MAC_NOT_COPIED_RATIO),
-   ADD_VALUE (OID_FDDI_MAC_NOT_COPIED_THRESHOLD),
-   ADD_VALUE (OID_FDDI_MAC_OLD_DOWNSTREAM_NBR),
-   ADD_VALUE (OID_FDDI_MAC_OLD_UPSTREAM_NBR),
-   ADD_VALUE (OID_FDDI_MAC_REQUESTED_PATHS),
-   ADD_VALUE (OID_FDDI_MAC_RING_OP_CT),
-   ADD_VALUE (OID_FDDI_MAC_RMT_STATE),
-   ADD_VALUE (OID_FDDI_MAC_SHORT_GRP_ADDRESS),
-   ADD_VALUE (OID_FDDI_MAC_SMT_ADDRESS),
-   ADD_VALUE (OID_FDDI_MAC_TOKEN_CT),
-   ADD_VALUE (OID_FDDI_MAC_TRANSMIT_CT),
-   ADD_VALUE (OID_FDDI_MAC_TVX_CAPABILITY),
-   ADD_VALUE (OID_FDDI_MAC_TVX_EXPIRED_CT),
-   ADD_VALUE (OID_FDDI_MAC_TVX_VALUE),
-   ADD_VALUE (OID_FDDI_MAC_T_MAX),
-   ADD_VALUE (OID_FDDI_MAC_T_MAX_CAPABILITY),
-   ADD_VALUE (OID_FDDI_MAC_T_NEG),
-   ADD_VALUE (OID_FDDI_MAC_T_PRI0),
-   ADD_VALUE (OID_FDDI_MAC_T_PRI1),
-   ADD_VALUE (OID_FDDI_MAC_T_PRI2),
-   ADD_VALUE (OID_FDDI_MAC_T_PRI3),
-   ADD_VALUE (OID_FDDI_MAC_T_PRI4),
-   ADD_VALUE (OID_FDDI_MAC_T_PRI5),
-   ADD_VALUE (OID_FDDI_MAC_T_PRI6),
-   ADD_VALUE (OID_FDDI_MAC_T_REQ),
-   ADD_VALUE (OID_FDDI_MAC_UNDA_FLAG),
-   ADD_VALUE (OID_FDDI_MAC_UPSTREAM_NBR),
-   ADD_VALUE (OID_FDDI_PATH_CONFIGURATION),
-   ADD_VALUE (OID_FDDI_PATH_INDEX),
-   ADD_VALUE (OID_FDDI_PATH_MAX_T_REQ),
-   ADD_VALUE (OID_FDDI_PATH_RING_LATENCY),
-   ADD_VALUE (OID_FDDI_PATH_SBA_AVAILABLE),
-   ADD_VALUE (OID_FDDI_PATH_SBA_OVERHEAD),
-   ADD_VALUE (OID_FDDI_PATH_SBA_PAYLOAD),
-   ADD_VALUE (OID_FDDI_PATH_TRACE_STATUS),
-   ADD_VALUE (OID_FDDI_PATH_TVX_LOWER_BOUND),
-   ADD_VALUE (OID_FDDI_PATH_T_MAX_LOWER_BOUND),
-   ADD_VALUE (OID_FDDI_PATH_T_R_MODE),
-   ADD_VALUE (OID_FDDI_PORT_ACTION),
-   ADD_VALUE (OID_FDDI_PORT_AVAILABLE_PATHS),
-   ADD_VALUE (OID_FDDI_PORT_BS_FLAG),
-   ADD_VALUE (OID_FDDI_PORT_CONNECTION_CAPABILITIES),
-   ADD_VALUE (OID_FDDI_PORT_CONNECTION_POLICIES),
-   ADD_VALUE (OID_FDDI_PORT_CONNNECT_STATE),
-   ADD_VALUE (OID_FDDI_PORT_CURRENT_PATH),
-   ADD_VALUE (OID_FDDI_PORT_EB_ERROR_CT),
-   ADD_VALUE (OID_FDDI_PORT_HARDWARE_PRESENT),
-   ADD_VALUE (OID_FDDI_PORT_INDEX),
-   ADD_VALUE (OID_FDDI_PORT_LCT_FAIL_CT),
-   ADD_VALUE (OID_FDDI_PORT_LEM_CT),
-   ADD_VALUE (OID_FDDI_PORT_LEM_REJECT_CT),
-   ADD_VALUE (OID_FDDI_PORT_LER_ALARM),
-   ADD_VALUE (OID_FDDI_PORT_LER_CUTOFF),
-   ADD_VALUE (OID_FDDI_PORT_LER_ESTIMATE),
-   ADD_VALUE (OID_FDDI_PORT_LER_FLAG),
-   ADD_VALUE (OID_FDDI_PORT_MAC_INDICATED),
-   ADD_VALUE (OID_FDDI_PORT_MAC_LOOP_TIME),
-   ADD_VALUE (OID_FDDI_PORT_MAC_PLACEMENT),
-   ADD_VALUE (OID_FDDI_PORT_MAINT_LS),
-   ADD_VALUE (OID_FDDI_PORT_MY_TYPE),
-   ADD_VALUE (OID_FDDI_PORT_NEIGHBOR_TYPE),
-   ADD_VALUE (OID_FDDI_PORT_PCM_STATE),
-   ADD_VALUE (OID_FDDI_PORT_PC_LS),
-   ADD_VALUE (OID_FDDI_PORT_PC_WITHHOLD),
-   ADD_VALUE (OID_FDDI_PORT_PMD_CLASS),
-   ADD_VALUE (OID_FDDI_PORT_REQUESTED_PATHS),
-   ADD_VALUE (OID_FDDI_RING_MGT_STATE),
-   ADD_VALUE (OID_FDDI_SHORT_CURRENT_ADDR),
-   ADD_VALUE (OID_FDDI_SHORT_MAX_LIST_SIZE),
-   ADD_VALUE (OID_FDDI_SHORT_MULTICAST_LIST),
-   ADD_VALUE (OID_FDDI_SHORT_PERMANENT_ADDR),
-   ADD_VALUE (OID_FDDI_SMT_AVAILABLE_PATHS),
-   ADD_VALUE (OID_FDDI_SMT_BYPASS_PRESENT),
-   ADD_VALUE (OID_FDDI_SMT_CF_STATE),
-   ADD_VALUE (OID_FDDI_SMT_CONFIG_CAPABILITIES),
-   ADD_VALUE (OID_FDDI_SMT_CONFIG_POLICY),
-   ADD_VALUE (OID_FDDI_SMT_CONNECTION_POLICY),
-   ADD_VALUE (OID_FDDI_SMT_ECM_STATE),
-   ADD_VALUE (OID_FDDI_SMT_HI_VERSION_ID),
-   ADD_VALUE (OID_FDDI_SMT_HOLD_STATE),
-   ADD_VALUE (OID_FDDI_SMT_LAST_SET_STATION_ID),
-   ADD_VALUE (OID_FDDI_SMT_LO_VERSION_ID),
-   ADD_VALUE (OID_FDDI_SMT_MAC_CT),
-   ADD_VALUE (OID_FDDI_SMT_MAC_INDEXES),
-   ADD_VALUE (OID_FDDI_SMT_MANUFACTURER_DATA),
-   ADD_VALUE (OID_FDDI_SMT_MASTER_CT),
-   ADD_VALUE (OID_FDDI_SMT_MIB_VERSION_ID),
-   ADD_VALUE (OID_FDDI_SMT_MSG_TIME_STAMP),
-   ADD_VALUE (OID_FDDI_SMT_NON_MASTER_CT),
-   ADD_VALUE (OID_FDDI_SMT_OP_VERSION_ID),
-   ADD_VALUE (OID_FDDI_SMT_PEER_WRAP_FLAG),
-   ADD_VALUE (OID_FDDI_SMT_PORT_INDEXES),
-   ADD_VALUE (OID_FDDI_SMT_REMOTE_DISCONNECT_FLAG),
-   ADD_VALUE (OID_FDDI_SMT_SET_COUNT),
-   ADD_VALUE (OID_FDDI_SMT_STATION_ACTION),
-   ADD_VALUE (OID_FDDI_SMT_STATION_ID),
-   ADD_VALUE (OID_FDDI_SMT_STATION_STATUS),
-   ADD_VALUE (OID_FDDI_SMT_STAT_RPT_POLICY),
-   ADD_VALUE (OID_FDDI_SMT_TRACE_MAX_EXPIRATION),
-   ADD_VALUE (OID_FDDI_SMT_TRANSITION_TIME_STAMP),
-   ADD_VALUE (OID_FDDI_SMT_T_NOTIFY),
-   ADD_VALUE (OID_FDDI_SMT_USER_DATA),
-   ADD_VALUE (OID_FDDI_UPSTREAM_NODE_LONG),
-   ADD_VALUE (OID_GEN_BROADCAST_BYTES_RCV),
-   ADD_VALUE (OID_GEN_BROADCAST_BYTES_XMIT),
-   ADD_VALUE (OID_GEN_BROADCAST_FRAMES_RCV),
-   ADD_VALUE (OID_GEN_BROADCAST_FRAMES_XMIT),
-   ADD_VALUE (OID_GEN_CO_BYTES_RCV),
-   ADD_VALUE (OID_GEN_CO_BYTES_XMIT),
-   ADD_VALUE (OID_GEN_CO_BYTES_XMIT_OUTSTANDING),
-   ADD_VALUE (OID_GEN_CO_DRIVER_VERSION),
-   ADD_VALUE (OID_GEN_CO_GET_NETCARD_TIME),
-   ADD_VALUE (OID_GEN_CO_GET_TIME_CAPS),
-   ADD_VALUE (OID_GEN_CO_HARDWARE_STATUS),
-   ADD_VALUE (OID_GEN_CO_LINK_SPEED),
-   ADD_VALUE (OID_GEN_CO_MAC_OPTIONS),
-   ADD_VALUE (OID_GEN_CO_MEDIA_CONNECT_STATUS),
-   ADD_VALUE (OID_GEN_CO_MEDIA_IN_USE),
-   ADD_VALUE (OID_GEN_CO_MEDIA_SUPPORTED),
-   ADD_VALUE (OID_GEN_CO_MINIMUM_LINK_SPEED),
-   ADD_VALUE (OID_GEN_CO_NETCARD_LOAD),
-   ADD_VALUE (OID_GEN_CO_PROTOCOL_OPTIONS),
-   ADD_VALUE (OID_GEN_CO_RCV_CRC_ERROR),
-   ADD_VALUE (OID_GEN_CO_RCV_PDUS_ERROR),
-   ADD_VALUE (OID_GEN_CO_RCV_PDUS_NO_BUFFER),
-   ADD_VALUE (OID_GEN_CO_RCV_PDUS_OK),
-   ADD_VALUE (OID_GEN_CO_SUPPORTED_LIST),
-   ADD_VALUE (OID_GEN_CO_TRANSMIT_QUEUE_LENGTH),
-   ADD_VALUE (OID_GEN_CO_VENDOR_DESCRIPTION),
-   ADD_VALUE (OID_GEN_CO_VENDOR_DRIVER_VERSION),
-   ADD_VALUE (OID_GEN_CO_VENDOR_ID),
-   ADD_VALUE (OID_GEN_CO_XMIT_PDUS_ERROR),
-   ADD_VALUE (OID_GEN_CO_XMIT_PDUS_OK),
-   ADD_VALUE (OID_GEN_CURRENT_LOOKAHEAD),
-   ADD_VALUE (OID_GEN_CURRENT_PACKET_FILTER),
-   ADD_VALUE (OID_GEN_DIRECTED_BYTES_RCV),
-   ADD_VALUE (OID_GEN_DIRECTED_BYTES_XMIT),
-   ADD_VALUE (OID_GEN_DIRECTED_FRAMES_RCV),
-   ADD_VALUE (OID_GEN_DIRECTED_FRAMES_XMIT),
-   ADD_VALUE (OID_GEN_DRIVER_VERSION),
-   ADD_VALUE (OID_GEN_GET_NETCARD_TIME),
-   ADD_VALUE (OID_GEN_GET_TIME_CAPS),
-   ADD_VALUE (OID_GEN_HARDWARE_STATUS),
-   ADD_VALUE (OID_GEN_LINK_SPEED),
-   ADD_VALUE (OID_GEN_MAC_OPTIONS),
-   ADD_VALUE (OID_GEN_MAXIMUM_FRAME_SIZE),
-   ADD_VALUE (OID_GEN_MAXIMUM_LOOKAHEAD),
-   ADD_VALUE (OID_GEN_MAXIMUM_SEND_PACKETS),
-   ADD_VALUE (OID_GEN_MAXIMUM_TOTAL_SIZE),
-   ADD_VALUE (OID_GEN_MEDIA_CAPABILITIES),
-   ADD_VALUE (OID_GEN_MEDIA_CONNECT_STATUS),
-   ADD_VALUE (OID_GEN_MEDIA_IN_USE),
-   ADD_VALUE (OID_GEN_MEDIA_SUPPORTED),
-   ADD_VALUE (OID_GEN_MULTICAST_BYTES_RCV),
-   ADD_VALUE (OID_GEN_MULTICAST_BYTES_XMIT),
-   ADD_VALUE (OID_GEN_MULTICAST_FRAMES_RCV),
-   ADD_VALUE (OID_GEN_MULTICAST_FRAMES_XMIT),
-   ADD_VALUE (OID_GEN_NETWORK_LAYER_ADDRESSES),
-   ADD_VALUE (OID_GEN_PHYSICAL_MEDIUM),
-   ADD_VALUE (OID_GEN_PHYSICAL_MEDIUM_EX),
-   ADD_VALUE (OID_GEN_PROTOCOL_OPTIONS),
-   ADD_VALUE (OID_GEN_RCV_CRC_ERROR),
-   ADD_VALUE (OID_GEN_RCV_ERROR),
-   ADD_VALUE (OID_GEN_RCV_NO_BUFFER),
-   ADD_VALUE (OID_GEN_RCV_OK),
-   ADD_VALUE (OID_GEN_RECEIVE_BLOCK_SIZE),
-   ADD_VALUE (OID_GEN_RECEIVE_BUFFER_SPACE),
-   ADD_VALUE (OID_GEN_SUPPORTED_LIST),
-   ADD_VALUE (OID_GEN_TRANSMIT_BLOCK_SIZE),
-   ADD_VALUE (OID_GEN_TRANSMIT_BUFFER_SPACE),
-   ADD_VALUE (OID_GEN_TRANSMIT_QUEUE_LENGTH),
-   ADD_VALUE (OID_GEN_TRANSPORT_HEADER_OFFSET),
-   ADD_VALUE (OID_GEN_VENDOR_DESCRIPTION),
-   ADD_VALUE (OID_GEN_VENDOR_DRIVER_VERSION),
-   ADD_VALUE (OID_GEN_VENDOR_ID),
-   ADD_VALUE (OID_GEN_VLAN_ID),
-   ADD_VALUE (OID_GEN_XMIT_ERROR),
-   ADD_VALUE (OID_GEN_XMIT_OK),
-   ADD_VALUE (OID_IP4_OFFLOAD_STATS),
-   ADD_VALUE (OID_IP6_OFFLOAD_STATS),
-   ADD_VALUE (OID_IRDA_EXTRA_RCV_BOFS),
-   ADD_VALUE (OID_IRDA_LINK_SPEED),
-   ADD_VALUE (OID_IRDA_MAX_RECEIVE_WINDOW_SIZE),
-   ADD_VALUE (OID_IRDA_MAX_SEND_WINDOW_SIZE),
-   ADD_VALUE (OID_IRDA_MAX_UNICAST_LIST_SIZE),
-   ADD_VALUE (OID_IRDA_MEDIA_BUSY),
-   ADD_VALUE (OID_IRDA_RATE_SNIFF),
-   ADD_VALUE (OID_IRDA_RECEIVING),
-   ADD_VALUE (OID_IRDA_SUPPORTED_SPEEDS),
-   ADD_VALUE (OID_IRDA_TURNAROUND_TIME),
-   ADD_VALUE (OID_IRDA_UNICAST_LIST),
-   ADD_VALUE (OID_LTALK_COLLISIONS),
-   ADD_VALUE (OID_LTALK_CURRENT_NODE_ID),
-   ADD_VALUE (OID_LTALK_DEFERS),
-   ADD_VALUE (OID_LTALK_FCS_ERRORS),
-   ADD_VALUE (OID_LTALK_IN_BROADCASTS),
-   ADD_VALUE (OID_LTALK_IN_LENGTH_ERRORS),
-   ADD_VALUE (OID_LTALK_NO_DATA_ERRORS),
-   ADD_VALUE (OID_LTALK_OUT_NO_HANDLERS),
-   ADD_VALUE (OID_LTALK_RANDOM_CTS_ERRORS),
-   ADD_VALUE (OID_PNP_ADD_WAKE_UP_PATTERN),
-   ADD_VALUE (OID_PNP_CAPABILITIES),
-   ADD_VALUE (OID_PNP_ENABLE_WAKE_UP),
-   ADD_VALUE (OID_PNP_QUERY_POWER),
-   ADD_VALUE (OID_PNP_REMOVE_WAKE_UP_PATTERN),
-   ADD_VALUE (OID_PNP_SET_POWER),
-   ADD_VALUE (OID_PNP_WAKE_UP_PATTERN_LIST),
-   ADD_VALUE (OID_TAPI_ACCEPT),
-   ADD_VALUE (OID_TAPI_ANSWER),
-   ADD_VALUE (OID_TAPI_CLOSE),
-   ADD_VALUE (OID_TAPI_CLOSE_CALL),
-   ADD_VALUE (OID_TAPI_CONDITIONAL_MEDIA_DETECTION),
-   ADD_VALUE (OID_TAPI_CONFIG_DIALOG),
-   ADD_VALUE (OID_TAPI_DEV_SPECIFIC),
-   ADD_VALUE (OID_TAPI_DIAL),
-   ADD_VALUE (OID_TAPI_DROP),
-   ADD_VALUE (OID_TAPI_GATHER_DIGITS),
-   ADD_VALUE (OID_TAPI_GET_ADDRESS_CAPS),
-   ADD_VALUE (OID_TAPI_GET_ADDRESS_ID),
-   ADD_VALUE (OID_TAPI_GET_ADDRESS_STATUS),
-   ADD_VALUE (OID_TAPI_GET_CALL_ADDRESS_ID),
-   ADD_VALUE (OID_TAPI_GET_CALL_INFO),
-   ADD_VALUE (OID_TAPI_GET_CALL_STATUS),
-   ADD_VALUE (OID_TAPI_GET_DEV_CAPS),
-   ADD_VALUE (OID_TAPI_GET_DEV_CONFIG),
-   ADD_VALUE (OID_TAPI_GET_EXTENSION_ID),
-   ADD_VALUE (OID_TAPI_GET_ID),
-   ADD_VALUE (OID_TAPI_GET_LINE_DEV_STATUS),
-   ADD_VALUE (OID_TAPI_MAKE_CALL),
-   ADD_VALUE (OID_TAPI_MONITOR_DIGITS),
-   ADD_VALUE (OID_TAPI_NEGOTIATE_EXT_VERSION),
-   ADD_VALUE (OID_TAPI_OPEN),
-   ADD_VALUE (OID_TAPI_PROVIDER_INITIALIZE),
-   ADD_VALUE (OID_TAPI_PROVIDER_SHUTDOWN),
-   ADD_VALUE (OID_TAPI_SECURE_CALL),
-   ADD_VALUE (OID_TAPI_SELECT_EXT_VERSION),
-   ADD_VALUE (OID_TAPI_SEND_USER_USER_INFO),
-   ADD_VALUE (OID_TAPI_SET_APP_SPECIFIC),
-   ADD_VALUE (OID_TAPI_SET_CALL_PARAMS),
-   ADD_VALUE (OID_TAPI_SET_DEFAULT_MEDIA_DETECTION),
-   ADD_VALUE (OID_TAPI_SET_DEV_CONFIG),
-   ADD_VALUE (OID_TAPI_SET_MEDIA_MODE),
-   ADD_VALUE (OID_TAPI_SET_STATUS_MESSAGES),
-   ADD_VALUE (OID_TCP4_OFFLOAD_STATS),
-   ADD_VALUE (OID_TCP6_OFFLOAD_STATS),
-   ADD_VALUE (OID_TCP_SAN_SUPPORT),
-   ADD_VALUE (OID_TCP_TASK_IPSEC_ADD_SA),
-   ADD_VALUE (OID_TCP_TASK_IPSEC_ADD_UDPESP_SA),
-   ADD_VALUE (OID_TCP_TASK_IPSEC_DELETE_SA),
-   ADD_VALUE (OID_TCP_TASK_IPSEC_DELETE_UDPESP_SA),
-   ADD_VALUE (OID_TCP_TASK_OFFLOAD),
-   ADD_VALUE (OID_WAN_CURRENT_ADDRESS),
-   ADD_VALUE (OID_WAN_GET_BRIDGE_INFO),
-   ADD_VALUE (OID_WAN_GET_COMP_INFO),
-   ADD_VALUE (OID_WAN_GET_INFO),
-   ADD_VALUE (OID_WAN_GET_LINK_INFO),
-   ADD_VALUE (OID_WAN_GET_STATS_INFO),
-   ADD_VALUE (OID_WAN_HEADER_FORMAT),
-   ADD_VALUE (OID_WAN_LINE_COUNT),
-   ADD_VALUE (OID_WAN_MEDIUM_SUBTYPE),
-   ADD_VALUE (OID_WAN_PERMANENT_ADDRESS),
-   ADD_VALUE (OID_WAN_PROTOCOL_TYPE),
-   ADD_VALUE (OID_WAN_QUALITY_OF_SERVICE),
-   ADD_VALUE (OID_WAN_SET_BRIDGE_INFO),
-   ADD_VALUE (OID_WAN_SET_COMP_INFO),
-   ADD_VALUE (OID_WAN_SET_LINK_INFO),
-   ADD_VALUE (OID_WW_ARD_DATAGRAM),
-   ADD_VALUE (OID_WW_ARD_SNDCP),
-   ADD_VALUE (OID_WW_ARD_TMLY_MSG),
-   ADD_VALUE (OID_WW_CDPD_AREA_COLOR),
-   ADD_VALUE (OID_WW_CDPD_CHANNEL_SELECT),
-   ADD_VALUE (OID_WW_CDPD_CHANNEL_STATE),
-   ADD_VALUE (OID_WW_CDPD_CIRCUIT_SWITCHED),
-   ADD_VALUE (OID_WW_CDPD_DATA_COMPRESSION),
-   ADD_VALUE (OID_WW_CDPD_EID),
-   ADD_VALUE (OID_WW_CDPD_HEADER_COMPRESSION),
-   ADD_VALUE (OID_WW_CDPD_NEI),
-   ADD_VALUE (OID_WW_CDPD_NEI_STATE),
-   ADD_VALUE (OID_WW_CDPD_RSSI),
-   ADD_VALUE (OID_WW_CDPD_SERVICE_PROVIDER_IDENTIFIER),
-   ADD_VALUE (OID_WW_CDPD_SLEEP_MODE),
-   ADD_VALUE (OID_WW_CDPD_SPNI),
-   ADD_VALUE (OID_WW_CDPD_TEI),
-   ADD_VALUE (OID_WW_CDPD_TX_POWER_LEVEL),
-   ADD_VALUE (OID_WW_CDPD_WASI),
-   ADD_VALUE (OID_WW_GEN_BASESTATION_ID),
-   ADD_VALUE (OID_WW_GEN_BATTERY_LEVEL),
-   ADD_VALUE (OID_WW_GEN_CHANNEL_ID),
-   ADD_VALUE (OID_WW_GEN_CHANNEL_QUALITY),
-   ADD_VALUE (OID_WW_GEN_CURRENT_ADDRESS),
-   ADD_VALUE (OID_WW_GEN_DEVICE_INFO),
-   ADD_VALUE (OID_WW_GEN_DISABLE_TRANSMITTER),
-   ADD_VALUE (OID_WW_GEN_ENCRYPTION_IN_USE),
-   ADD_VALUE (OID_WW_GEN_ENCRYPTION_STATE),
-   ADD_VALUE (OID_WW_GEN_ENCRYPTION_SUPPORTED),
-   ADD_VALUE (OID_WW_GEN_EXTERNAL_POWER),
-   ADD_VALUE (OID_WW_GEN_HEADER_FORMATS_SUPPORTED),
-   ADD_VALUE (OID_WW_GEN_HEADER_FORMAT_IN_USE),
-   ADD_VALUE (OID_WW_GEN_INDICATION_REQUEST),
-   ADD_VALUE (OID_WW_GEN_LATENCY),
-   ADD_VALUE (OID_WW_GEN_LOCK_STATUS),
-   ADD_VALUE (OID_WW_GEN_NETWORK_ID),
-   ADD_VALUE (OID_WW_GEN_NETWORK_TYPES_SUPPORTED),
-   ADD_VALUE (OID_WW_GEN_NETWORK_TYPE_IN_USE),
-   ADD_VALUE (OID_WW_GEN_OPERATION_MODE),
-   ADD_VALUE (OID_WW_GEN_PERMANENT_ADDRESS),
-   ADD_VALUE (OID_WW_GEN_RADIO_LINK_SPEED),
-   ADD_VALUE (OID_WW_GEN_REGISTRATION_STATUS),
-   ADD_VALUE (OID_WW_GEN_SUSPEND_DRIVER),
-   ADD_VALUE (OID_WW_MBX_FLEXLIST),
-   ADD_VALUE (OID_WW_MBX_GROUPLIST),
-   ADD_VALUE (OID_WW_MBX_LIVE_DIE),
-   ADD_VALUE (OID_WW_MBX_SUBADDR),
-   ADD_VALUE (OID_WW_MBX_TEMP_DEFAULTLIST),
-   ADD_VALUE (OID_WW_MBX_TRAFFIC_AREA),
-   ADD_VALUE (OID_WW_MET_FUNCTION),
-   ADD_VALUE (OID_WW_PIN_LAST_LOCATION),
-   ADD_VALUE (OID_WW_PIN_LOC_AUTHORIZE),
-   ADD_VALUE (OID_WW_PIN_LOC_FIX),
-   ADD_VALUE (OID_WW_TAC_COMPRESSION),
-   ADD_VALUE (OID_WW_TAC_GET_STATUS),
-   ADD_VALUE (OID_WW_TAC_SET_CONFIG),
-   ADD_VALUE (OID_WW_TAC_USER_HEADER),
-   ADD_VALUE (OID_GEN_BYTES_RCV),
-   ADD_VALUE (OID_GEN_BYTES_XMIT),
-   ADD_VALUE (OID_GEN_RCV_DISCARDS)
-};
-#endif  /* USE_DEBUG */
 
 /**
  * Performs a query/set operation on an internal variable of the
@@ -1734,9 +1235,8 @@ static const struct search_list oid_list[] = {
  * If you use a facultative function, be careful to enclose it in an if
  * statement to check the result.
  */
-BOOL PacketRequest2 (const ADAPTER *AdapterObject, BOOL set,
-                     PACKET_OID_DATA *oidData,
-                     const char *file, unsigned line)
+BOOL PacketRequest (const ADAPTER *AdapterObject, BOOL set,
+                    PACKET_OID_DATA *oidData)
 {
   DWORD  transfered, in_size, out_size;
   DWORD  in_len, out_len;
@@ -1747,43 +1247,37 @@ BOOL PacketRequest2 (const ADAPTER *AdapterObject, BOOL set,
 #if defined(USE_PROFILER) && defined(USE_DEBUG)
   uint64 start = U64_SUFFIX (0);
 
-  if (profile_enable)
-     start = win_get_perf_count();
+  if (profile_enable && trace_file)
+     start = get_rdtsc();
 #endif
 
   transfered = 0;
   in_len   = oidData->Length;
   in_size  = sizeof(*oidData) - 1 + oidData->Length;
   out_size = in_size;
-
   rc = DeviceIoControl (AdapterObject->hFile,
                         set ? pBIOCSETOID : pBIOCQUERYOID,
-                        oidData, in_size, oidData, out_size, &transfered, NULL);
-
+                        oidData, in_size,
+                        oidData, out_size,
+                        &transfered, NULL);
   out_len = rc ? oidData->Length : 0;
 
   if (!rc)
      error = GetLastError();
+  trace_func = "PacketRequest";
 
-#if defined(USE_DEBUG)
-  #if defined(USE_PROFILER)
-  if (profile_enable)
+#if defined(USE_PROFILER) && defined(USE_DEBUG)
+  if (profile_enable && trace_file)
   {
-    int64  clocks = (int64) (win_get_perf_count() - start);
+    int64  clocks = (int64) (get_rdtsc() - start);
     double msec   = (double)clocks / ((double)clocks_per_usec * 1000.0);
-    SNPRINTF (prof_buf, sizeof(prof_buf), " (%.3f ms)", msec);
+    _snprintf (prof_buf, sizeof(prof_buf), " (%.3f ms)", msec);
   }
-  #endif
-
-  winpkt_trace_func = "PacketRequest";
-  winpkt_trace_file = file;
-  winpkt_trace_line = line;
-  winpkt_trace ("%-30.30s len %lu/%lu, xfered %lu, set %d, rc %d; %s %s\n",
-                list_lookup(oidData->Oid,oid_list,DIM(oid_list)),
-                (u_long)in_len, (u_long)out_len, (u_long)transfered, set, rc,
-                !rc ? win_strerror(error) : "okay", prof_buf);
 #endif
 
+  WINPCAP_TRACE (("OID 0x%08lX, len %lu/%lu, xfered %lu,%s set %d, rc %d; %s\n",
+                  oidData->Oid, in_len, out_len, transfered, prof_buf, set,
+                  rc, !rc ? win_strerror(error) : "okay"));
   if (!rc)
      SetLastError (error);
   return (rc);
@@ -1820,27 +1314,27 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
                                       int         *NEntries)
 {
   struct sockaddr_in *TmpAddr, *TmpBroad;
-  const  char *guid;
-  HKEY   TcpIpKey = NULL, UnderTcpKey = NULL;
-  char   String [1024+1];
-  DWORD  RegType, BufLen, StringPos, DHCPEnabled, ZeroBroadcast;
-  LONG   status;
-  DWORD  line = 0;
-  int    naddrs, nmasks;
+  const char *guid;
+  HKEY  TcpIpKey = NULL, UnderTcpKey = NULL;
+  char  String [1024+1];
+  DWORD RegType, BufLen, StringPos, DHCPEnabled, ZeroBroadcast;
+  LONG  status;
+  DWORD line = 0;
+  int   naddrs, nmasks;
 
   *NEntries = 0;
 
-  winpkt_trace_func = "GetAddressesFromRegistry";
+  trace_func = "GetAddressesFromRegistry";
 
   guid = strchr (AdapterName, '{');
 
-  WINPKT_TRACE ("guid %s\n", guid);
+  WINPCAP_TRACE (("guid %s\n", guid));
 
-  if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+  if (RegOpenKeyEx(HKEY_LOCAL_MACHINE,
        "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces",
        0, KEY_READ, &UnderTcpKey) == ERROR_SUCCESS)
   {
-    status = RegOpenKeyExA (UnderTcpKey, guid, 0, KEY_READ, &TcpIpKey);
+    status = RegOpenKeyEx (UnderTcpKey, guid, 0, KEY_READ, &TcpIpKey);
     line = __LINE__ - 1;
     if (status != ERROR_SUCCESS)
        goto fail;
@@ -1851,26 +1345,26 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
 
     /* Query the registry key with the interface's addresses
      */
-    status = RegOpenKeyExA (HKEY_LOCAL_MACHINE,
-                            "SYSTEM\\CurrentControlSet\\Services",
-                            0, KEY_READ, &SystemKey);
+    status = RegOpenKeyEx (HKEY_LOCAL_MACHINE,
+                           "SYSTEM\\CurrentControlSet\\Services",
+                           0, KEY_READ, &SystemKey);
     if (status != ERROR_SUCCESS)
        goto fail;
 
-    status = RegOpenKeyExA (SystemKey, guid, 0, KEY_READ, &InterfaceKey);
+    status = RegOpenKeyEx (SystemKey, guid, 0, KEY_READ, &InterfaceKey);
     line = __LINE__ - 1;
     RegCloseKey (SystemKey);
     if (status != ERROR_SUCCESS)
        goto fail;
 
-    status = RegOpenKeyExA (InterfaceKey, "Parameters", 0, KEY_READ,
-                            &ParametersKey);
+    status = RegOpenKeyEx (InterfaceKey, "Parameters", 0, KEY_READ,
+                           &ParametersKey);
     line = __LINE__ - 1;
     RegCloseKey (InterfaceKey);
     if (status != ERROR_SUCCESS)
        goto fail;
 
-    status = RegOpenKeyExA (ParametersKey, "TcpIp", 0, KEY_READ, &TcpIpKey);
+    status = RegOpenKeyEx (ParametersKey, "TcpIp", 0, KEY_READ, &TcpIpKey);
     line = __LINE__ - 1;
     RegCloseKey (ParametersKey);
     if (status != ERROR_SUCCESS)
@@ -1883,8 +1377,8 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
 
   /* Try to detect if the interface has a zero broadcast addr
    */
-  status = RegQueryValueExA (TcpIpKey, "UseZeroBroadcast", NULL,
-                             &RegType, (BYTE*)&ZeroBroadcast, &BufLen);
+  status = RegQueryValueEx (TcpIpKey, "UseZeroBroadcast", NULL,
+                            &RegType, (BYTE*)&ZeroBroadcast, &BufLen);
   if (status != ERROR_SUCCESS)
      ZeroBroadcast = 0;
 
@@ -1892,8 +1386,8 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
 
   /* See if DHCP is used by this system
    */
-  status = RegQueryValueExA (TcpIpKey, "EnableDHCP", NULL,
-                             &RegType, (BYTE*)&DHCPEnabled, &BufLen);
+  status = RegQueryValueEx (TcpIpKey, "EnableDHCP", NULL,
+                            &RegType, (BYTE*)&DHCPEnabled, &BufLen);
   if (status != ERROR_SUCCESS)
      DHCPEnabled = 0;
 
@@ -1901,11 +1395,11 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
    */
   if (DHCPEnabled)
   {
-    WINPKT_TRACE ("  DHCP enabled\n");
+    WINPCAP_TRACE (("  DHCP enabled\n"));
 
     BufLen = sizeof(String);
-    status = RegQueryValueExA (TcpIpKey, "DhcpIPAddress", NULL,
-                               &RegType, (BYTE*)String, &BufLen);
+    status = RegQueryValueEx (TcpIpKey, "DhcpIPAddress", NULL,
+                              &RegType, (BYTE*)String, &BufLen);
     line = __LINE__ - 1;
     if (status != ERROR_SUCCESS)
        goto fail;
@@ -1916,10 +1410,9 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
     for (naddrs = 0; naddrs < MAX_NETWORK_ADDRESSES; naddrs++)
     {
       TmpAddr = (struct sockaddr_in*) &buffer[naddrs].IPAddress;
-      WINPKT_TRACE ("  addr %s\n", String+StringPos);
+      WINPCAP_TRACE (("  addr %s\n", String+StringPos));
 
-      TmpAddr->sin_addr.s_addr = htonl (aton(String+StringPos));
-      if (TmpAddr->sin_addr.s_addr)
+      if (inet_aton(String + StringPos, &TmpAddr->sin_addr))
       {
         TmpAddr->sin_family = AF_INET;
         TmpBroad = (struct sockaddr_in*) &buffer[naddrs].Broadcast;
@@ -1943,8 +1436,8 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
 
     /* Open the key with the netmasks
      */
-    status = RegQueryValueExA (TcpIpKey, "DhcpSubnetMask", NULL,
-                               &RegType, (BYTE*)String, &BufLen);
+    status = RegQueryValueEx (TcpIpKey, "DhcpSubnetMask", NULL,
+                              &RegType, (BYTE*)String, &BufLen);
     line = __LINE__ - 1;
     if (status != ERROR_SUCCESS)
        goto fail;
@@ -1955,10 +1448,9 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
     for (nmasks = 0; nmasks < MAX_NETWORK_ADDRESSES; nmasks++)
     {
       TmpAddr = (struct sockaddr_in*) &buffer[nmasks].SubnetMask;
-      WINPKT_TRACE ("  addr %s\n", String+StringPos);
+      WINPCAP_TRACE (("  addr %s\n", String+StringPos));
 
-      TmpAddr->sin_addr.s_addr = htonl (aton(String+StringPos));
-      if (TmpAddr->sin_addr.s_addr)
+      if (inet_aton (String + StringPos, &TmpAddr->sin_addr))
       {
         TmpAddr->sin_family = AF_INET;
 
@@ -1979,14 +1471,14 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
   }
   else   /* Not DHCP enabled */
   {
-    WINPKT_TRACE ("  Not DHCP enabled\n");
+    WINPCAP_TRACE (("  Not DHCP enabled\n"));
 
     BufLen = sizeof(String);
 
     /* Open the key with the addresses
      */
-    status = RegQueryValueExA (TcpIpKey, "IPAddress", NULL,
-                               &RegType, (BYTE*)String, &BufLen);
+    status = RegQueryValueEx (TcpIpKey, "IPAddress", NULL,
+                              &RegType, (BYTE*)String, &BufLen);
     line = __LINE__ - 1;
     if (status != ERROR_SUCCESS)
        goto fail;
@@ -1997,10 +1489,9 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
     for (naddrs = 0; naddrs < MAX_NETWORK_ADDRESSES; naddrs++)
     {
       TmpAddr = (struct sockaddr_in*) &buffer[naddrs].IPAddress;
-      WINPKT_TRACE ("  addr %s\n", String+StringPos);
+      WINPCAP_TRACE (("  addr %s\n", String+StringPos));
 
-      TmpAddr->sin_addr.s_addr = htonl (aton(String+StringPos));
-      if (TmpAddr->sin_addr.s_addr)
+      if (inet_aton (String + StringPos, &TmpAddr->sin_addr))
       {
         TmpAddr->sin_family = AF_INET;
 
@@ -2024,8 +1515,8 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
     /* Open the key with the netmasks
      */
     BufLen = sizeof(String);
-    status = RegQueryValueExA (TcpIpKey, "SubnetMask", NULL,
-                               &RegType, (BYTE*)String, &BufLen);
+    status = RegQueryValueEx (TcpIpKey, "SubnetMask", NULL,
+                              &RegType, (BYTE*)String, &BufLen);
     line = __LINE__ - 1;
     if (status != ERROR_SUCCESS)
        goto fail;
@@ -2036,10 +1527,9 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
     for (nmasks = 0; nmasks < MAX_NETWORK_ADDRESSES; nmasks++)
     {
       TmpAddr = (struct sockaddr_in*) &buffer[nmasks].SubnetMask;
-      WINPKT_TRACE ("  mask %s\n", String+StringPos);
+      WINPCAP_TRACE (("  mask %s\n", String+StringPos));
 
-      TmpAddr->sin_addr.s_addr = htonl (aton(String+StringPos));
-      if (TmpAddr->sin_addr.s_addr)
+      if (inet_aton (String + StringPos, &TmpAddr->sin_addr))
       {
         TmpAddr->sin_family = AF_INET;
 
@@ -2068,7 +1558,7 @@ static BOOL GetAddressesFromRegistry (const char  *AdapterName,
   return (status != ERROR_SUCCESS);
 
 fail:
-  WINPKT_TRACE ("failed line %lu; %s\n", (u_long)line, win_strerror(GetLastError()));
+  WINPCAP_TRACE (("failed line %u; %s\n", line, win_strerror(GetLastError())));
 
   if (TcpIpKey)
      RegCloseKey (TcpIpKey);
@@ -2090,12 +1580,20 @@ fail:
  */
 static BOOL AddAdapter (const char *AdName)
 {
+  struct {
+    PACKET_OID_DATA oidData;
+    char            descr[512];
+  } oid;
+
   ADAPTER_INFO *TmpAdInfo = NULL;
   ADAPTER      *adapter   = NULL;
+  char         *descr, *p;
+  LONG          Status;
   BOOL          rc = FALSE;
 
-  winpkt_trace_func = "AddAdapter";
-  WINPKT_TRACE ("adapter %s\n", AdName);
+  trace_func = "AddAdapter";
+
+  WINPCAP_TRACE (("adapter %s\n", AdName));
 
   WaitForSingleObject (adapters_mutex, INFINITE);
 
@@ -2103,7 +1601,7 @@ static BOOL AddAdapter (const char *AdName)
   {
     if (!strcmp(AdName, TmpAdInfo->Name))
     {
-      WINPKT_TRACE ("adapter already present in the list\n");
+      WINPCAP_TRACE (("adapter already present in the list\n"));
       ReleaseMutex (adapters_mutex);
       return (TRUE);
     }
@@ -2119,7 +1617,7 @@ static BOOL AddAdapter (const char *AdName)
   /* Try to Open the adapter
    */
   adapter = PacketOpenAdapterNPF (AdName);
-  winpkt_trace_func = "AddAdapter";
+  trace_func = "AddAdapter";
 
   if (!adapter)
      goto quit;
@@ -2131,15 +1629,51 @@ static BOOL AddAdapter (const char *AdName)
                               sizeof(*TmpAdInfo));
   if (!TmpAdInfo)
   {
-    WINPKT_TRACE ("GlobalAllocPtr Failed\n");
+    WINPCAP_TRACE (("GlobalAllocPtr Failed\n"));
     goto quit;
   }
 
+  /**< \todo; keep 'AdName' in 'TmpAdInfo->Name' only */
+#if 0
   adapter->info = TmpAdInfo;
+#endif
 
   /* Copy the device name
    */
   strcpy (TmpAdInfo->Name, AdName);
+
+  /* Query the NIC driver for the adapter description
+   */
+  memset (&oid, 0, sizeof(oid));
+  oid.oidData.Oid    = OID_GEN_VENDOR_DESCRIPTION;
+  oid.oidData.Length = sizeof(oid.descr);
+
+  Status = PacketRequest (adapter, FALSE, &oid.oidData);
+  trace_func = "AddAdapter";
+
+  descr = (char*) oid.oidData.Data;
+
+  if (!Status || !*descr)
+     WINPCAP_TRACE (("failed to get adapter description\n"));
+
+  /* Strip trailing newlines and right aligned text in description;
+   * text separated by TABs or >= 2 spaces.
+   */
+  p = strrchr (descr, '\r');
+  if (p)
+     *p = '\0';
+  p = strchr (descr, '\t');
+  if (p)
+     *p = '\0';
+  p = strstr (descr, "  ");
+  if (p)
+     *p = '\0';
+
+  WINPCAP_TRACE (("adapter Description \"%s\"\n", descr));
+
+  /* Save the description
+   */
+  strncpy (TmpAdInfo->Description, descr, sizeof(TmpAdInfo->Description));
 
   GetAddressesFromRegistry (TmpAdInfo->Name,
                             TmpAdInfo->NetworkAddresses,
@@ -2158,7 +1692,7 @@ quit:
   if (adapter)
      PacketCloseAdapter (adapter);
   if (!rc && TmpAdInfo)
-     (void) GlobalFreePtr (TmpAdInfo);
+     GlobalFreePtr (TmpAdInfo);
   ReleaseMutex (adapters_mutex);
   return (rc);
 }
@@ -2179,85 +1713,84 @@ static BOOL PacketGetAdapters (void)
   char  TName[256];
   char  TAName[256];
   char  AdapName[256];
-  const char *guid, *err;
+  const char *guid;
   LONG  Status;
   int   i = 0;
 
-  winpkt_trace_func = "PacketGetAdapters";
-  WINPKT_TRACE ("\n");
+  trace_func = "PacketGetAdapters";
+  WINPCAP_TRACE (("\n"));
 
-  Status = RegOpenKeyExA (HKEY_LOCAL_MACHINE, ADAPTER_KEY_CLASS,
-                          0, KEY_READ, &AdapKey);
+  Status = RegOpenKeyEx (HKEY_LOCAL_MACHINE,
+                         "SYSTEM\\CurrentControlSet\\Control\\Class\\"
+                         "{4D36E972-E325-11CE-BFC1-08002BE10318}",
+                         0, KEY_READ, &AdapKey);
   i = 0;
 
   if (Status != ERROR_SUCCESS)
   {
-    WINPKT_TRACE ("RegOpenKeyEx ( Class\\{networkclassguid} ) Failed\n");
+    WINPCAP_TRACE (("RegOpenKeyEx ( Class\\{networkclassguid} ) Failed\n"));
     goto nt4;
   }
 
-  WINPKT_TRACE ("cycling through the adapters:\n");
+  WINPCAP_TRACE (("cycling through the adapters:\n"));
 
-  /* Cycle through the entries inside the ADAPTER_KEY_CLASS key
+  /* Cycle through the entries inside the {4D3..} key
    * to get the names of the adapters
    */
-  while (RegEnumKeyA (AdapKey, i, AdapName, sizeof(AdapName)) == ERROR_SUCCESS)
+  while (RegEnumKey (AdapKey, i, AdapName, sizeof(AdapName)) == ERROR_SUCCESS)
   {
-    WINPKT_TRACE ("  loop %d: sub-key %s\n", i, AdapName);
+    WINPCAP_TRACE (("  loop %d: sub-key %s\n", i, AdapName));
     i++;
 
     /* Get the adapter name from the registry key
      */
-    Status = RegOpenKeyExA (AdapKey, AdapName, 0, KEY_READ, &OneAdapKey);
+    Status = RegOpenKeyEx (AdapKey, AdapName, 0, KEY_READ, &OneAdapKey);
     if (Status != ERROR_SUCCESS)
     {
-      WINPKT_TRACE ("  RegOpenKeyEx (OneAdapKey) Failed; %s\n",
-                    win_strerror(GetLastError()));
+      WINPCAP_TRACE (("  RegOpenKeyEx (OneAdapKey) Failed\n"));
       continue;
     }
 
-    Status = RegOpenKeyExA (OneAdapKey, "Linkage", 0, KEY_READ, &LinkageKey);
+    Status = RegOpenKeyEx (OneAdapKey, "Linkage", 0, KEY_READ, &LinkageKey);
     if (Status != ERROR_SUCCESS)
     {
-      WINPKT_TRACE ("  RegOpenKeyEx (LinkageKey) Failed; %s\n",
-                    win_strerror(GetLastError()));
       RegCloseKey (OneAdapKey);
+      WINPCAP_TRACE (("  RegOpenKeyEx (LinkageKey) Failed\n"));
       continue;
     }
 
     dim = sizeof(TName);
-    Status = RegQueryValueExA (LinkageKey, "Export", NULL, NULL,
-                               (BYTE*)TName, &dim);
-    err = win_strerror (GetLastError());
+    Status = RegQueryValueEx (LinkageKey, "Export", NULL, NULL,
+                              (BYTE*)TName, &dim);
     RegCloseKey (OneAdapKey);
     RegCloseKey (LinkageKey);
     if (Status != ERROR_SUCCESS)
     {
-      WINPKT_TRACE ("  Name = SKIPPED (error reading the key); %s\n", err);
+      WINPCAP_TRACE (("  Name = SKIPPED (error reading the key)\n"));
       continue;
     }
     if (!TName[0])
     {
-      WINPKT_TRACE ("  Name = SKIPPED (empty name)\n");
+      WINPCAP_TRACE (("  Name = SKIPPED (empty name)\n"));
       continue;
     }
     guid = strchr (TName, '{');
     if (!guid)
     {
-      WINPKT_TRACE ("  Name = SKIPPED (missing GUID)\n");
+      WINPCAP_TRACE (("  Name = SKIPPED (missing GUID)\n"));
       continue;
     }
 
-    WINPKT_TRACE ("  key %d: %s\n", i, TName);
+    WINPCAP_TRACE (("  key %d: %s\n", i, TName));
 
     /* Put the \Device\NPF_ string at the beginning of the name
      */
-    SNPRINTF (TAName, sizeof(TAName), "\\Device\\NPF_%s", guid);
+    _snprintf (TAName, sizeof(TAName), "\\Device\\NPF_%s", guid);
 
     /* If the adapter is valid, add it to the list.
      */
     AddAdapter (TAName);
-    winpkt_trace_func = "PacketGetAdapters";
+    trace_func = "PacketGetAdapters";
   }
 
   RegCloseKey (AdapKey);
@@ -2265,27 +1798,27 @@ static BOOL PacketGetAdapters (void)
 nt4:
 
   /*
-   * No adapters were found under 'ADAPTER_KEY_CLASS'.
+   * No adapters were found under {4D36E972-E325-11CE-BFC1-08002BE10318}.
    * This means with great probability that we are under Win-NT 4, so we
    * try to look under the tcpip bindings.
    */
 
   if (i == 0)
-       WINPKT_TRACE ("Adapters not found under %s. Using the TCP/IP bindings.\n",
-                     ADAPTER_KEY_CLASS);
-  else WINPKT_TRACE ("Trying NT4 bindings anyway\n");
+       WINPCAP_TRACE (("Adapters not found under SYSTEM\\CurrentControlSet\\"
+                       "Control\\Class. Using the TCP/IP bindings.\n"));
+  else WINPCAP_TRACE (("Trying NT4 bindings anyway\n"));
 
-  Status = RegOpenKeyExA (HKEY_LOCAL_MACHINE,
-                          "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Linkage",
-                          0, KEY_READ, &LinkageKey);
+  Status = RegOpenKeyEx (HKEY_LOCAL_MACHINE,
+                         "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Linkage",
+                         0, KEY_READ, &LinkageKey);
   if (Status == ERROR_SUCCESS)
   {
     BYTE *bpStr;
 
     /* Retrieve the length of the binding key
      */
-    RegQueryValueExA (LinkageKey, "bind", NULL, &RegType,
-                      NULL, &RegKeySize);
+    Status = RegQueryValueEx (LinkageKey, "bind", NULL, &RegType,
+                              NULL, &RegKeySize);
 
     bpStr = calloc (RegKeySize+1, 1);
     if (!bpStr)
@@ -2293,25 +1826,23 @@ nt4:
 
     /* Query the key again to get its content
      */
-    RegQueryValueExA (LinkageKey, "bind", NULL, &RegType,
-                      bpStr, &RegKeySize);
+    Status = RegQueryValueEx (LinkageKey, "bind", NULL, &RegType,
+                              bpStr, &RegKeySize);
     RegCloseKey (LinkageKey);
 
     /* Loop over the space separated "\Device\{.." strings.
      */
-    for (guid = strchr((const char*)bpStr,'{');
-         guid;
-         guid = strchr(guid+1,'{'))
+    for (guid = strchr(bpStr,'{'); guid; guid = strchr(guid+1,'{'))
     {
-      SNPRINTF (TAName, sizeof(TAName), "\\Device\\NPF_%s", guid);
+      _snprintf (TAName, sizeof(TAName), "\\Device\\NPF_%s", guid);
       AddAdapter (TAName);
-      winpkt_trace_func = "PacketGetAdapters";
+      trace_func = "PacketGetAdapters";
     }
     free (bpStr);
   }
   else
   {
-    WINPKT_TRACE ("Cannot find the TCP/IP bindings");
+    WINPCAP_TRACE (("Cannot find the TCP/IP bindings"));
     return (FALSE);
   }
   return (TRUE);
@@ -2327,8 +1858,8 @@ const ADAPTER_INFO *PacketFindAdInfo (const char *AdapterName)
 {
   const ADAPTER_INFO *ad_info;
 
-  winpkt_trace_func = "PacketFindAdInfo";
-  WINPKT_TRACE ("\n");
+  trace_func = "PacketFindAdInfo";
+  WINPCAP_TRACE (("\n"));
 
   for (ad_info = adapters_list; ad_info; ad_info = ad_info->Next)
       if (!strcmp(ad_info->Name, AdapterName))
@@ -2341,8 +1872,8 @@ const ADAPTER_INFO *PacketFindAdInfo (const char *AdapterName)
  */
 const ADAPTER_INFO *PacketGetAdInfo (void)
 {
-  winpkt_trace_func = "PacketGetAdInfo";
-  WINPKT_TRACE ("\n");
+  trace_func = "PacketGetAdInfo";
+  WINPCAP_TRACE (("\n"));
 
   return (adapters_list);
 }
@@ -2357,8 +1888,8 @@ static BOOL PopulateAdaptersInfoList (void)
 {
   BOOL rc = TRUE;
 
-  winpkt_trace_func = "PopulateAdaptersInfoList";
-  WINPKT_TRACE ("\n");
+  trace_func = "PopulateAdaptersInfoList";
+  WINPCAP_TRACE (("\n"));
 
   WaitForSingleObject (adapters_mutex, INFINITE);
 
@@ -2368,7 +1899,7 @@ static BOOL PopulateAdaptersInfoList (void)
    */
   if (!PacketGetAdapters())
   {
-    WINPKT_TRACE ("registry scan for adapters failed!\n");
+    WINPCAP_TRACE (("registry scan for adapters failed!\n"));
     rc = FALSE;
   }
   ReleaseMutex (adapters_mutex);
@@ -2380,71 +1911,22 @@ static BOOL PopulateAdaptersInfoList (void)
  */
 static BOOL FreeAdaptersInfoList (void)
 {
-  ADAPTER_INFO *next, *ai;
+  ADAPTER_INFO *next, *ad_info;
+
+  trace_func = "FreeAdaptersInfoList";
+  WINPCAP_TRACE (("\n"));
 
   WaitForSingleObject (adapters_mutex, INFINITE);
 
-  for (ai = adapters_list; ai; ai = next)
+  for (ad_info = adapters_list; ad_info; ad_info = next)
   {
-    next = ai->Next;
-    (void) GlobalFreePtr (ai);
+    next = ad_info->Next;
+    GlobalFreePtr (ad_info);
   }
+
   adapters_list = NULL;
+  ReleaseMutex (adapters_mutex);
   return (TRUE);
 }
-
-BOOL WanPacketSetBpfFilter (WAN_ADAPTER *wan_adapter, PUCHAR FilterCode, DWORD Length)
-{
-  return (use_wanpacket ? (*p_WanPacketSetBpfFilter)(wan_adapter, FilterCode, Length) : FALSE);
-}
-
-WAN_ADAPTER *WanPacketOpenAdapter (void)
-{
-  return (use_wanpacket ? (*p_WanPacketOpenAdapter)() : NULL);
-}
-
-BOOL WanPacketCloseAdapter (WAN_ADAPTER *wan_adapter)
-{
-  return (use_wanpacket ? (*p_WanPacketCloseAdapter)(wan_adapter) : FALSE);
-}
-
-BOOL WanPacketSetBufferSize (WAN_ADAPTER *wan_adapter, DWORD BufferSize)
-{
-  return (use_wanpacket ? (*p_WanPacketSetBufferSize)(wan_adapter, BufferSize) : FALSE);
-}
-
-DWORD WanPacketReceivePacket (WAN_ADAPTER *wan_adapter, PUCHAR Buffer, DWORD BufferSize)
-{
-  return (use_wanpacket ? (*p_WanPacketReceivePacket)(wan_adapter, Buffer, BufferSize) : 0UL);
-}
-
-BOOL WanPacketSetMinToCopy (WAN_ADAPTER *wan_adapter, DWORD MinToCopy)
-{
-  return (use_wanpacket ? (*p_WanPacketSetMinToCopy)(wan_adapter, MinToCopy) : FALSE);
-}
-
-BOOL WanPacketGetStats (WAN_ADAPTER *wan_adapter, struct bpf_stat *s)
-{
-  return (use_wanpacket ? (*p_WanPacketGetStats)(wan_adapter, s) : FALSE);
-}
-
-BOOL WanPacketSetReadTimeout (WAN_ADAPTER *wan_adapter, DWORD ReadTimeout)
-{
-  return (use_wanpacket ? (*p_WanPacketSetReadTimeout)(wan_adapter, ReadTimeout) : FALSE);
-}
-
-BOOL WanPacketSetMode (WAN_ADAPTER *wan_adapter, DWORD Mode)
-{
-  return (use_wanpacket ? (*p_WanPacketSetMode)(wan_adapter, Mode) : FALSE);
-}
-
-HANDLE WanPacketGetReadEvent (WAN_ADAPTER *wan_adapter)
-{
-  return (use_wanpacket ? (*p_WanPacketGetReadEvent)(wan_adapter) : NULL);
-}
-
-BOOL WanPacketTestAdapter (void)
-{
-  return (use_wanpacket ? (*p_WanPacketTestAdapter)() : FALSE);
-}
-#endif   /* WIN32 */
+#endif   /* USE_DYN_PACKET */
+#endif   /* WIN32 || _WIN32 */

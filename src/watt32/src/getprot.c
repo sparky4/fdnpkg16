@@ -3,7 +3,7 @@
  *  BSD getprotobyxx() functions.
  */
 
-/*  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+/*  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -41,7 +41,6 @@
 #include "wattcp.h"
 #include "strings.h"
 #include "misc.h"
-#include "run.h"
 #include "language.h"
 #include "pcconfig.h"
 #include "get_xby.h"
@@ -60,19 +59,16 @@ static __inline struct protoent *fill_protoent (const struct _protoent *p)
   static char  *aliases [MAX_PROTO_ALIASES+1];
 
   memcpy (&aliases, p->p_aliases, sizeof(aliases));
-  ret.p_name    = _strlcpy (name, p->p_name, sizeof(name));
+  ret.p_name    = StrLcpy (name, p->p_name, sizeof(name));
   ret.p_proto   = p->p_proto;
   ret.p_aliases = aliases;
   h_errno       = NETDB_SUCCESS;
   return (&ret);
 }
 
-static void W32_CALL _endprotoent (void)
-{
-  endprotoent();
-}
+/*------------------------------------------------------------------*/
 
-void W32_CALL ReadProtoFile (const char *fname)
+void ReadProtoFile (const char *fname)
 {
   static BOOL been_here = FALSE;
 
@@ -82,7 +78,7 @@ void W32_CALL ReadProtoFile (const char *fname)
   if (been_here)  /* loading multiple protocol files */
   {
     free (protoFname);
-    FCLOSE (protoFile);
+    fclose (protoFile);
     protoFile = NULL;
   }
 
@@ -105,10 +101,11 @@ void W32_CALL ReadProtoFile (const char *fname)
     if (!p)
        break;
 
-    p2 = calloc (sizeof(*p2), 1);
+    p2 = (struct _protoent*) calloc (sizeof(*p2), 1);
     if (!p2)
     {
-      (*_printf) (_LANG("%s too big!\n"), protoFname);
+      outs (protoFname);
+      outsnl (_LANG(" too big!"));
       break;
     }
     for (i = 0; p->p_aliases[i]; i++)
@@ -123,7 +120,7 @@ void W32_CALL ReadProtoFile (const char *fname)
     proto0     = p2;
   }
   rewind (protoFile);
-  RUNDOWN_ADD (_endprotoent, 257);
+  RUNDOWN_ADD (endprotoent, 257);
 
 #if 0  /* test */
   {
@@ -145,18 +142,18 @@ void W32_CALL ReadProtoFile (const char *fname)
 
 /*------------------------------------------------------------------*/
 
-const char * W32_CALL GetProtoFile (void)
+const char *GetProtoFile (void)
 {
   return (protoFname);
 }
 
-void W32_CALL CloseProtoFile (void)
+void CloseProtoFile (void)
 {
-  FCLOSE (protoFile);
+  fclose (protoFile);
   protoFile = NULL;
 }
 
-void W32_CALL ReopenProtoFile (void)
+void ReopenProtoFile (void)
 {
   ReadProtoFile (protoFname);
 }
@@ -184,7 +181,7 @@ struct protoent * W32_CALL getprotoent (void)
 
   while (1)
   {
-    char buf [2*MAX_NAMELEN], *tok, *tok_buf = NULL;
+    char buf [2*MAX_NAMELEN], *tok;
 
     if (!fgets(buf,sizeof(buf),protoFile))
     {
@@ -196,8 +193,8 @@ struct protoent * W32_CALL getprotoent (void)
     if (*tok == '#' || *tok == ';' || *tok == '\n')
        continue;
 
-    proto = strtok_r (tok, " \t", &tok_buf);
-    name  = strtok_r (NULL, " ,\t\n", &tok_buf);
+    proto = strtok (tok, " \t");
+    name  = strtok (NULL, " ,\t\n");
     if (proto && name)
        break;
   }
@@ -231,14 +228,14 @@ struct protoent * W32_CALL getprotobyname (const char *proto)
    */
   if (!stricmp(proto,"udp"))
   {
-    fixed.p_name  = (char*) "udp";
+    fixed.p_name  = "udp";
     fixed.p_proto = UDP_PROTO;
     return fill_protoent (&fixed);
   }
 
   if (!stricmp(proto,"tcp"))
   {
-    fixed.p_name  = (char*) "tcp";
+    fixed.p_name  = "tcp";
     fixed.p_proto = TCP_PROTO;
     return fill_protoent (&fixed);
   }
@@ -250,7 +247,7 @@ struct protoent * W32_CALL getprotobyname (const char *proto)
 
     /* aliases not supported (no need)
      */
-    for (i = 0; p->p_aliases[i] && i < DIM(p->p_aliases); i++)
+    for (i = 0; p->p_aliases[i]; i++)
         if (!stricmp(proto,p->p_aliases[i]))
            return fill_protoent (p);
   }
@@ -287,7 +284,7 @@ void W32_CALL setprotoent (int stayopen)
      return;
 
   if (!protoFile)
-       FOPEN_TXT (protoFile, protoFname);
+       protoFile = fopen (protoFname, "rt");
   else rewind (protoFile);
 }
 
@@ -303,14 +300,14 @@ void W32_CALL endprotoent (void)
   if (protoFname)
      free (protoFname);
   if (protoFile)
-     FCLOSE (protoFile);
+     fclose (protoFile);
   protoFname = NULL;
   protoFile  = NULL;
 
   for (p = proto0; p; p = next)
   {
     int i;
-    for (i = 0; p->p_aliases[i] && i < DIM(p->p_aliases); i++)
+    for (i = 0; p->p_aliases[i]; i++)
         free (p->p_aliases[i]);
     next = p->p_next;
     free (p->p_name);

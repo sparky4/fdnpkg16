@@ -2,9 +2,9 @@
  * BSD send(), sendto(), write().
  */
 
-/*  BSD sockets functionality for Watt-32 TCP/IP
+/*  BSD sockets functionality for Waterloo TCP/IP
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
@@ -47,10 +47,10 @@ static int setup_udp_raw (Socket *socket, const struct sockaddr *to, int tolen);
 
 static int transmit (const char *func, int s, const void *buf, unsigned len,
                      int flags, const struct sockaddr *to, int tolen,
-                     BOOL have_remote_addr);
+                     BOOL from_sendto);
 
 int W32_CALL sendto (int s, const void *buf, int len, int flags,
-                     const struct sockaddr *to, socklen_t tolen)
+                     const struct sockaddr *to, int tolen)
 {
   return transmit ("sendto", s, buf, len, flags, to, tolen, TRUE);
 }
@@ -60,21 +60,21 @@ int W32_CALL send (int s, const void *buf, int len, int flags)
   return transmit ("send", s, buf, len, flags, NULL, 0, FALSE);
 }
 
-int W32_CALL write_s (int s, const char *buf, int nbyte)
+int write_s (int s, const char *buf, int nbyte)
 {
   return transmit ("write_s", s, buf, nbyte, 0, NULL, 0, FALSE);
 }
 
-int W32_CALL writev_s (int s, const struct iovec *vector, size_t count)
+int writev_s (int s, const struct iovec *vector, size_t count)
 {
   int i, len, bytes = 0;
 
-  SOCK_DEBUGF (("\nwritev_s:%d, iovecs=%lu", s, (u_long)count));
+  SOCK_DEBUGF (("\nwritev_s:%d, iovecs=%lu", s, (DWORD)count));
 
   for (i = 0; i < (int)count; i++)
   {
 #if (DOSX)
-    if (!valid_addr(vector[i].iov_base, vector[i].iov_len))
+    if (!valid_addr ((DWORD)vector[i].iov_base, vector[i].iov_len))
     {
       SOCK_DEBUGF ((", EFAULT (iovec[%d] = %p, len %d)",
                     i, vector[i].iov_base, vector[i].iov_len));
@@ -100,7 +100,7 @@ int W32_CALL writev_s (int s, const struct iovec *vector, size_t count)
 /*
  * sendmsg():
  */
-int W32_CALL sendmsg (int s, const struct msghdr *msg, int flags)
+int sendmsg (int s, const struct msghdr *msg, int flags)
 {
   const struct iovec *iov;
   int   count = msg->msg_iovlen;
@@ -119,7 +119,7 @@ int W32_CALL sendmsg (int s, const struct msghdr *msg, int flags)
   for (i = bytes = 0; i < count; i++)
   {
 #if (DOSX)
-    if (!valid_addr(iov[i].iov_base, iov[i].iov_len))
+    if (!valid_addr ((DWORD)iov[i].iov_base, iov[i].iov_len))
     {
       SOCK_DEBUGF ((", EFAULT (iovec[%d] = %p/%d)",
                    (int)i, iov[i].iov_base, iov[i].iov_len));
@@ -175,7 +175,7 @@ static __inline void msg_eor_close (Socket *socket)
  */
 static int transmit (const char *func, int s, const void *buf, unsigned len,
                      int flags, const struct sockaddr *to, int tolen,
-                     BOOL have_remote_addr)  /* for sendto() and sendmsg() */
+                     BOOL from_sendto)    /* called from sendto() */
 {
   Socket *socket = _socklist_find (s);
   int     rc;
@@ -184,7 +184,7 @@ static int transmit (const char *func, int s, const void *buf, unsigned len,
   {
     SOCK_DEBUGF (("\n%s:%d, len=%d", func, s, len));
     if (flags)
-       SOCK_DEBUGF ((", flags 0x%X", flags));
+       SOCK_DEBUGF ((", flags %d", flags));
   }
 
   if (!socket)
@@ -199,9 +199,6 @@ static int transmit (const char *func, int s, const void *buf, unsigned len,
     SOCK_ERRNO (EBADF);
     return (-1);
   }
-
-  if (flags & MSG_NOSIGNAL)   /* Don't do 'raise(SIGPIPE)' */
-     socket->msg_nosig = TRUE;
 
   if (socket->so_type == SOCK_STREAM ||      /* TCP-socket or */
       (socket->so_state & SS_ISCONNECTED))   /* "connected" udp/raw */
@@ -242,11 +239,11 @@ static int transmit (const char *func, int s, const void *buf, unsigned len,
     }
   }
 
-  /* connectionless protocol setup.
-   * SOCK_PACKET sockets go pretty much unchecked.
+  /* connectionless protocol setup
    */
   if (socket->so_type == SOCK_DGRAM ||
-      socket->so_type == SOCK_RAW)
+      socket->so_type == SOCK_RAW   ||
+      socket->so_type == SOCK_PACKET)
   {
     size_t sa_len = (socket->so_family == AF_INET6)  ?
                      sizeof(struct sockaddr_in6)     :
@@ -254,7 +251,7 @@ static int transmit (const char *func, int s, const void *buf, unsigned len,
                      sizeof(struct sockaddr_ll)      :
                      sizeof(struct sockaddr_in);
 
-    if (!have_remote_addr)
+    if (!from_sendto)
     {
       to = (const struct sockaddr*) socket->remote_addr;
       tolen = sa_len;
@@ -338,8 +335,8 @@ static int setup_udp_raw (Socket *socket, const struct sockaddr *to, int tolen)
   {
     if (!socket->remote_addr)
     {
-      SOCK_FATAL (("setup_udp_raw(): no remote_addr\n"));
-      return (-1);
+       SOCK_FATAL (("setup_udp_raw(): no remote_addr\n"));
+       return (-1);
     }
 
     /* No need to reconnect if same peer address/port.
@@ -492,7 +489,7 @@ static int tcp_transmit (Socket *socket, const void *buf, unsigned len,
   if (sk->tcp.state < tcp_StateESTAB || sk->tcp.state >= tcp_StateLASTACK)
   {
     socket->so_state |= SS_CANTSENDMORE;
-    SOCK_DEBUGF ((", EPIPE"));
+    SOCK_DEBUGF ((", EPIPE")); 
     SOCK_ERRNO (EPIPE);       /* !! was ENOTCONN */
     return (-1);
   }
@@ -597,7 +594,7 @@ static int udp_transmit (Socket *socket, const void *buf, unsigned len)
   if (!tcp_tick(sk))
   {
     socket->so_state |= SS_CANTSENDMORE;
-    SOCK_DEBUGF ((", EPIPE (can't send)"));
+    SOCK_DEBUGF ((", EPIPE (can't send)")); 
     SOCK_ERRNO (EPIPE);     /* !! was ENOTCONN */
     return (-1);
   }

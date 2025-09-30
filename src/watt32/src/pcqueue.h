@@ -21,7 +21,7 @@
    * \todo Make RX_BUFS (i.e. size of thread queue) configurable.
    * Only the NPF kernel-buffer size is configurable now (pkt_num_rx_bufs).
    */
-  #define RX_BUFS    50
+  #define RX_BUFS    20
 
 #elif defined(USE_FAST_PKT)
   #define RX_BUFS    40    /* max # that will fit in 64 kB */
@@ -38,22 +38,23 @@
 #endif
 
 #if (DOSX)
-  #define PKT_TMP_SIZE 64  /* scratch buffer only needed for 32-bit DOS */
+  #define PKT_TMP_SIZE 64  /* scratch buffer only needed for DOSX */
 #endif
 
 #define PKTQ_MARKER  0xDEAFBABE
+
 
 /*
  * asmpkt4.asm depends on these structs beeing packed
  */
 #if (DOSX & DOS4GW) || defined(USE_FAST_PKT)
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 #endif
 
 #if defined(WIN32)
   struct pkt_rx_element {
-         uint64 tstamp_put;          /* timestamp from recv-thread */
-         uint64 tstamp_get;          /* timestamp when polled */
+         struct timeval tstamp_put;  /* timestamp from NPF */
+         struct timeval tstamp_get;  /* timestamp when polled */
          WORD   rx_length;           /* length from PacketReceivePacket() */
          BYTE   rx_buf [ETH_MAX+10]; /* add some margin */
        };
@@ -71,7 +72,7 @@
 
 /* DOS: 1524+24=1548
  */
-#define RX_SIZE               sizeof(struct pkt_rx_element)
+#define RX_SIZE               sizeof(struct pkt_rx_element)  
 #define RX_ELEMENT_HEAD_SIZE  offsetof (struct pkt_rx_element, rx_buf[0])
 
 /*!\struct pkt_ringbuf
@@ -83,14 +84,14 @@ struct pkt_ringbuf {
        WORD           buf_size;   /* size of each buffer */
        WORD           num_buf;    /* number of buffers */
        volatile DWORD num_drop;   /* number of dropped pkts */
-       DWORD_PTR      buf_start;  /* start of buffer pool (linear addr) */
+       DWORD          buf_start;  /* start of buffer pool (linear addr) */
 #if (DOSX & (DOS4GW|POWERPAK)) || defined(USE_FAST_PKT)
        WORD           dos_ofs;    /* offset of pool, used by rmode stub */
 #endif                            /* total size = 26 for DOS4GW/POWERPAK */
      };
 
 #if (DOSX & DOS4GW) || defined(USE_FAST_PKT)
-#include <sys/pack_off.h>
+#include <sys/packoff.h>
 #endif
 
 extern int   pktq_inc_in  (struct pkt_ringbuf *q);
@@ -104,7 +105,7 @@ extern char *pktq_in_buf   (struct pkt_ringbuf *q);
 extern char *pktq_out_buf  (struct pkt_ringbuf *q);
 extern int   pktq_queued   (struct pkt_ringbuf *q);
 
-#if defined(USE_FAST_PKT) && defined(__MSDOS__)
+#if defined(USE_FAST_PKT) && !defined(WIN32)
   extern DWORD asmpkt_rm_base;
 
   /* macros to access runtime location of 'asmpkt_inf'

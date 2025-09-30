@@ -7,8 +7,8 @@
 #ifndef _w32_PCBOOTP_H
 #define _w32_PCBOOTP_H
 
-extern DWORD _bootp_host;
-extern int   _bootp_timeout;
+W32_DATA DWORD _bootp_host;
+W32_DATA int   _bootp_timeout;
 
 extern int BOOTP_do_boot (void);
 
@@ -54,9 +54,7 @@ enum BOOTP_Options {
      BOOTP_OPT_END                      = 255,
    };
 
-W32_CLANG_PACK_WARN_OFF()
-
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 /*!\struct bootp
  *
@@ -112,9 +110,8 @@ struct bootp_vend {
        BYTE  v_unused[56];  /* currently unused */
      };
 
-#include <sys/pack_off.h>
+#include <sys/packoff.h>
 
-W32_CLANG_PACK_WARN_DEF()
 
 #define VM_STANFORD  0x5354414EUL  /* v_magic for Stanford ("STAN") */
 #define VM_RFC1048   0x63825363UL  /* v_magic for RFC client/servers */

@@ -3,21 +3,9 @@
 #ifndef _w32_PCICMP_H
 #define _w32_PCICMP_H
 
-W32_CLANG_PACK_WARN_OFF()
+#include <sys/packon.h>
 
-#include <sys/pack_on.h>
-
-/* When passing thise file throght swig:
- *   Warning 314: 'in' is a python keyword, renaming to '_in'
- *
- * Triggered by the below "in_Header in;"
- */
-#ifdef SWIG
-#define in _in
-#endif
-
-/*!\struct ICMP_unused
-*   For ICMP_TIMXCEED etc.
+/*!\struct ICMP_unused (for ICMP_TIMXCEED etc.)
  */
 struct ICMP_unused {
        BYTE      type;
@@ -39,8 +27,7 @@ struct ICMP_pointer {
        in_Header ip;
      };
 
-/*!\struct ICMP_ip.
- * For ICMP_UNREACH, ICMP_PARAMPROB etc.
+/*!\struct ICMP_ip (for ICMP_UNREACH, ICMP_PARAMPROB etc.)
  */
 struct ICMP_ip {
        BYTE      type;
@@ -110,8 +97,7 @@ struct ICMP_traceroute {
      };
 
 
-/*!\struct ICMP_needfrag
- * RFC-1191 (for type ICMP_UNREACH, code ICMP_UNREACH_NEEDFRAG)
+/*!\struct ICMP_needfrag rfc-1191 (for type ICMP_UNREACH, code ICMP_UNREACH_NEEDFRAG)
  */
 struct ICMP_needfrag {
        BYTE      type;
@@ -144,9 +130,8 @@ struct ping_pkt {
     /* BYTE             data[]; */
      };
 
-#include <sys/pack_off.h>
+#include <sys/packoff.h>
 
-W32_CLANG_PACK_WARN_DEF()
 
 /**
  * These are the ICMP messages. Ref. <netinet/ip_icmp.h>.
@@ -192,15 +177,17 @@ W32_CLANG_PACK_WARN_DEF()
 #define ICMP_UNREACH_HOST_PRECEDENCE    14
 #define ICMP_UNREACH_PRECEDENCE_CUTOFF  15
 
+W32_FUNC DWORD _chk_ping (DWORD host, DWORD *ping_num);
+
 extern const char *icmp_type_str [ICMP_MAXTYPE+1];
 extern const char *icmp_unreach_str [16];
 extern const char *icmp_redirect_str [4];
 extern const char *icmp_exceed_str [2];
 
-extern void icmp_handler (const in_Header *ip, BOOL broadcast);
-extern void icmp_doredirect (const char *value);
-extern int  icmp_send_timexceed (const in_Header *ip, const void *mac_dest);
-extern int  icmp_send_unreach (const in_Header *ip, int code);
-extern int  icmp_send_mask_req (void);
+extern void  icmp_handler (const in_Header *ip, BOOL broadcast);
+extern void  icmp_doredirect (const char *value);
+extern int   icmp_send_timexceed (const in_Header *ip, const void *mac_dest);
+extern int   icmp_send_unreach (const in_Header *ip, int code);
+extern int   icmp_send_mask_req (void);
 
 #endif

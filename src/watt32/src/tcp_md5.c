@@ -2,7 +2,7 @@
  *
  *  Handling of TCP MD5 fingrprint option.
  *
- *  Copyright (c) 1997-2002 Gisle Vanem <gvanem@yahoo.no>
+ *  Copyright (c) 1997-2002 Gisle Vanem <giva@bgnett.no>
  *  Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All rights
  *  reserved.
  *
@@ -45,6 +45,7 @@
 #include "strings.h"
 #include "misc.h"
 #include "pctcp.h"
+#include "tcp_md5.h"
 
 #if defined(USE_TCP_MD5)
 
@@ -60,8 +61,9 @@ static void MD5_Init   (MD5_CTX *context);
 static void MD5_Update (MD5_CTX *context, const void *buffer, size_t length);
 static void MD5_Final  (BYTE result[16], MD5_CTX *context);
 
-const char *W32_CALL tcp_md5_secret (_tcp_Socket *sock, const char *secret)
+const char *tcp_md5_secret (void *s, const char *secret)
 {
+  _tcp_Socket *sock = (_tcp_Socket*)s;
   char *old = sock->secret;
 
   if (old)
@@ -74,8 +76,8 @@ const char *W32_CALL tcp_md5_secret (_tcp_Socket *sock, const char *secret)
  * Used to insert the MD5 signature *after* we've built the complete
  * TCP packet.
  */
-void W32_CALL make_md5_signature (const in_Header *ip, const tcp_Header *tcp,
-                                  WORD datalen, const char *secret, BYTE *buf)
+void make_md5_signature (const in_Header *ip, const tcp_Header *tcp,
+                         WORD datalen, const char *secret, BYTE *buf)
 {
   struct tcp_PseudoHeader ph;
   struct tcp_Header       tcp_copy;
@@ -119,7 +121,7 @@ void W32_CALL make_md5_signature (const in_Header *ip, const tcp_Header *tcp,
 /*
  * Check incoming TCP segment for MD5 option.
  */
-BOOL W32_CALL check_md5_signature (const _tcp_Socket *s, const in_Header *ip)
+BOOL check_md5_signature (const _tcp_Socket *s, const in_Header *ip)
 {
   const struct tcp_Header *tcp;
   const BYTE  *recv_sign, *data, *opt;
@@ -353,8 +355,8 @@ static void MD5_Update (MD5_CTX    *context,    /* context */
  * MD5 finalization. Ends an MD5 message-digest operation, writing the
  * message digest and zeroizing the context.
  */
-static void MD5_Final (BYTE     digest[16],  /* message digest */
-                       MD5_CTX *context)     /* context */
+static void MD5_Final (BYTE    digest[16],  /* message digest */
+                       MD5_CTX *context)    /* context */
 {
   BYTE  bits[8];
   DWORD index, padLen;

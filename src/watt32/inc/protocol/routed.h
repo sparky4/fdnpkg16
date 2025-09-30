@@ -1,5 +1,5 @@
 /*!\file protocol/routed.h
- * Route Daemon definitions.
+ * Route Daeamon definitions.
  */
 
 /*      $NetBSD: routed.h,v 1.10 1997/02/03 22:20:38 christos Exp $     */
@@ -62,7 +62,7 @@
 
 #define RIP_PORT	520
 
-#include <sys/pack_on.h>
+#include <sys/packon.h>
 
 #if RIPVERSION == 1
 /* We include the V2 fields to get the right size */
@@ -124,7 +124,7 @@ struct rip {
 #define	rip_tracefile	ripun.ru_tracefile
 };
 
-#include <sys/pack_off.h>
+#include <sys/packoff.h>
 
 /* Packet types.
  */
