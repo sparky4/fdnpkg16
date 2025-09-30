@@ -310,6 +310,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 #endif
 #endif
 #ifdef USE_EXTERNAL_MTCP
+      proxy = downloadingstring = NULL;
+      proxyport = 8080;
 //0000      htgetres = system(command);
       // lets try this
       sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
