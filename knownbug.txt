@@ -1,11 +1,12 @@
 known bugs:
-updating packages from a cleared cache tends to not work.
-    this is due to the system() function not working for some reason (heap or stack or just the program yo)
-        temp solution? just run update command again
-    actual solution: integrate mTCP htget directly into fdnpkg16
-
 cant seem to compile in dos rn.
     compiling by script may cause problems
     windows compilation is not going to be supported... as i cant use it. it is just too bad now
         compile it on linux for now
     actual solution: make a make file xD i can do it just gimmie a bit
+
+the program is so slow! on my XT! (with no 8087)
+    BRUH u need 8087 for SPEED
+        no srsly. this is a serious reason to get an 8087, the speed befites
+            of performing the watt32 library's floating point calculations!
+    actual solution: get an 8087! :D
