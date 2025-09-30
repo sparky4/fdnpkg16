@@ -18,6 +18,7 @@ cp -rp fdnpkg16.cfg fdnpkg16/BIN/
 . ./build.sh
 rm *.o
 mv fdnpkg16.exe fdnpkg16/BIN/
+cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
 cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
