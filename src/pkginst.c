@@ -323,7 +323,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         htgetres = system(commandforbatch);
       }
 #endif /* #ifndef USE_EXTERNAL_MTCP */
-      printf(".");
+      if (htgetres <= 0) printf(".");
       }
       if (htgetres <= 0) {
         kitten_puts(3, 7, "Error downloading package. Aborted.");
