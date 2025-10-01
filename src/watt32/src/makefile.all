@@ -438,7 +438,7 @@ $(OBJDIR)\cpumodel.obj: cpumodel.asm
 
 @ifdef SMALL
 CC      = wcc
-CFLAGS  = -ms -0 -opnr -oe=24 -oil+ -outback -ohm -sg -zc -bt=dos
+CFLAGS  = -ms -0 -os -zc -s -bt=dos
 AFLAGS  = -bt=dos
 TARGET  = ..\lib\wattcpws.lib
 OBJDIR  = watcom\small
@@ -446,7 +446,7 @@ MAKEFIL = watcom_s.mak
 
 @elifdef LARGE
 CC      = wcc
-CFLAGS  = -ml -0 -opnr -oe=24 -oil+ -outback -ohm -sg -zc -bt=dos
+CFLAGS  = -ml -0 -os -zc -s -bt=dos
 AFLAGS  = -bt=dos
 TARGET  = ..\lib\wattcpwl.lib
 OBJDIR  = watcom\large

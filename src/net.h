@@ -7,6 +7,8 @@
 #ifndef libtcp_hdr
 #define libtcp_hdr
 
+/* #define DEBUG_NET */ /* uncomment this to enable debug mode for networking */
+
 struct net_tcpsocket {
   void *sock;
   char *buffer;

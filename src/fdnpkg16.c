@@ -53,7 +53,7 @@
 /* #define DEBUG */ /* uncomment this to enable debug mode */
 
 
-unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
+//unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
 #ifndef USE_EXTERNAL_MTCP
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */
@@ -80,6 +80,16 @@ static void printhelp(void) {
   kitten_puts(1, 19, " clearcache        - clear FDNPKG16's local cache");
   kitten_puts(1, 8,  " license           - print out the license of this program");
   puts("");
+#ifdef DEBUG
+#if defined(__WATCOMC__)
+#if (__WATCOMC__ >= 1200)
+  printf ("FDNPKG16 is Compiled with OpenWatcom %d.%d\n",
+                  (__WATCOMC__/100) - 11, (__WATCOMC__ % 100) / 10);
+#else
+  printf ("FDNPKG16 is Compiled with Watcom C %d.%d\n", __WATCOMC__/100, __WATCOMC__ % 100);
+#endif /* #if (__WATCOMC__ >= 1200) */
+#endif /* #if defined(__WATCOMC__) */
+#endif /* #ifdef DEBUG */
 #ifndef USE_EXTERNAL_MTCP
   kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
   puts(wattcpVersion());
@@ -402,7 +412,7 @@ int main(int argc, char **argv) {
       printf("%s -> %s\n", dircursor->name, dircursor->location);
     }
     if (dirlist != NULL) puts("");
-    kitten_puts(2, 8, "The list of configured fdnpkg repositories follows:");
+    kitten_puts(2, 8, "The list of configured fdnpkg16 repositories follows:");
     for (x = 0; x < repolistcount; x++) puts(repolist[x]);
     puts("");
   } else { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */

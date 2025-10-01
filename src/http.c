@@ -86,7 +86,9 @@ int http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *d
     }
     if (ipaddr == 0) break;
 
-    /* printf("%s -> %lu.%lu.%lu.%lu (%d)\n", host, (ipaddr >> 24) & 0xFF, (ipaddr >> 16) & 0xFF, (ipaddr >> 8) & 0xFF, ipaddr & 0xFF, port); */
+#ifdef DEBUG_NET
+    /**/ printf("%s -> %lu.%lu.%lu.%lu (%d)\n", host, (ipaddr >> 24) & 0xFF, (ipaddr >> 16) & 0xFF, (ipaddr >> 8) & 0xFF, ipaddr & 0xFF, port); /**/
+#endif
 
     if (proxy != NULL) {
       socket = net_connect(ipaddr, proxyport);
