@@ -18,6 +18,8 @@ if [ -d "fdnpkg16" ]; then
 rm fdnpkg16/BIN/*.exe
 cp -rp fdpget.bat fdnpkg16/BIN/
 cp -rp fdnpkg16.cfg fdnpkg16/BIN/
+cp -rp fdnpkg16.oem fdnpkg16/BIN/
+cp -rp fdnpkg16.4 fdnpkg16/BIN/
 . ./build.sh
 rm *.o
 mv fdnpkg16.exe fdnpkg16/BIN/
@@ -26,6 +28,7 @@ rm testhttp.exe
 cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
+#rsync -avr --delete src/ fdnpkg16/SOURCE/fdnpkg16/src/
 #cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
 cd fdnpkg16
 cd SOURCE/fdnpkg16/src/
@@ -51,3 +54,5 @@ mv .temp/* .
 rmdir .temp
 rm -r fdnpkg16/
 fi
+./build.sh
+rm *.o

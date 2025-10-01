@@ -1,0 +1,181 @@
+##############################################################################
+#                                                                            #
+# This is the configuration file of FDNPKG.                                  #
+#                                                                            #
+# It is located in %DOSDIR%\BIN\FDNPKG.CFG by default, but you are           #
+# encouraged to copy it to another location, and point the FDNPKG.CFG        #
+# environment variable to it.                                                #
+#   eg. SET FDNPKG.CFG=C:\MYDIR\FDNPKG.CFG                                   #
+#                                                                            #
+# Otherwise you will loose your custom settings (if any) when FDNPKG will be #
+# updated to a newer version.                                                #
+#                                                                            #
+##############################################################################
+
+
+
+##############################################################################
+# The maximum time FDNPKG can keep its internal package database cache.
+# The value must be provided in seconds, in a range of 0..1209600.
+# Default: 7200
+#
+maxcachetime 7200
+
+
+##############################################################################
+# Whether or not to install sources (when available) along with binaries.
+# This can be overriden via command line at any time.
+# Possible values:
+#  0 - don't install sources by default
+#  1 - install sources by default
+#
+installsources 1
+
+
+##############################################################################
+# Whether or not to install "link" files. Some packages need to be callable
+# from within the %PATH%. Such packages come with a 'link' file that is
+# supposed to be placed in a directory soemwhere in the %PATH% (see the 'dir
+# link' directive later in this configuration file for setting the exact
+# location).
+# If you already use some kind of similar mechanism and you do not wish to
+# duplicate it, then you can set tell FDNPKG to skip links installation.
+# Possible values:
+#  0 - installs links for packages that have them
+#  1 - skip link files
+#
+skiplinks 0
+
+
+##############################################################################
+# FDNPKG can remap drive letters during software installation. This is a hack
+# that is most probably useless in all production environments, but can be
+# used by OS installers during install time (when the current drives letters
+# do not match letters drive will obtain once the system is installed). This
+# parameter takes an even-sized string of drive pairs. Let's consider this:
+#
+# mapdrives cddx
+#
+# The above setting means "anything that would normally be installed to C:
+# needs to be redirected to D:, while everything that would be installed to
+# D: is to be redirected to X:". FDNPKG not only redirects files during
+# installation of packages, but also pretends the files were actually
+# installed on the original drive - which means the packages will be fully
+# functional (including upgrades and removals) on the target system.
+#mapdrives
+
+
+##############################################################################
+# If your network environment requires to use a proxy, you can define it here,
+# as well as the port to use.
+# Note: the proxy will be used only for HTTP repositories.
+# Example: http_proxy proxy.example.com
+#          http_proxyport 8080
+#
+#http_proxy 10.2.3.4
+#http_proxyport 8080
+
+
+##############################################################################
+# Below you can edit/add custom path to store different kinds of applications
+# in different places on your disk. Use only absolute paths here! Note, that
+# you can use environment variables, if you need to.
+#
+# directory for development tools (mostly compilers)
+dir devel %DOSDIR%\devel
+
+# directory for drivers
+dir drivers %DOSDIR%\drivers
+
+# where games should get installed
+dir games %DOSDIR%\games
+
+# this folder contains sources to program that comes with their source files
+dir source %DOSDIR%\source
+
+# user programs... (only those that are not incorporated in FreeDOS of course).
+dir root c:\
+dir progs %DOSDIR%\
+dir gui c:\
+
+dir apps %DOSDIR%\apps
+dir edit %DOSDIR%\apps
+dir sound %DOSDIR%\apps
+
+dir net %DOSDIR%\net
+dir network %DOSDIR%\net
+
+dir archiver %DOSDIR%\util
+dir boot %DOSDIR%\util
+dir unix %DOSDIR%\util
+dir util %DOSDIR%\util
+dir utils %DOSDIR%\utils
+
+dir emulator %DOSDIR%\emulator
+
+dir batlink %DOSDIR%\links
+dir batlinks %DOSDIR%\links
+
+# links to apps that are supposed to be executable from %PATH%
+# IMPORTANT: this directory should be included in your %PATH%
+dir links %DOSDIR%\links
+
+##############################################################################
+# Below are listed all online repositories used by FDNPKG. The syntax is:
+# REPO repository_path
+#
+# FDNPKG supports both online (http or gopher) repositories, as well as on
+# disk repos.
+# When using ondisk repositories, you have to use the full path (eg. D:\REPO)
+#
+
+# CORE repository - all MSDOS replacements
+REPO http://4ch.mooo.com/freedos/repos/1.4/base
+
+# Basic Tools - Essential tools for the FreeDOS that are not part of BASE
+REPO http://4ch.mooo.com/freedos/repos/1.4/tools
+
+# Programs and Applications
+REPO http://4ch.mooo.com/freedos/repos/1.4/apps
+
+# Packers, ie. file archivers
+REPO http://4ch.mooo.com/freedos/repos/1.4/archiver
+
+# Boot utilities
+REPO http://4ch.mooo.com/freedos/repos/1.4/boot
+
+# Devel stuff - mostly compilers
+REPO http://4ch.mooo.com/freedos/repos/1.4/devel
+
+# Disk utilities - Disk management and related utilities
+REPO http://4ch.mooo.com/freedos/repos/1.4/disk
+
+# Drivers (hardware-related)
+REPO http://4ch.mooo.com/freedos/repos/1.4/drivers
+
+# Editors
+REPO http://4ch.mooo.com/freedos/repos/1.4/edit
+
+# Emulators
+REPO http://4ch.mooo.com/freedos/repos/1.4/emulator
+
+# Games
+REPO http://4ch.mooo.com/freedos/repos/1.4/games
+
+# Text & Graphical User Interfaces
+REPO http://4ch.mooo.com/freedos/repos/1.4/gui
+
+# Networking-related utilities
+REPO http://4ch.mooo.com/freedos/repos/1.4/net
+
+# Sound
+REPO http://4ch.mooo.com/freedos/repos/1.4/sound
+
+# Unix-like Utilities
+REPO http://4ch.mooo.com/freedos/repos/1.4/unix
+
+# Various utils
+REPO http://4ch.mooo.com/freedos/repos/1.4/util
+
+# sparky4's repo (i want to host a fdos mirror)
+REPO http://4ch.mooo.com/freedos

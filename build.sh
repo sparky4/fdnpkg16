@@ -9,3 +9,9 @@ wcl -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -DU
 upx --8086 -9 fdnpkg86.exe
 wcl -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -i=src -i=src/zlib -i=src/watt32/inc -fe=testhttp.exe testhttp.c src/net.c src/http.c src/parseurl.c src/helpers.c src/dbg.c src/zlib/zlib_l.lib src/watt32/lib/wattcpwl.lib
 upx --8086 -9 testhttp.exe
+if [ -e "fdnpkg16.err" ]; then
+	cat *.err
+fi
+if [ -e "fdnpkg16.exe" ]; then
+	ls *.exe
+fi

@@ -468,7 +468,7 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
             printf("htgetres returned: %d\n", htgetres);
 #endif
-            if (htgetres <= 0) printf(".");
+            if (htgetres <= 0) putchar('.');
             }
             #ifdef DEBUG
             puts("DEBUG: download stop");
