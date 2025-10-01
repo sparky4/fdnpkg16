@@ -496,7 +496,7 @@ int main(int argc, char **argv) {
               printf("\n%s\n", dbmsg);
               free(dbmsg);
             }
-            puts("ok"); // just let the user know the file was downloaded and installed
+            if (htgetres > 0) puts("ok"); // just let the user know the file was downloaded and installed
           }
         }
         /* save results into the (new) cache file db */
