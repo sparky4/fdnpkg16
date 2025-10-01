@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
   char *proxy = NULL;
   char downloadingstring[64];
   int proxyport = 8080;
-  int x;
+  int x,y;
   char *mapdrv = "";
   unsigned long cfgfilecrc;
   struct pkgdb *pkgdb = NULL;
@@ -430,8 +430,8 @@ int main(int argc, char **argv) {
         pkgdb = createdb();  /* a cache attempt it might contain garbage */
         /* download every repo index into %TEMP% and load them in RAM */
         for (x = 0; x < repolistcount; x++) {
-          kitten_printf(2, 16, "Loading %s...", repolist[x]);
-          puts("");
+          kitten_printf(2, 16, "Loading %s... ", repolist[x]);
+//          puts("");
           sprintf(repoindex, "%sindex.gz", repolist[x]);
           if (detect_localpath(repolist[x]) != 0) { /* if it's an ondisk repo, use the file as-is */
             strcpy(tempfilegz, repoindex);
@@ -441,17 +441,17 @@ int main(int argc, char **argv) {
             #ifdef DEBUG
             puts("DEBUG: download start");
             #endif
+            htgetres = 0;
+            for (y = 0; y < MAXINDEXRETRIES; y++) {
+              sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
+#ifdef DEBUG
+            printf("\trepoindex: %s\n", repoindex);
+#endif
+              if (htgetres > 0) break;
 #ifndef USE_EXTERNAL_MTCP
             htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
 #else
             sprintf(command, "@echo off\nhtget -o %s %s", tempfilegz, repoindex);
-#endif
-#ifdef DEBUG
-#ifdef USE_EXTERNAL_MTCP
-            printf("Downloading: %s\n", command);
-#endif
-#endif
-#ifdef USE_EXTERNAL_MTCP
 //0000            htgetres = system(command);
             // lets try this
             sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
@@ -465,16 +465,17 @@ int main(int argc, char **argv) {
               htgetres = system(commandforbatch);
             }
 #endif
+#ifdef DEBUG
+            printf("htgetres returned: %d\n", htgetres);
+#endif
+            printf(".");
+            }
             #ifdef DEBUG
-            printf("\thtgetres == %d\n", htgetres);
             puts("DEBUG: download stop");
             #endif
           }
           if (htgetres <= 0) {
             kitten_puts(2, 10, "Repository download failed!");
-#ifdef DEBUG
-        printf("system() returned: %d\n", htgetres);
-#endif
 #ifndef ERRCACHE
             maxcachetime = 0; /* disable cache writing this time */
 #endif
@@ -495,6 +496,7 @@ int main(int argc, char **argv) {
               printf("\n%s\n", dbmsg);
               free(dbmsg);
             }
+            puts("ok"); // just let the user know the file was downloaded and installed
           }
         }
         /* save results into the (new) cache file db */

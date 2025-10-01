@@ -1,6 +1,15 @@
 
-* FDNPKG history file *
+* FDNPKG16 history file *
 
+
+FDNPKG16 v0.99.8 [01 Oct 2025]
+ - [nfo] sparky4 (victoria crenshaw) picked up the project for FreeDOS
+ - [new] renamed project to FDNPKG16 for 16 bit emphasis.
+ - [new] 16 bit support! <3 with open watcom 2.0 and it ompiles with 1.9.
+ - [fix] the software retries downloading the files it cannot get 1st.
+ - [mnt] many tweaks and such throughout the code.
+ - [fix] program works on 8088 only systems now!
+ - [mnt] switched development repositories to github and gitlab
 
 FDNPKG v0.99.7 [04 Jan 2021]
  - [new] added MAPDRIVES so OS installers can install stuff to virtual drives,

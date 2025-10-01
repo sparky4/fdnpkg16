@@ -218,8 +218,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     char command[512];
     FILE *batch_file;
     char commandforbatch[512];
-    int htgetres;
 #endif
+    int htgetres, y;
 
     /* look into the db to find the package */
     pkgnode = findpkg(pkgdb, pkgname, &lastnode);
@@ -299,17 +299,15 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       sprintf(zipfile, "%s\\fdnpkg16.tmp", tempdir);
       kitten_printf(3, 6, "Downloading package %s...", fname);
       puts("");
+      htgetres = 0;
+      for (y = 0; y < MAXINDEXRETRIES; y++) {
+        sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
+        if (htgetres > 0) break;
 #ifndef USE_EXTERNAL_MTCP
-      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
+      htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
 #else
       sprintf(command, "@echo off\nhtget -o %s %s", zipfile, fname);
-#endif
-#ifdef DEBUG
-#ifdef USE_EXTERNAL_MTCP
-      printf("Downloading: \n%s\n", *command);
-#endif
-#endif
-#ifdef USE_EXTERNAL_MTCP
+
       proxy = downloadingstring = NULL;
       proxyport = 8080;
 //0000      htgetres = system(command);
@@ -324,16 +322,14 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         fclose(batch_file);
         htgetres = system(commandforbatch);
       }
+#endif /* #ifndef USE_EXTERNAL_MTCP */
+      printf(".");
+      }
       if (htgetres <= 0) {
-#endif
         kitten_puts(3, 7, "Error downloading package. Aborted.");
-#ifdef USE_EXTERNAL_MTCP
-#ifdef DEBUG
-        printf("system() returned: %d\n", htgetres);
-#endif
-#endif
         return(NULL);
       }
+      puts("ok"); // just let the user know the file was downloaded and installed
     } else { /* else it's an on-disk repo, so we can use the package right from there */
 #ifdef DEBUG
       printf("Package on disk!\n");

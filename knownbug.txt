@@ -4,9 +4,3 @@ cant seem to compile in dos rn.
     windows compilation is not going to be supported... as i cant use it. it is just too bad now
         compile it on linux for now
     actual solution: make a make file xD i can do it just gimmie a bit
-
-the program is so slow! on my XT! (with no 8087)
-    BRUH u need 8087 for SPEED
-        no srsly. this is a serious reason to get an 8087, the speed befites
-            of performing the watt32 library's floating point calculations!
-    actual solution: get an 8087! :D

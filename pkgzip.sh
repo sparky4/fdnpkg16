@@ -11,7 +11,10 @@
 
 
 
+
+
 echo "zip"
+if [ -d "fdnpkg16" ]; then
 rm fdnpkg16/BIN/*.exe
 cp -rp fdpget.bat fdnpkg16/BIN/
 cp -rp fdnpkg16.cfg fdnpkg16/BIN/
@@ -23,7 +26,7 @@ rm testhttp.exe
 cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
-cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
+#cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
 cd fdnpkg16
 cd SOURCE/fdnpkg16/src/
 if [ -e "WATT32" ]; then
@@ -47,3 +50,4 @@ cd ..
 mv .temp/* .
 rmdir .temp
 rm -r fdnpkg16/
+fi
