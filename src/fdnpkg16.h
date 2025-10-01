@@ -10,7 +10,7 @@
 #define PKGINST_NOSOURCE  1
 #define PKGINST_SKIPLINKS 2
 #define PKGINST_UPDATE    4
-/* #define DEBUG */ /* uncomment this to enable debug mode */
+ #define DEBUG  /* uncomment this to enable debug mode */
 //#define USE_EXTERNAL_MTCP   // enable this to use the external mtcp or internal watt32
 #define ERRCACHE            // enable this to have databases, always
 
