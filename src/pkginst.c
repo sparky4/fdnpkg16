@@ -218,8 +218,10 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     char command[512];
     FILE *batch_file;
     char commandforbatch[512];
+    int htgetres;
 #endif
-    int htgetres, y;
+//    int htgetres;
+//    int y;
 
     /* look into the db to find the package */
     pkgnode = findpkg(pkgdb, pkgname, &lastnode);
@@ -299,12 +301,13 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       sprintf(zipfile, "%s\\fdnpkg16.tmp", tempdir);
       kitten_printf(3, 6, "Downloading package %s...", fname);
       puts("");
-      htgetres = 0;
-      for (y = 0; y < MAXINDEXRETRIES; y++) {
-        sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
-        if (htgetres > 0) break;
+//      htgetres = 0;
+//      for (y = 0; y < MAXINDEXRETRIES; y++) {
+//        sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
+//        if (htgetres > 0) break;
 #ifndef USE_EXTERNAL_MTCP
-      htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
+//      htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
+      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
 #else
       sprintf(command, "@echo off\nhtget -o %s %s", zipfile, fname);
 
@@ -322,10 +325,14 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         fclose(batch_file);
         htgetres = system(commandforbatch);
       }
-#endif /* #ifndef USE_EXTERNAL_MTCP */
-      if (htgetres <= 0) printf(".");
-      }
       if (htgetres <= 0) {
+#endif /* #ifndef USE_EXTERNAL_MTCP */
+#ifdef DEBUG
+      printf("htgetres returned: %d\n", htgetres);
+#endif
+//      if (htgetres <= 0) printf(".");
+//      }
+//      if (htgetres <= 0) {
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }
