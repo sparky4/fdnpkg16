@@ -8,6 +8,7 @@ mkdir .temp
 mv fdnpkg16.zip fdnpkg16/
 mv *.zip .temp/
 mv *.7z .temp/
+mv *.xz .temp/
 cd fdnpkg16
 unzip fdnpkg16.zip
 rm fdnpkg16.zip
