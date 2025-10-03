@@ -25,7 +25,7 @@ cp -rp fdnpkg16.4 fdnpkg16/BIN/
 rm *.o
 mv fdnpkg16.exe fdnpkg16/BIN/
 mv fdnpkg86.exe fdnpkg16/BIN/
-rm testhttp.exe
+mv httpget.exe fdnpkg16/BIN/
 cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/

@@ -18,7 +18,7 @@ void *dbg_calloc(long sz, long n);
 void dbg_free(void *ptr);
 
 /* stats */
-void dbg_printstats(void);
+void dbg_stats(void);
 
 #define fopen(x,y) dbg_fopen(x,y)
 #define fclose(x) dbg_fclose(x)

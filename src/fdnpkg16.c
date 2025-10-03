@@ -28,6 +28,7 @@
 #include <string.h>   /* strcasecmp() */
 #include <strings.h>  /* strcasecmp() */
 #include <unistd.h>   /* unlink() */
+#include <conio.h>    /* getch() */
 
 #include "fdnpkg16.h" /* this file */
 #include "helpers.h"  /* various helper functions */
@@ -93,6 +94,48 @@ static void printhelp(void) {
 #ifndef USE_EXTERNAL_MTCP
   kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
   puts(wattcpVersion());
+#else
+  puts("FDNPKG16 uses mTCP");
+#endif
+}
+
+
+static void printhelpshort(void) {
+  puts("FDNPKG16 v" PVER " Copyright (C) " PDATE " Mateusz Viste && sparky4");
+  kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
+  puts("");
+  kitten_puts(1, 1, "Usage: FDNPKG16 action [parameters]");
+  puts("");
+  kitten_puts(1, 2,  "Where action is one of the following:");
+  kitten_puts(1, 3,  " se [string]       - search net repositories for package containing 'string'");
+  kitten_puts(1, 4,  " vs [string]       - same as 'search', but prints also source repositories");
+  kitten_puts(1, 5,  " in pkg            - install the package 'pkg' (or local zip file)");
+  kitten_puts(1, 10, " in-nosrc pkg      - install the package 'pkg' (or local zip file) w/o sources");
+  kitten_puts(1, 11, " in-wsrc pkg       - install the package 'pkg' (or local zip file) with sources");
+  kitten_puts(1, 6,  " rm pkgname        - remove the package 'pkgname'");
+  kitten_puts(1, 16, " ll [str]          - list all local (installed) packages containing 'str'");
+  kitten_puts(1, 18, " lf pkg            - list files owned by the package 'pkg'");
+  kitten_puts(1, 13, " cu                - check for available updates of packages and display them");
+  kitten_puts(1, 15, " up [pkg]          - update 'pkg' to last version (or all packages if no arg)");
+  kitten_puts(1, 7,  " dc                - print out the configuration loaded from the cfg file");
+  kitten_puts(1, 19, " cc                - clear FDNPKG16's local cache");
+  kitten_puts(1, 8,  " li                - print out the license of this program");
+  puts("");
+#ifdef DEBUG
+#if defined(__WATCOMC__)
+#if (__WATCOMC__ >= 1200)
+  printf ("FDNPKG16 is Compiled with OpenWatcom %d.%d\n",
+                  (__WATCOMC__/100) - 11, (__WATCOMC__ % 100) / 10);
+#else
+  printf ("FDNPKG16 is Compiled with Watcom C %d.%d\n", __WATCOMC__/100, __WATCOMC__ % 100);
+#endif /* #if (__WATCOMC__ >= 1200) */
+#endif /* #if defined(__WATCOMC__) */
+#endif /* #ifdef DEBUG */
+#ifndef USE_EXTERNAL_MTCP
+  kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
+  puts(wattcpVersion());
+#else
+  puts("FDNPKG16 uses mTCP");
 #endif
 }
 
@@ -155,9 +198,16 @@ static int trycreatefileindir(char *dirname) {
 }
 
 
+#ifndef DEBUG
 #define QUIT(x) \
   kittenclose(); \
   return(x);
+#else
+#define QUIT(x) \
+  dbg_stats(); \
+  kittenclose(); \
+  return(x);
+#endif
 
 
 int main(int argc, char **argv) {
@@ -213,16 +263,24 @@ int main(int argc, char **argv) {
   repolistcount = loadconf(cfgfile, repolist, MAXREPS, &cfgfilecrc, &maxcachetime, &dirlist, &flags, &proxy, &proxyport, &mapdrv);
   if (repolistcount < 0) return(5);
 
+  if (argc > 1) { // Ensure argv[1] exists
+    if (argv[1][0] == '/') { // Check if the first character is '/'
+      // Option 1: Shift the pointer to effectively remove the first character
+      // This modifies what argv[1] points to, but not the underlying string data
+      argv[1]++;
+    }
+  }
+
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg action [param] */
-    if (strcasecmp(argv[1], "search") == 0) {
+    if ((strcasecmp(argv[1], "search") && strcasecmp(argv[1], "se")) == 0) {
       if (argc > 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_SEARCH;
       }
-    } else if (strcasecmp(argv[1], "vsearch") == 0) {
+    } else if ((strcasecmp(argv[1], "vsearch") && strcasecmp(argv[1], "vs")) == 0) {
       if (argc > 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
@@ -230,9 +288,9 @@ int main(int argc, char **argv) {
         action = ACTION_SEARCH;
         verbosemode = 1;
       }
-    } else if ((strcasecmp(argv[1], "install") == 0) || (strcasecmp(argv[1], "install-nosrc") == 0) || (strcasecmp(argv[1], "install-wsrc") == 0)) {
-      if (strcasecmp(argv[1], "install-nosrc") == 0) flags |= PKGINST_NOSOURCE;
-      if (strcasecmp(argv[1], "install-wsrc") == 0) flags &= ~(PKGINST_NOSOURCE);
+    } else if (((strcasecmp(argv[1], "install") && strcasecmp(argv[1], "in")) == 0) || ((strcasecmp(argv[1], "install-nosrc") && strcasecmp(argv[1], "in-nosrc")) == 0) || ((strcasecmp(argv[1], "install-wsrc") && strcasecmp(argv[1], "in-wsrc")) == 0)) {
+      if ((strcasecmp(argv[1], "install-nosrc") && strcasecmp(argv[1], "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
+      if ((strcasecmp(argv[1], "install-wsrc") && strcasecmp(argv[1], "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
       if (argc != 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
@@ -245,14 +303,14 @@ int main(int argc, char **argv) {
           }
         }
       }
-    } else if (strcasecmp(argv[1], "remove") == 0) {
+    } else if ((strcasecmp(argv[1], "remove") && strcasecmp(argv[1], "rm")) == 0) {
       if (argc != 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
       } else {
         pkgrem(argv[2], dosdir, mapdrv);
       }
       QUIT(0);
-    } else if (strcasecmp(argv[1], "update") == 0) {
+    } else if ((strcasecmp(argv[1], "update") && strcasecmp(argv[1], "up")) == 0) {
       if (argc == 3) {
         action = ACTION_UPDATE;
       } else if (argc == 2) {
@@ -261,42 +319,42 @@ int main(int argc, char **argv) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       }
-    } else if ((strcasecmp(argv[1], "listlocal") == 0) || (strcasecmp(argv[1], "showinstalled") == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
+    } else if (((strcasecmp(argv[1], "listlocal") && strcasecmp(argv[1], "ll")) == 0) || ((strcasecmp(argv[1], "showinstalled") && strcasecmp(argv[1], "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
       if (argc > 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
         action = ACTION_LISTLOCAL;
       }
-    } else if (strcasecmp(argv[1], "listfiles") == 0) {
+    } else if ((strcasecmp(argv[1], "listfiles") && strcasecmp(argv[1], "lf")) == 0) {
       if (argc != 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
         action = ACTION_LISTFILES;
       }
-    } else if (strcasecmp(argv[1], "dumpcfg") == 0) {
+    } else if ((strcasecmp(argv[1], "dumpcfg") && strcasecmp(argv[1], "dc")) == 0) {
       if (argc != 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_DUMPCFG;
       }
-    } else if (strcasecmp(argv[1], "license") == 0) {
+    } else if ((strcasecmp(argv[1], "license") && strcasecmp(argv[1], "li")) == 0) {
       if (argc != 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
       } else {
         printlic();
       }
       QUIT(0)
-    } else if (strcasecmp(argv[1], "checkupdates") == 0) {
+    } else if ((strcasecmp(argv[1], "checkupdates") && strcasecmp(argv[1], "cu")) == 0) {
       if (argc != 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_CHECKUPDATES;
       }
-    } else if (strcasecmp(argv[1], "clearcache") == 0) {
+    } else if ((strcasecmp(argv[1], "clearcache") && strcasecmp(argv[1], "cc")) == 0) {
       if (argc != 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
@@ -308,6 +366,9 @@ int main(int argc, char **argv) {
 
   if (action == ACTION_HELP) {
     printhelp();
+    printf("Press any key but Q to continue...\n");
+    while ((y = getch()) == 'q') { QUIT(0) }
+    printhelpshort();
     QUIT(0)
   }
 
@@ -384,12 +445,12 @@ int main(int argc, char **argv) {
     if (detect_localpath(repolist[x]) == 0) {
 #ifdef USE_EXTERNAL_MTCP
 #ifdef DEBUG
-      printf("mtcp is used\n");
+      printf("mTCP is used\n");
 #endif /* #ifdef DEBUG */
       netinitres = system("dhcp");
 #else /* #ifdef USE_EXTERNAL_MTCP */
 #ifdef DEBUG
-      printf("wattcp32 is used\n");
+      printf("watt32 is used\n");
 #endif /* #ifdef DEBUG */
       netinitres = net_init();
 #endif /* #ifdef USE_EXTERNAL_MTCP */

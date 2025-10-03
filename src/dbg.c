@@ -47,6 +47,6 @@ void dbg_free(void *ptr) {
   }
 }
 
-void dbg_printstats(void) {
+void dbg_stats(void) {
   printf("fopen calls: %ld / fclose calls: %ld\nmalloc() calls: %ld / calloc() calls: %ld / free() calls: %ld\n", fopencount, fclosecount, malloccount, calloccount, freecount);
 }
