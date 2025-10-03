@@ -491,8 +491,8 @@ int main(int argc, char **argv) {
         pkgdb = createdb();  /* a cache attempt it might contain garbage */
         /* download every repo index into %TEMP% and load them in RAM */
         for (x = 0; x < repolistcount; x++) {
-          kitten_printf(2, 16, "Loading %s... ", repolist[x]);
-//          puts("");
+          kitten_printf(2, 16, "Loading %s...", repolist[x]);
+          puts("");
           sprintf(repoindex, "%sindex.gz", repolist[x]);
           if (detect_localpath(repolist[x]) != 0) { /* if it's an ondisk repo, use the file as-is */
             strcpy(tempfilegz, repoindex);
@@ -503,6 +503,9 @@ int main(int argc, char **argv) {
             puts("DEBUG: download start");
             #endif
             htgetres = 0;
+#ifdef USE_EXTERNAL_MTCP
+            sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
+#endif
             for (y = 0; y < MAXINDEXRETRIES; y++) {
               sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
 #ifdef DEBUG
@@ -513,7 +516,6 @@ int main(int argc, char **argv) {
             htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
 #else
               if (htgetres == 21) break;
-            sprintf(command, "@echo off\nhtget -o %s %s", tempfilegz, repoindex);
 //0000            htgetres = system(command);
             // lets try this
             sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
