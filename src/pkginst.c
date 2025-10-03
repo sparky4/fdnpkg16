@@ -219,10 +219,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     char command[512];
     FILE *batch_file;
     char commandforbatch[512];
-    long htgetres;
 #endif
-//    int htgetres;
-//    int y;
+    long htgetres;
+    int y;
 
     /* look into the db to find the package */
     pkgnode = findpkg(pkgdb, pkgname, &lastnode);
