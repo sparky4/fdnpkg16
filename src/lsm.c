@@ -67,6 +67,12 @@ int readlsm(char *filename, char *version, int version_maxlen) {
       valuestr = linebuff + x + 1;
       trim(linebuff);
       trim(valuestr);
+#if 0 //++++ sparky4: not there yet
+      if (strcasecmp(linebuff, "modified-date") == 0) {
+        snprintf(version, version_maxlen, "%s", valuestr);
+        version[version_maxlen] = 0; /* snprintf is supposed to terminate string itself, but the DJGPP doesn't */
+      }else
+#endif
       if (strcasecmp(linebuff, "version") == 0) {
         snprintf(version, version_maxlen, "%s", valuestr);
         version[version_maxlen] = 0; /* snprintf is supposed to terminate string itself, but the DJGPP doesn't */
