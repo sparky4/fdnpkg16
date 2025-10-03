@@ -29,7 +29,7 @@ maxcachetime 7200
 #  0 - don't install sources by default
 #  1 - install sources by default
 #
-installsources 1
+installsources 0
 
 
 ##############################################################################
@@ -82,36 +82,36 @@ skiplinks 0
 # you can use environment variables, if you need to.
 #
 # directory for development tools (mostly compilers)
-dir devel %DOSDIR%\devel
+dir devel c:\devel
 
 # directory for drivers
 dir drivers %DOSDIR%\drivers
 
 # where games should get installed
-dir games %DOSDIR%\games
+dir games c:\games
 
 # this folder contains sources to program that comes with their source files
 dir source %DOSDIR%\source
 
 # user programs... (only those that are not incorporated in FreeDOS of course).
 dir root c:\
-dir progs %DOSDIR%\
+dir progs c:\
 dir gui c:\
 
-dir apps %DOSDIR%\apps
-dir edit %DOSDIR%\apps
-dir sound %DOSDIR%\apps
+dir apps c:\apps
+dir edit c:\apps
+dir sound c:\apps
 
-dir net %DOSDIR%\net
-dir network %DOSDIR%\net
+dir net c:\net
+dir network c:\net
 
-dir archiver %DOSDIR%\util
-dir boot %DOSDIR%\util
-dir unix %DOSDIR%\util
-dir util %DOSDIR%\util
-dir utils %DOSDIR%\utils
+dir archiver c:\util
+dir boot c:\util
+dir unix c:\util
+dir util c:\util
+dir utils c:\utils
 
-dir emulator %DOSDIR%\emulator
+dir emulator c:\emulator
 
 dir batlink %DOSDIR%\links
 dir batlinks %DOSDIR%\links
