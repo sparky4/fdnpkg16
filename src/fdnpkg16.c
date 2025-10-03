@@ -140,7 +140,6 @@ static void printhelpshort(void) {
 #else
   kitten_puts(1, 21, "FDNPKG16 is using mTCP");
 #endif
-  puts("");
 }
 
 
