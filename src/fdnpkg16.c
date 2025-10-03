@@ -508,10 +508,11 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
             printf("\trepoindex: %s\n", repoindex);
 #endif
-              if (htgetres > 0) break;
 #ifndef USE_EXTERNAL_MTCP
+              if (htgetres > 0) break;
             htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
 #else
+              if (htgetres == 21) break;
             sprintf(command, "@echo off\nhtget -o %s %s", tempfilegz, repoindex);
 //0000            htgetres = system(command);
             // lets try this
@@ -529,13 +530,21 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
             printf("htgetres returned: %d\n", htgetres);
 #endif
-            if (htgetres <= 0) putchar('.');
+#ifndef USE_EXTERNAL_MTCP
+              if (htgetres <= 0) putchar('.');
+#else
+              if (htgetres != 21) putchar('.');
+#endif
             }
             #ifdef DEBUG
             puts("DEBUG: download stop");
             #endif
           }
+#ifndef USE_EXTERNAL_MTCP
           if (htgetres <= 0) {
+#else
+          if (htgetres != 21) {
+#endif
             kitten_puts(2, 10, "Repository download failed!");
 #ifndef ERRCACHE
             maxcachetime = 0; /* disable cache writing this time */
