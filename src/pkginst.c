@@ -11,6 +11,7 @@
 #include <strings.h>   /* strcasecmp() */
 #include <unistd.h>    /* read() */
 #include <sys/types.h> /* struct utimbuf */
+#include <malloc.h>   /* _heapmin() */
 
 #include "crc32.h"     /* all CRC32 related stuff */
 #include "fdnpkg16.h"  /* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
@@ -323,6 +324,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       } else {
         fprintf(batch_file, "%s", command);
         fclose(batch_file);
+        _heapmin();
+        _heapshrink();
         htgetres = system(commandforbatch);
       }
       if (htgetres <= 0) {
