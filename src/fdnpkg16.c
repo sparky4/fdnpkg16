@@ -29,6 +29,7 @@
 #include <strings.h>  /* strcasecmp() */
 #include <unistd.h>   /* unlink() */
 #include <conio.h>    /* getch() */
+#include <malloc.h>   /* _heapmin() */
 
 #include "fdnpkg16.h" /* this file */
 #include "helpers.h"  /* various helper functions */
@@ -72,6 +73,7 @@ static void printhelp(void) {
   kitten_puts(1, 5,  " install pkg       - install the package 'pkg' (or local zip file)");
   kitten_puts(1, 10, " install-nosrc pkg - install the package 'pkg' (or local zip file) w/o sources");
   kitten_puts(1, 11, " install-wsrc pkg  - install the package 'pkg' (or local zip file) with sources");
+  kitten_puts(1, 20, " reinstall pkg     - reinstall the package 'pkg' (or local zip file)");
   kitten_puts(1, 6,  " remove pkgname    - remove the package 'pkgname'");
   kitten_puts(1, 16, " listlocal [str]   - list all local (installed) packages containing 'str'");
   kitten_puts(1, 18, " listfiles pkg     - list files owned by the package 'pkg'");
@@ -80,7 +82,7 @@ static void printhelp(void) {
   kitten_puts(1, 7,  " dumpcfg           - print out the configuration loaded from the cfg file");
   kitten_puts(1, 19, " clearcache        - clear FDNPKG16's local cache");
   kitten_puts(1, 8,  " license           - print out the license of this program");
-  puts("");
+//  puts("");
 #ifdef DEBUG
 #if defined(__WATCOMC__)
 #if (__WATCOMC__ >= 1200)
@@ -95,7 +97,7 @@ static void printhelp(void) {
   kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
   puts(wattcpVersion());
 #else
-  puts("FDNPKG16 uses mTCP");
+  kitten_puts(1, 21, "FDNPKG16 is using mTCP");
 #endif
 }
 
@@ -107,20 +109,21 @@ static void printhelpshort(void) {
   kitten_puts(1, 1, "Usage: FDNPKG16 action [parameters]");
   puts("");
   kitten_puts(1, 2,  "Where action is one of the following:");
-  kitten_puts(1, 3,  " se [string]       - search net repositories for package containing 'string'");
-  kitten_puts(1, 4,  " vs [string]       - same as 'search', but prints also source repositories");
-  kitten_puts(1, 5,  " in pkg            - install the package 'pkg' (or local zip file)");
-  kitten_puts(1, 10, " in-nosrc pkg      - install the package 'pkg' (or local zip file) w/o sources");
-  kitten_puts(1, 11, " in-wsrc pkg       - install the package 'pkg' (or local zip file) with sources");
-  kitten_puts(1, 6,  " rm pkgname        - remove the package 'pkgname'");
-  kitten_puts(1, 16, " ll [str]          - list all local (installed) packages containing 'str'");
-  kitten_puts(1, 18, " lf pkg            - list files owned by the package 'pkg'");
-  kitten_puts(1, 13, " cu                - check for available updates of packages and display them");
-  kitten_puts(1, 15, " up [pkg]          - update 'pkg' to last version (or all packages if no arg)");
-  kitten_puts(1, 7,  " dc                - print out the configuration loaded from the cfg file");
-  kitten_puts(1, 19, " cc                - clear FDNPKG16's local cache");
-  kitten_puts(1, 8,  " li                - print out the license of this program");
-  puts("");
+  kitten_puts(0, 3,  " se [string]       - search net repositories for package containing 'string'");
+  kitten_puts(0, 4,  " vs [string]       - same as 'search', but prints also source repositories");
+  kitten_puts(0, 5,  " in pkg            - install the package 'pkg' (or local zip file)");
+  kitten_puts(0, 10, " in-nosrc pkg      - install the package 'pkg' (or local zip file) w/o sources");
+  kitten_puts(0, 11, " in-wsrc pkg       - install the package 'pkg' (or local zip file) with sources");
+  kitten_puts(0, 20, " ri pkg            - reinstall the package 'pkg' (or local zip file)");
+  kitten_puts(0, 6,  " rm pkgname        - remove the package 'pkgname'");
+  kitten_puts(0, 16, " ll [str]          - list all local (installed) packages containing 'str'");
+  kitten_puts(0, 18, " lf pkg            - list files owned by the package 'pkg'");
+  kitten_puts(0, 13, " cu                - check for available updates of packages and display them");
+  kitten_puts(0, 15, " up [pkg]          - update 'pkg' to last version (or all packages if no arg)");
+  kitten_puts(0, 7,  " dc                - print out the configuration loaded from the cfg file");
+  kitten_puts(0, 19, " cc                - clear FDNPKG16's local cache");
+  kitten_puts(0, 8,  " li                - print out the license of this program");
+//  puts("");
 #ifdef DEBUG
 #if defined(__WATCOMC__)
 #if (__WATCOMC__ >= 1200)
@@ -135,8 +138,9 @@ static void printhelpshort(void) {
   kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
   puts(wattcpVersion());
 #else
-  puts("FDNPKG16 uses mTCP");
+  kitten_puts(1, 21, "FDNPKG16 is using mTCP");
 #endif
+  puts("");
 }
 
 
@@ -161,6 +165,8 @@ static void printlic(void) {
        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\r\n"
        "FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS\r\n"
        "IN THE SOFTWARE.");
+  puts("\nIf you want to contribute, let me know! https://discord.com/invite/qBH9W7fXHJ\n"
+       "or join my irc and ping me irc://4ch.mooo.com/#fdnpkg16");
 }
 
 
@@ -177,7 +183,8 @@ enum actions {
   ACTION_LISTFILES,
   ACTION_CHECKUPDATES,
   ACTION_UPDATE,
-  ACTION_CLEARCACHE
+  ACTION_CLEARCACHE,
+  ACTION_REINSTALL
 };
 
 
@@ -361,6 +368,13 @@ int main(int argc, char **argv) {
       } else {
         action = ACTION_CLEARCACHE;
       }
+    } else if ((strcasecmp(argv[1], "reinstall") && strcasecmp(argv[1], "ri")) == 0) {
+      if (argc != 3) {
+        kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
+        QUIT(0)
+      } else {
+        action = ACTION_REINSTALL;
+      }
     }
   }
 
@@ -509,23 +523,24 @@ int main(int argc, char **argv) {
             for (y = 0; y < MAXINDEXRETRIES; y++) {
               sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
 #ifdef DEBUG
-            printf("\trepoindex: %s\n", repoindex);
+              printf("\trepoindex: %s\n", repoindex);
 #endif
 #ifndef USE_EXTERNAL_MTCP
               if (htgetres > 0) break;
-            htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
+              htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
 #else
               if (htgetres == 21) break;
-//0000            htgetres = system(command);
             // lets try this
             sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
             batch_file = fopen(commandforbatch, "w");
             if (batch_file == NULL) {
-              printf("Error: Could not create the batch file.\n");
+              kitten_printf(3, 10, "Error: Could not create %s!");
               htgetres = -1;
             } else {
               fprintf(batch_file, "%s", command);
               fclose(batch_file);
+              _heapmin();
+              _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
               htgetres = system(commandforbatch);
             }
 #endif
@@ -617,6 +632,19 @@ int main(int argc, char **argv) {
         checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags | PKGINST_UPDATE, dirlist, proxy, proxyport, downloadingstring, mapdrv);
       } else if (action == ACTION_CHECKUPDATES) { /* checkupdates */
         checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv);
+      } else if (action == ACTION_REINSTALL) { /* REINSTALL, but only for a SINGLE package */
+        char membuff1k[1024];
+        /* prepare the zip file */
+        zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+        /* if the zip file is ok, remove the old package and install our zip file */
+        if (zipfileidx != NULL) {
+          if (pkgrem(argv[2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+            zip_freelist(&zipfileidx);
+          } else {
+            pkginstall_installpackage(argv[2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+          }
+          fclose(zipfilefd);
+        }
       }
       /* free memory of the pkg database */
       freedb(&pkgdb);

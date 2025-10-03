@@ -309,22 +309,21 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
 //      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
 #else
-      sprintf(command, "@echo off\nhtget -o %s %s", zipfile, fname);
+      sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
 
       proxy = downloadingstring = NULL;
       proxyport = 8080;
-//0000      htgetres = system(command);
       // lets try this
       sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
       batch_file = fopen(commandforbatch, "w");
       if (batch_file == NULL) {
-        printf("Error: Could not create the batch file.\n");
+        kitten_printf(3, 10, "Error: Could not create %s!");
         htgetres = -1;
       } else {
         fprintf(batch_file, "%s", command);
         fclose(batch_file);
         _heapmin();
-        _heapshrink();
+        _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
         htgetres = system(commandforbatch);
       }
 #endif /* #ifndef USE_EXTERNAL_MTCP */
@@ -347,9 +346,6 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       }
       puts("ok"); // just let the user know the file was downloaded and installed
     } else { /* else it's an on-disk repo, so we can use the package right from there */
-#ifdef DEBUG
-      printf("Package on disk!\n");
-#endif
       sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
     }
     /* check the CRC of the downloaded file */
