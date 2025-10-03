@@ -1,6 +1,6 @@
 /*
  * This file is part of the FDNPKG project.
- * Copyright (C) Mateusz Viste 2013-2015
+ * Copyright (C) Mateusz Viste 2013-2015 && sparky4 2025 (bug fix)
  *
  * Provides a simplistic HTTP / Gopher downloader.
  */
@@ -42,14 +42,15 @@ static int sock_getline(struct net_tcpsocket *socket, char *buf, int len) {
 
 /* returns 0 on success, non-zero otherwise
    Warning: Requires net_init() to be run before! */
-int http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *downloadingstring) {
+long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *downloadingstring) {
   char *host = NULL;
   char *path = NULL;
   char *buffer = NULL;
-  int port, result = -1, proto;
+  int port, proto;
   unsigned long ipaddr;
   int x;
-  long fdlen = 0, byteread = 0, expectedfilelen = -1;
+  long fdlen = 0, byteread = 0, expectedfilelen = -1, result = -1; // sparky4: BUG FIX HERE! RESULT SHOULD OF BEEN DECLARED A LONG!
+     //and subsequence function and variables that the function returns too!
   struct net_tcpsocket *socket;
   FILE *fd;
   time_t curtime, lastrefreshtime;
@@ -100,9 +101,9 @@ int http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *d
 
     if (proto == PARSEURL_PROTO_HTTP) {
       if (proxy != NULL) {
-        sprintf(buffer, "GET http://%s:%d/%s HTTP/1.1\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG\r\n\r\n", host, port, path, host);
+        sprintf(buffer, "GET http://%s:%d/%s HTTP/1.1\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG16\r\n\r\n", host, port, path, host);
       } else {
-        sprintf(buffer, "GET /%s HTTP/1.1\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG\r\n\r\n", path, host);
+        sprintf(buffer, "GET /%s HTTP/1.1\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG16\r\n\r\n", path, host);
       }
     } else { /* gopher */
       sprintf(buffer, "%s\r\n", path);

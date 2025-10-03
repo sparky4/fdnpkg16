@@ -211,7 +211,7 @@ static int trycreatefileindir(char *dirname) {
 
 
 int main(int argc, char **argv) {
-  int htgetres;
+  long htgetres;
   char *tempdir;
   char cfgfile[256];
   char *dosdir;

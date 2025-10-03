@@ -219,7 +219,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     char command[512];
     FILE *batch_file;
     char commandforbatch[512];
-    int htgetres;
+    long htgetres;
 #endif
 //    int htgetres;
 //    int y;
@@ -331,7 +331,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       if (htgetres <= 0) {
 #endif /* #ifndef USE_EXTERNAL_MTCP */
 #ifdef DEBUG
-      printf("htgetres returned: %d\n", htgetres);
+      printf("htgetres returned: %ld\n", htgetres);
 #endif
 //      if (htgetres <= 0) printf(".");
 //      }
