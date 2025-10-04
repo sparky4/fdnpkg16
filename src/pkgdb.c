@@ -479,6 +479,7 @@ void dumpdb(struct pkgdb *db, char *datafile, unsigned long crc32val) {
     puts("");
     return;
   }
+  kitten_puts(2, 20, "Package database is being created. Please wait warmly."); // sparky4: warmly means here patiently
   curtime = time(NULL);
   /* write the file format version */
   fprintf(fd, "%c", 2);

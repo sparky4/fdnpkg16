@@ -183,7 +183,8 @@ enum actions {
   ACTION_CHECKUPDATES,
   ACTION_UPDATE,
   ACTION_CLEARCACHE,
-  ACTION_REINSTALL
+  ACTION_REINSTALL,
+  ACTION_REINSTALL_LOCALFILE
 };
 
 
@@ -244,6 +245,7 @@ int main(int argc, char **argv) {
   FILE *batch_file;
   char commandforbatch[512];
 #endif
+  int arglen = strlen(argv[2]);
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -301,7 +303,7 @@ int main(int argc, char **argv) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
-        int arglen = strlen(argv[2]);
+//---- moved        int arglen = strlen(argv[2]);
         action = ACTION_INSTALL;
         if (arglen > 4) {
           if ((argv[2][arglen - 4] == '.') && (tolower(argv[2][arglen - 3]) == 'z') && (tolower(argv[2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
@@ -372,8 +374,21 @@ int main(int argc, char **argv) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
+        arglen = strlen(argv[2]);
         action = ACTION_REINSTALL;
+        if (arglen > 4) {
+          if ((argv[2][arglen - 4] == '.') && (tolower(argv[2][arglen - 3]) == 'z') && (tolower(argv[2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+            action = ACTION_REINSTALL_LOCALFILE;
+          }
+        }
       }
+      // sparky4: <3
+    } else if ((strcasecmp(argv[1], "bibabo")) == 0) {
+      printf("ビバボ！ｗ");
+      QUIT(0)
+    } else if ((strcasecmp(argv[1], "poi")) == 0) {
+      printf("ぽい！ｗ");
+      QUIT(0)
     }
   }
 
@@ -382,6 +397,7 @@ int main(int argc, char **argv) {
     printf("Press any key but Q to continue...\n");
     while ((y = getch()) == 'q') { QUIT(0) }
     printhelpshort();
+    puts("");
     QUIT(0)
   }
 
@@ -435,6 +451,38 @@ int main(int argc, char **argv) {
     QUIT(0)
   }
 
+  if (action == ACTION_REINSTALL_LOCALFILE) {
+    char pkgname[64];
+    char buffmem1k[1024];
+    int t, lastpathdelim = -1, u = 0;
+    for (t = 0; argv[2][t] != 0; t++) {
+      if ((argv[2][t] == '/') || (argv[2][t] == '\\')) lastpathdelim = t;
+    }
+    /* copy the filename into pkgname (without path elements) */
+    for (t = lastpathdelim + 1; argv[2][t] != 0; t++) pkgname[u++] = argv[2][t];
+    pkgname[u] = 0; /* terminate the string */
+    /* truncate the file's extension (.zip) */
+    for (t = u; t > 0; t--) {
+      if (pkgname[t] == '.') {
+        pkgname[t] = 0;
+        break;
+      }
+    }
+
+    /* prepare the zip file */
+    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+    /* if the zip file is ok, remove the old package and install our zip file */
+    if (zipfileidx != NULL) {
+      if (pkgrem(pkgname, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+        zip_freelist(&zipfileidx);
+      } else {
+        pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+      }
+      fclose(zipfilefd);
+    }
+    QUIT(0)
+  }
+
   /* clear cache? */
   if (action == ACTION_CLEARCACHE) {
     char tempfile[512];
@@ -453,26 +501,28 @@ int main(int argc, char **argv) {
     QUIT(0)
   }
 
-  /* if there is at least one online repo, init the Watt32 stack */
-  for (x = 0; x < repolistcount; x++) {
-    if (detect_localpath(repolist[x]) == 0) {
-#ifdef USE_EXTERNAL_MTCP
-#ifdef DEBUG
-      printf("mTCP is used\n");
-#endif /* #ifdef DEBUG */
-      netinitres = system("dhcp");
-#else /* #ifdef USE_EXTERNAL_MTCP */
-#ifdef DEBUG
-      printf("watt32 is used\n");
-#endif /* #ifdef DEBUG */
-      netinitres = net_init();
-#endif /* #ifdef USE_EXTERNAL_MTCP */
-      if (netinitres != 0) {
-        printf("netinitres returned: %d\n", netinitres);
-        kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
-        QUIT(0)
+  // sparky4: check arg2 for a . if ther eis one in existance then skip networking initiation
+  if (!((argv[2][arglen - 4] == '.') && (tolower(argv[2][arglen - 3]) == 'z') && (tolower(argv[2][arglen - 2]) == 'i'))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+    /* if there is at least one online repo, init the Watt32 stack */
+    for (x = 0; x < repolistcount; x++) {
+      if (detect_localpath(repolist[x]) == 0) {
+        #ifdef USE_EXTERNAL_MTCP
+        #ifdef DEBUG
+        printf("mTCP is used\n");
+        #endif /* #ifdef DEBUG */
+        netinitres = system("dhcp");
+        #else /* #ifdef USE_EXTERNAL_MTCP */
+        #ifdef DEBUG
+        printf("watt32 is used\n");
+        #endif /* #ifdef DEBUG */
+        netinitres = net_init();
+        #endif /* #ifdef USE_EXTERNAL_MTCP */
+        if (netinitres != 0) {
+          kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
+          QUIT(0)
+        }
+        break;
       }
-      break;
     }
   }
 
@@ -516,55 +566,55 @@ int main(int argc, char **argv) {
             puts("DEBUG: download start");
             #endif
             htgetres = 0;
-#ifdef USE_EXTERNAL_MTCP
+            #ifdef USE_EXTERNAL_MTCP
             sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
-#endif
+            #endif
             for (y = 0; y < MAXINDEXRETRIES; y++) {
               sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
-#ifdef DEBUG
+              #ifdef DEBUG
               printf("\trepoindex: %s\n", repoindex);
-#endif
-#ifndef USE_EXTERNAL_MTCP
+              #endif
+              #ifndef USE_EXTERNAL_MTCP
               if (htgetres > 0) break;
               htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
-#else
+              #else
               if (htgetres == 21) break;
-            // lets try this
-            sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
-            batch_file = fopen(commandforbatch, "w");
-            if (batch_file == NULL) {
-              kitten_printf(3, 10, "Error: Could not create %s!");
-              htgetres = -1;
-            } else {
-              fprintf(batch_file, "%s", command);
-              fclose(batch_file);
-              _heapmin();
-              _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
-              htgetres = system(commandforbatch);
-            }
-#endif
-#ifdef DEBUG
-            printf("htgetres returned: %d\n", htgetres);
-#endif
-#ifndef USE_EXTERNAL_MTCP
+              // lets try this
+              sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
+              batch_file = fopen(commandforbatch, "w");
+              if (batch_file == NULL) {
+                kitten_printf(3, 10, "Error: Could not create %s!");
+                htgetres = -1;
+              } else {
+                fprintf(batch_file, "%s", command);
+                fclose(batch_file);
+                _heapmin();
+                _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+                htgetres = system(commandforbatch);
+              }
+              #endif
+              #ifdef DEBUG
+              printf("htgetres returned: %d\n", htgetres);
+              #endif
+              #ifndef USE_EXTERNAL_MTCP
               if (htgetres <= 0) putchar('.');
-#else
+              #else
               if (htgetres != 21) putchar('.');
-#endif
+              #endif
             }
             #ifdef DEBUG
             puts("DEBUG: download stop");
             #endif
           }
-#ifndef USE_EXTERNAL_MTCP
+          #ifndef USE_EXTERNAL_MTCP
           if (htgetres <= 0) {
-#else
-          if (htgetres != 21) {
-#endif
-            kitten_puts(2, 10, "Repository download failed!");
-#ifndef ERRCACHE
-            maxcachetime = 0; /* disable cache writing this time */
-#endif
+            #else
+            if (htgetres != 21) {
+              #endif
+              kitten_puts(2, 10, "Repository download failed!");
+              #ifndef ERRCACHE
+              maxcachetime = 0; /* disable cache writing this time */
+              #endif
           } else {
             char *dbmsg;
             /* uncompress and load the index file */

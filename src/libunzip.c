@@ -12,9 +12,9 @@
 #include <string.h>    /* memset() */
 #include <time.h>      /* mktime() */
 #include <utime.h>     /* utime() */
-#include <unistd.h>   /* unlink() */
+#include <unistd.h>    /* unlink() */
 
-#define NOLZMA
+#include "libunzip.h"  /* include self for control */
 
 #include "crc32.h"
 #include "kprintf.h"
@@ -24,8 +24,6 @@
 #endif
 #include "inf.h"   /* DEFLATE support */
 #include "version.h"
-
-#include "libunzip.h"  /* include self for control */
 
 
 /* converts a "DOS format" timestamp into unix timestamp. The DOS timestamp is constructed an array of 4 bytes, that contains following data at the bit level:
