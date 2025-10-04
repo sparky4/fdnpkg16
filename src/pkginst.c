@@ -1,7 +1,8 @@
 /*
- * This file is part of FDNPKG
+ * This file is part of FDNPKG16
  * Copyright (C) 2012-2021 Mateusz Viste
  * Changes by TK Chia
+ * Copyright (C) 2025 Victoria Crenshaw aka sparky4
  */
 
 #include <ctype.h>     /* toupper() */

@@ -1,8 +1,9 @@
 /*
- *  This file is part of the FDNPKG project.
+ *  This file is part of the FDNPKG16 project.
  *  It provides a set of basic network-related functions.
  *
  *  Copyright (C) 2013-2016 Mateusz Viste
+ *  Copyright (C) 2025 Victoria Crenshaw aka sparky4
  *
  * Provides all network functions used by FDNPKG, wrapped around the WatTCP TCP/IP stack.
  */

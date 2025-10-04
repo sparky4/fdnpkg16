@@ -1,6 +1,7 @@
 /*
- *  This file is part of FDNPKG
+ *  This file is part of FDNPKG16
  *  Copyright (C) 2012-2017 Mateusz Viste
+ *  Copyright (C) 2025 Victoria Crenshaw aka sparky4
  */
 
 #ifndef pkginst_sentinel
