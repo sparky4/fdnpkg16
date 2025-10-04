@@ -16,17 +16,17 @@ OBJS =      adler32.obj  compress.obj crc32.obj   deflate.obj    &
 
 CC       = wcc
 LINKER   = wcl
-CFLAGS   = -zq -ml -s -bt=dos -oilrtfm -fr=nul -wx -fo=.obj
+CFLAGS   = -zq -ml -s -bt=dos -oilrtfm -fr=nul -wx -fo=.obj -0 
 ZLIB_LIB = zlib_l.lib
 
-.C.OBJ:
+.c.obj:
         $(CC) $(CFLAGS) $[@
 
 all: $(ZLIB_LIB)
 #example.exe minigzip.exe
 
 $(ZLIB_LIB): $(OBJS)
-	wlib -b -c $(ZLIB_LIB) -+adler32.objbj  -+compress.obj -+crc32.obj
+	wlib -b -c $(ZLIB_LIB) -+adler32.obj  -+compress.obj -+crc32.obj
 	wlib -b -c $(ZLIB_LIB) -+gzclose.obj  -+gzlib.obj    -+gzread.obj   -+gzwrite.obj
         wlib -b -c $(ZLIB_LIB) -+deflate.obj  -+infback.obj
         wlib -b -c $(ZLIB_LIB) -+inffast.obj  -+inflate.obj  -+inftrees.obj
