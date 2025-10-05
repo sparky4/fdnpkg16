@@ -1,7 +1,7 @@
 /*
  * This file is part of FDNPKG16.
  * Copyright (C) Mateusz Viste 2013-2015
- * 2025 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025 Victoria Crenshaw aka sparky4
  */
 
 #ifndef HTTP_GET_H_SENTINEL
