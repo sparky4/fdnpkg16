@@ -252,7 +252,6 @@ int main(int argc, char** argv) {
 
     /* fetch the 'downloading...' kitten string, we will need to pass it to http_get later, eventually */
     sprintf(downloadingstring, "%s", kittengets(11, 0, "Downloading %s... %ld bytes"));
-    printf("%s\n", downloadingstring);
 
     /* read all required environment variables */
     if (readenv(&dosdir, &tempdir, cfgfile, sizeof(cfgfile), argv) != 0) {
