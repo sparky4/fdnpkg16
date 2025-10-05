@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU Lesser General Public
   License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
@@ -24,12 +24,21 @@
 #define _CATGETS_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
+
+#ifdef NO_KITTEN
+
+#define kittengets(x,y,z) (z)
+#define kittenclose()
+#define kittenopen(a)
+
+#else
 
 /* Data types */
 
-typedef int nl_catd;
+#define nl_catd int
 
 /* Functions */
 
@@ -38,26 +47,32 @@ typedef int nl_catd;
 #define catclose(catalog)  kittenclose()
 
 
-char *  kittengets( int set_number, int message_number,char *message);
-nl_catd kittenopen(char *name);
-void    kittenclose (void);
+  char *kittengets (int set_number, int message_number, char *message);
+  nl_catd kittenopen (char *name);
+  void kittenclose (void);
 
-int get_line (int file, char *buffer, int size);
+  int get_line (int file, char *buffer, int size);
 
-int dos_open(char *filename, int mode);
+#ifndef _MICROC_
+#ifndef __DJGPP__
+
+  int dos_open (char *filename, int mode);
 #define open(filename,mode) dos_open(filename,mode)
 
-int dos_read(int file, void *ptr, unsigned count);
+  int dos_read (int file, void *ptr, unsigned count);
 #define read(file, ptr, count) dos_read(file,ptr,count)
 
-int dos_write(int file, void *ptr, unsigned count);
+  int dos_write (int file, void *ptr, unsigned count);
 #define write(file, ptr, count) dos_write(file,ptr,count)
 
-void dos_close(int file);
+  void dos_close (int file);
 #define close(file) dos_close(file)
 
+#endif  /*DJGPP*/
+#endif				/*Micro-C */
+#endif				/*NO_KITTEN */
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _CATGETS_H */
+#endif				/* _CATGETS_H */

@@ -1,0 +1,40 @@
+
+Stuff that I might do some day...
+
+- switch the TCP stack to use picoTCP
+    --> or (better?) make FDNPKG a 16-bit application and use real-mode Watt32
+DONE
+
+- make it possible to install sources for a package that was installed without sources
+    --> store sources separately (*.zib + *.zis instead of a single *.zip)
+DONE WITH REINSTALL AND INSTALL WITH SOURCES
+
+- for a given on-disk file, make it possible to check if it belongs to a package
+I'll discuss this with FreeDOS people what this means
+
+- (?) look for %DOSDIR%\PACKAGES\%PKGNAME%\REMOVE.BAT and INSTALL.BAT scripts
+I'll discuss this with FreeDOS people what this means
+
+- optimize db-related operations (creating db, loading it from file), to speed up the process
+    --> or move this to server-side? but what about from-disk installs then? could use same format as today, reading directly from disk instead of compiling a database aggregate
+This is a 1.0 feature I should implement this soon, but I am afraid of breaking it.
+
+- look for FDNPKG.CFG first in current EXE dir instead of in %DOSDIR%/BIN (but %FDNPKG.CFG% should still have priority over everything else)
+DONE!
+
+- add a way to install a specific version of a package without relying on the latest version autodetection (fdnpkg install pkgname/0.50)
+again This is a 1.0 feature I should implement this soon, but I am afraid of breaking it. but I can try with this one!
+    cannot be done need work on repo/server side (possible! just need fdrepo updated)
+
+- when the connection to network fails, we should continue with what we have (looks like wattcp is calling exit() if it fails to get an IP via DHCP?)
+I dont think this can't be implemented. Because it would not have any package files! You can (re)install packages via locally on a disk! :D
+
+
+
+- Implement modification-date version finding
+    --> Needs server repo side and the making of index16.gz file son server which has this additional info! :D
+
+
+- force install!
+    --> prompt sent to force install a file if it exists
+
