@@ -186,10 +186,12 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
   char *shortfile;
   struct ziplist *ziplinkedlist, *curzipnode, *prevzipnode;
   struct flist_t *flist;
+  int forceflag, userchoice;
 
   fname = buffmem1k;
   zipfile = buffmem1k + 256;
   appinfofile = buffmem1k + 512;
+  forceflag = userchoice = 0;
 
   strtolower(pkgname); /* convert pkgname to lower case, because the http repo is probably case sensitive */
   sprintf(appinfofile, "appinfo\\%s.lsm", pkgname); /* Prepare the appinfo/xxxx.lsm filename string for later use */
@@ -306,55 +308,55 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       for (y = 0; y < MAXINDEXRETRIES; y++) {
         sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
         if (htgetres > 0) break;
-#ifndef USE_EXTERNAL_MTCP
-      htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
-//      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
-#else
-      sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
+        #ifndef USE_EXTERNAL_MTCP
+        htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
+        //      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
+        #else
+        sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
 
-      proxy = downloadingstring = NULL;
-      proxyport = 8080;
-      // lets try this
-      sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
-      batch_file = fopen(commandforbatch, "w");
-      if (batch_file == NULL) {
-        kitten_printf(3, 10, "Error: Could not create %s!");
-        htgetres = -1;
-      } else {
-        fprintf(batch_file, "%s", command);
-        fclose(batch_file);
-        _heapmin();
-        _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
-        htgetres = system(commandforbatch);
+        proxy = downloadingstring = NULL;
+        proxyport = 8080;
+        // lets try this
+        sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
+        batch_file = fopen(commandforbatch, "w");
+        if (batch_file == NULL) {
+          kitten_printf(3, 10, "Error: Could not create %s!");
+          htgetres = -1;
+        } else {
+          fprintf(batch_file, "%s", command);
+          fclose(batch_file);
+          _heapmin();
+          _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+          htgetres = system(commandforbatch);
+        }
+        #endif /* #ifndef USE_EXTERNAL_MTCP */
+        #ifdef DEBUG
+        printf("htgetres returned: %ld\n", htgetres);
+        #endif
+        #ifndef USE_EXTERNAL_MTCP
+        if (htgetres <= 0) putchar('.');
+        #else
+        if (htgetres != 21) putchar('.');
+        #endif
       }
-#endif /* #ifndef USE_EXTERNAL_MTCP */
-#ifdef DEBUG
-      printf("htgetres returned: %ld\n", htgetres);
-#endif
-#ifndef USE_EXTERNAL_MTCP
-      if (htgetres <= 0) putchar('.');
-#else
-      if (htgetres != 21) putchar('.');
-#endif
-      }
-#ifndef USE_EXTERNAL_MTCP
+      #ifndef USE_EXTERNAL_MTCP
       if (htgetres <= 0) {
-#else
-      if (htgetres != 21) {
-#endif
-        kitten_puts(3, 7, "Error downloading package. Aborted.");
+        #else
+        if (htgetres != 21) {
+          #endif
+          kitten_puts(3, 7, "Error downloading package. Aborted.");
+          return(NULL);
+        }
+        puts("ok"); // just let the user know the file was downloaded and installed
+      } else { /* else it's an on-disk repo, so we can use the package right from there */
+        sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
+      }
+      /* check the CRC of the downloaded file */
+      buff = malloc(4096);  /* use a 4K buffer to compute file's CRC */
+      if (buff == NULL) {
+        kitten_puts(3, 15, "Error: Out of memory while computing the CRC of the package!");
         return(NULL);
       }
-      puts("ok"); // just let the user know the file was downloaded and installed
-    } else { /* else it's an on-disk repo, so we can use the package right from there */
-      sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
-    }
-    /* check the CRC of the downloaded file */
-    buff = malloc(4096);  /* use a 4K buffer to compute file's CRC */
-    if (buff == NULL) {
-      kitten_puts(3, 15, "Error: Out of memory while computing the CRC of the package!");
-      return(NULL);
-    }
     *zipfd = fopen(zipfile, "rb");
     if (*zipfd == NULL) {
       kitten_puts(3, 14, "Error: Failed to open the downloaded package. Installation aborted.");
@@ -449,8 +451,28 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     mapdrives(fname, mapdrv);
     strcat(fname, shortfile);
     if ((findfileinlist(flist, fname) == NULL) && (fileexists(fname) != 0)) {
-      kitten_puts(3, 9, "Error: Package contains a file that already exists locally:");
+      char userchoicestr[8];
+      if (forceflag < 2) kitten_puts(3, 9, "Error: Package contains a file that already exists locally:");
       printf(" %s\n", fname);
+      if (forceflag == 0) {
+        kitten_printf(3, 24, "Force install of package? (1 = NO)(2 = YES)");
+        puts("");
+        for (;;) {
+          kitten_printf(3, 4, "Your choice:");
+          printf(" ");
+          fgets(userchoicestr, 6, stdin);
+          userchoice = atoi(userchoicestr);
+          if ((userchoice < 1) || (userchoice >= 3/*forceflag*/)) {
+            kitten_puts(3, 5, "Invalid choice!");
+          } else {
+            break;
+          }
+        }
+        forceflag = userchoice;
+      }
+    }
+    // if no is selected
+    if (forceflag == 1) {
       zip_freelist(&ziplinkedlist);
       fclose(*zipfd);
       return(NULL);

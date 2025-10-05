@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU Lesser General Public
   License along with this library; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA
 */
 
 
@@ -24,64 +24,40 @@
 #define _CATGETS_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
-
-#ifdef NO_KITTEN
-
-#define kittengets(x,y,z) (z)
-#define kittenclose()
-#define kittenopen(a)
-
-#else
 
 /* Data types */
 
-#define nl_catd int
+typedef int nl_catd;
 
 /* Functions */
 
-#define catgets(catalog, set,message_number,message) _kittengets((catalog << 8) + set,default_message)
-#define catopen(name,flag) kittenopen(argv[0], nls_buffer, sizeof(nls_buffer))
-#define catclose(catalog) 
-
-#define kittengets(catalog, messageid,message) _kittengets((catalog << 8) + messageid,message)
+#define catgets(catalog, set,message_number,message) kittengets(set,message_number,message)
+#define catopen(name,flag) kittenopen(name)
+#define catclose(catalog)  kittenclose()
 
 
-  char *_kittengets (int messageid, char *message);
-  nl_catd kittenopen (char *exename, char *buffer, int buffersize);
+char *  kittengets( int set_number, int message_number,char *message);
+nl_catd kittenopen(char *name);
+void    kittenclose (void);
 
+int get_line (int file, char *buffer, int size);
 
-//internal stuff between kitten.c and kittenc.c
-	struct message_header
-		{
-		short len;
-		short id;
-		// char message[];
-		};
+int dos_open(char *filename, int mode);
+#define open(filename,mode) dos_open(filename,mode)
 
-	struct content
-		{
-		char language[4];
-		long filepos_start;	// for this language
-		long filepos_end;
-		long reserved;		// align on 16 byte to look better in hex editor
-		};
+int dos_read(int file, void *ptr, unsigned count);
+#define read(file, ptr, count) dos_read(file,ptr,count)
 
-	struct message_end
-		{
-		long filepos;		// points to content
-		long resource_count;// number of entries
-		long fileend_orig;  // file end NOW because UPX
-		char ID[8];			// "KITTENC"
-		};
+int dos_write(int file, void *ptr, unsigned count);
+#define write(file, ptr, count) dos_write(file,ptr,count)
 
+void dos_close(int file);
+#define close(file) dos_close(file)
 
-
-#endif				/*NO_KITTEN */
 #ifdef __cplusplus
 }
 #endif
 
-#endif				/* _CATGETS_H */
+#endif /* _CATGETS_H */

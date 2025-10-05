@@ -16,6 +16,7 @@
 //#define DEBUG                 // uncomment this to enable debug mode
 //#define USE_EXTERNAL_MTCP     // enable this to use the external mtcp or internal watt32
 #define ERRCACHE              // enable this to have databases, always
+//#define NEWER_KITTEN           // use new kitten files
 
 struct flist_t {
   struct flist_t *next;
