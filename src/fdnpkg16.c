@@ -247,7 +247,8 @@ int main(int argc, char **argv) {
   char commandforbatch[512];
 #endif
   int arglen;
-  static char pkg[12];
+  char pkg[12];
+  char argone[13];
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -273,11 +274,14 @@ int main(int argc, char **argv) {
   repolistcount = loadconf(cfgfile, repolist, MAXREPS, &cfgfilecrc, &maxcachetime, &dirlist, &flags, &proxy, &proxyport, &mapdrv);
   if (repolistcount < 0) return(5);
 
-  if (argc > 1) { // Ensure argv[1] exists
-    if (argv[1][0] == '/') { // Check if the first character is '/'
+  if (argc > 1) { // Ensure argone exists
+    if (argone[0] == '/') { // Check if the first character is '/'
       // Option 1: Shift the pointer to effectively remove the first character
-      // This modifies what argv[1] points to, but not the underlying string data
-      argv[1]++;
+      // This modifies what argone points to, but not the underlying string data
+      strcpy(argone, argv[1]++);
+      //argone++;
+    } else {
+      strcpy(argone, argv[1]);
     }
   }
 
@@ -288,14 +292,14 @@ int main(int argc, char **argv) {
 
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg action [param] */
-    if ((strcasecmp(argv[1], "search") && strcasecmp(argv[1], "se")) == 0) {
+    if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
       if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_SEARCH;
       }
-    } else if ((strcasecmp(argv[1], "vsearch") && strcasecmp(argv[1], "vs")) == 0) {
+    } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
       if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
@@ -303,9 +307,9 @@ int main(int argc, char **argv) {
         action = ACTION_SEARCH;
         verbosemode = 1;
       }
-    } else if (((strcasecmp(argv[1], "install") && strcasecmp(argv[1], "in")) == 0) || ((strcasecmp(argv[1], "install-nosrc") && strcasecmp(argv[1], "in-nosrc")) == 0) || ((strcasecmp(argv[1], "install-wsrc") && strcasecmp(argv[1], "in-wsrc")) == 0)) {
-      if ((strcasecmp(argv[1], "install-nosrc") && strcasecmp(argv[1], "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
-      if ((strcasecmp(argv[1], "install-wsrc") && strcasecmp(argv[1], "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
+    } else if (((strcasecmp(argone, "install") && strcasecmp(argone, "in")) == 0) || ((strcasecmp(argone, "install-nosrc") && strcasecmp(argone, "in-nosrc")) == 0) || ((strcasecmp(argone, "install-wsrc") && strcasecmp(argone, "in-wsrc")) == 0)) {
+      if ((strcasecmp(argone, "install-nosrc") && strcasecmp(argone, "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
+      if ((strcasecmp(argone, "install-wsrc") && strcasecmp(argone, "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
       if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
@@ -317,14 +321,14 @@ int main(int argc, char **argv) {
           }
         }
       }
-    } else if ((strcasecmp(argv[1], "remove") && strcasecmp(argv[1], "rm")) == 0) {
+    } else if ((strcasecmp(argone, "remove") && strcasecmp(argone, "rm")) == 0) {
       if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
       } else {
         pkgrem(pkg, dosdir, mapdrv);
       }
       QUIT(0);
-    } else if ((strcasecmp(argv[1], "update") && strcasecmp(argv[1], "up")) == 0) {
+    } else if ((strcasecmp(argone, "update") && strcasecmp(argone, "up")) == 0) {
       if (argc >= 3) {
         action = ACTION_UPDATE;
       } else if (argc == 2) {
@@ -333,54 +337,54 @@ int main(int argc, char **argv) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       }
-    } else if (((strcasecmp(argv[1], "listlocal") && strcasecmp(argv[1], "ll")) == 0) || ((strcasecmp(argv[1], "showinstalled") && strcasecmp(argv[1], "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
+    } else if (((strcasecmp(argone, "listlocal") && strcasecmp(argone, "ll")) == 0) || ((strcasecmp(argone, "showinstalled") && strcasecmp(argone, "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
       if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
         action = ACTION_LISTLOCAL;
       }
-    } else if ((strcasecmp(argv[1], "listfiles") && strcasecmp(argv[1], "lf")) == 0) {
+    } else if ((strcasecmp(argone, "listfiles") && strcasecmp(argone, "lf")) == 0) {
       if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
         action = ACTION_LISTFILES;
       }
-    } else if ((strcasecmp(argv[1], "dumpcfg") && strcasecmp(argv[1], "dc")) == 0) {
+    } else if ((strcasecmp(argone, "dumpcfg") && strcasecmp(argone, "dc")) == 0) {
       if (argc != 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_DUMPCFG;
       }
-    } else if ((strcasecmp(argv[1], "license") && strcasecmp(argv[1], "li")) == 0) {
+    } else if ((strcasecmp(argone, "license") && strcasecmp(argone, "li")) == 0) {
       if (argc != 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
       } else {
         printlic();
       }
       QUIT(0)
-    } else if ((strcasecmp(argv[1], "checkupdates") && strcasecmp(argv[1], "cu")) == 0) {
+    } else if ((strcasecmp(argone, "checkupdates") && strcasecmp(argone, "cu")) == 0) {
       if (argc != 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_CHECKUPDATES;
       }
-    } else if ((strcasecmp(argv[1], "clearcache") && strcasecmp(argv[1], "cc")) == 0) {
+    } else if ((strcasecmp(argone, "clearcache") && strcasecmp(argone, "cc")) == 0) {
       if (argc != 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_CLEARCACHE;
       }
-    } else if ((strcasecmp(argv[1], "reinstall") && strcasecmp(argv[1], "ri")) == 0) {
+    } else if ((strcasecmp(argone, "reinstall") && strcasecmp(argone, "ri")) == 0) {
       if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
-        arglen = strlen(pkg);
+        // arglen = strlen(pkg);
         action = ACTION_REINSTALL;
         if (arglen > 4) {
           if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
@@ -389,10 +393,10 @@ int main(int argc, char **argv) {
         }
       }
       // sparky4: <3
-    } else if ((strcasecmp(argv[1], "bibabo")) == 0) {
+    } else if ((strcasecmp(argone, "bibabo")) == 0) {
       printf("ビバボ！ｗ");
       QUIT(0)
-    } else if ((strcasecmp(argv[1], "poi")) == 0) {
+    } else if ((strcasecmp(argone, "poi")) == 0) {
       printf("ぽい！ｗ");
       QUIT(0)
     }

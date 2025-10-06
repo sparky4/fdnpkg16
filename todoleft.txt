@@ -41,3 +41,4 @@ DONE
 
 - multipackage install!!! >:3
     --> now we getting into big leagues!! :D program should work as "fdnpkg16 reinstall fdnpkg16 fdnpkg" xD
+DONE!

@@ -31,7 +31,12 @@ cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
 rm -r fdnpkg16/SOURCE/fdnpkg16/src
 mkdir fdnpkg16/SOURCE/fdnpkg16/src
+cd fdnpkg16/SOURCE/fdnpkg16/
+rm ../source.zip
+zip -r ../source.zip *
+cd ../../../
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
+#rm -r src
 #rsync -avr --delete src/ fdnpkg16/SOURCE/fdnpkg16/src/
 #cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
 cd fdnpkg16
