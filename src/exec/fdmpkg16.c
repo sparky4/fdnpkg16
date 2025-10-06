@@ -48,7 +48,7 @@ void main(int argc, char *argv[]) {
 #else
     sprintf(command, "fdnpkg86.exe %s %s", argv[1], argv[i]);
 #endif
-    printf("command: %s\n", command);// getch();
+//    printf("command: %s\n", command);// getch();
     _heapmin();
     _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
     system(command);
