@@ -11,6 +11,7 @@
 *.BCO
 *.*~
 FUCK
+*.err
 *.ERR
 makefile~
 README~

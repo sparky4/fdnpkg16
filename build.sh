@@ -13,12 +13,12 @@ upx --8086 -9 fdnpkg16.exe
 upx --8086 -9 fdnpkg86.exe
 upx --8086 -9 httpget.exe
 for file in *.err; do
-  if [ -f "$file" ]; then
+  if [[ -f "$file" ]]; then
     cat *.err
   fi
 done
 for file in *.exe; do
-  if [ -f "$file" ]; then
+  if [[ -f "$file" ]]; then
     ls $file
   fi
 done

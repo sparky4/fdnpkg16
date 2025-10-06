@@ -246,8 +246,8 @@ int main(int argc, char **argv) {
   char commandforbatch[512];
 #endif
   int arglen;
-  char pkg[13];
-  char argone[14];
+  static char pkg[13];
+  static char argone[14];
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -273,21 +273,22 @@ int main(int argc, char **argv) {
   repolistcount = loadconf(cfgfile, repolist, MAXREPS, &cfgfilecrc, &maxcachetime, &dirlist, &flags, &proxy, &proxyport, &mapdrv);
   if (repolistcount < 0) return(5);
 
-  if (argc > 1) { // Ensure argone exists
-    if (argone[0] == '/') { // Check if the first character is '/'
+  if (argc > 1) { // Ensure argv[1] exists
+    if (argv[1][0] == '/') { // Check if the first character is '/'
       // Option 1: Shift the pointer to effectively remove the first character
       // This modifies what argone points to, but not the underlying string data
       strcpy(argone, argv[1]++);
-      //argone++;
     } else {
       strcpy(argone, argv[1]);
     }
   }
 
   /* sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D */
-  for (i = 2; i < argc; i++) {
-    strcpy(pkg, argv[i]);
-    arglen = strlen(pkg);
+  for (i = 0; i < argc; i++) {
+    if (argv[i+2] != NULL) {
+      strcpy(pkg, argv[i+2]);
+      arglen = strlen(pkg);
+    }
 
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg action [param] */
@@ -383,7 +384,7 @@ int main(int argc, char **argv) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
-        // arglen = strlen(pkg);
+        arglen = strlen(pkg);
         action = ACTION_REINSTALL;
         if (arglen > 4) {
           if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
@@ -400,7 +401,7 @@ int main(int argc, char **argv) {
       QUIT(0)
     }
   }
-
+  
   /* Dual help! this runs both helps! :D */
   if (action == ACTION_HELP) {
     printhelp();
