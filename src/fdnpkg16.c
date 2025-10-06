@@ -212,7 +212,6 @@ static int trycreatefileindir(char *dirname) {
   return(x);
 #else
 #define QUIT(x) \
-  dbg_stats(); \
   kittenclose(); \
   return(x);
 #endif
@@ -247,8 +246,8 @@ int main(int argc, char **argv) {
   char commandforbatch[512];
 #endif
   int arglen;
-  char pkg[12];
-  char argone[13];
+  char pkg[13];
+  char argone[14];
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
