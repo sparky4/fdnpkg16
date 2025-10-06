@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
   char *proxy = NULL;
   char downloadingstring[64];
   int proxyport = 8080;
-  int x,y;
+  int i,x,y;
   char *mapdrv = "";
   unsigned long cfgfilecrc;
   struct pkgdb *pkgdb = NULL;
@@ -246,7 +246,8 @@ int main(int argc, char **argv) {
   FILE *batch_file;
   char commandforbatch[512];
 #endif
-  int arglen = strlen(argv[2]);
+  int arglen;
+  static char pkg[12];
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -280,17 +281,22 @@ int main(int argc, char **argv) {
     }
   }
 
+  /* sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D */
+  for (i = 2; i < argc; i++) {
+    strcpy(pkg, argv[i]);
+    arglen = strlen(pkg);
+
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg action [param] */
     if ((strcasecmp(argv[1], "search") && strcasecmp(argv[1], "se")) == 0) {
-      if (argc > 3) {
+      if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_SEARCH;
       }
     } else if ((strcasecmp(argv[1], "vsearch") && strcasecmp(argv[1], "vs")) == 0) {
-      if (argc > 3) {
+      if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
@@ -300,27 +306,26 @@ int main(int argc, char **argv) {
     } else if (((strcasecmp(argv[1], "install") && strcasecmp(argv[1], "in")) == 0) || ((strcasecmp(argv[1], "install-nosrc") && strcasecmp(argv[1], "in-nosrc")) == 0) || ((strcasecmp(argv[1], "install-wsrc") && strcasecmp(argv[1], "in-wsrc")) == 0)) {
       if ((strcasecmp(argv[1], "install-nosrc") && strcasecmp(argv[1], "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
       if ((strcasecmp(argv[1], "install-wsrc") && strcasecmp(argv[1], "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
-      if (argc != 3) {
+      if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
-//---- moved        int arglen = strlen(argv[2]);
         action = ACTION_INSTALL;
         if (arglen > 4) {
-          if ((argv[2][arglen - 4] == '.') && (tolower(argv[2][arglen - 3]) == 'z') && (tolower(argv[2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+          if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
             action = ACTION_INSTALL_LOCALFILE;
           }
         }
       }
     } else if ((strcasecmp(argv[1], "remove") && strcasecmp(argv[1], "rm")) == 0) {
-      if (argc != 3) {
+      if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
       } else {
-        pkgrem(argv[2], dosdir, mapdrv);
+        pkgrem(pkg, dosdir, mapdrv);
       }
       QUIT(0);
     } else if ((strcasecmp(argv[1], "update") && strcasecmp(argv[1], "up")) == 0) {
-      if (argc == 3) {
+      if (argc >= 3) {
         action = ACTION_UPDATE;
       } else if (argc == 2) {
         action = ACTION_UPGRADE;
@@ -329,14 +334,14 @@ int main(int argc, char **argv) {
         QUIT(0);
       }
     } else if (((strcasecmp(argv[1], "listlocal") && strcasecmp(argv[1], "ll")) == 0) || ((strcasecmp(argv[1], "showinstalled") && strcasecmp(argv[1], "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
-      if (argc > 3) {
+      if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
         action = ACTION_LISTLOCAL;
       }
     } else if ((strcasecmp(argv[1], "listfiles") && strcasecmp(argv[1], "lf")) == 0) {
-      if (argc != 3) {
+      if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
@@ -371,14 +376,14 @@ int main(int argc, char **argv) {
         action = ACTION_CLEARCACHE;
       }
     } else if ((strcasecmp(argv[1], "reinstall") && strcasecmp(argv[1], "ri")) == 0) {
-      if (argc != 3) {
+      if (argc < 2) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
-        arglen = strlen(argv[2]);
+        arglen = strlen(pkg);
         action = ACTION_REINSTALL;
         if (arglen > 4) {
-          if ((argv[2][arglen - 4] == '.') && (tolower(argv[2][arglen - 3]) == 'z') && (tolower(argv[2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+          if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
             action = ACTION_REINSTALL_LOCALFILE;
           }
         }
@@ -393,6 +398,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  /* Dual help! this runs both helps! :D */
   if (action == ACTION_HELP) {
     printhelp();
     printf("Press any key but Q to continue...\n");
@@ -412,14 +418,14 @@ int main(int argc, char **argv) {
   /* listing local packages need no special preparation - do it now and quit */
   if (action == ACTION_LISTLOCAL) {
     char *filterstr = NULL;
-    if (argc == 3) filterstr = argv[2];
+    if (argc == 3) filterstr = pkg;
     showinstalledpkgs(filterstr, dosdir);
     QUIT(0);
   }
 
   /* listing local files need no special preparation - do it now and quit */
   if (action == ACTION_LISTFILES) {
-    listfilesofpkg(argv[2], dosdir);
+    listfilesofpkg(pkg, dosdir);
     QUIT(0);
   }
 
@@ -428,11 +434,11 @@ int main(int argc, char **argv) {
     char pkgname[64];
     char buffmem1k[1024];
     int t, lastpathdelim = -1, u = 0;
-    for (t = 0; argv[2][t] != 0; t++) {
-      if ((argv[2][t] == '/') || (argv[2][t] == '\\')) lastpathdelim = t;
+    for (t = 0; pkg[t] != 0; t++) {
+      if ((pkg[t] == '/') || (pkg[t] == '\\')) lastpathdelim = t;
     }
     /* copy the filename into pkgname (without path elements) */
-    for (t = lastpathdelim + 1; argv[2][t] != 0; t++) pkgname[u++] = argv[2][t];
+    for (t = lastpathdelim + 1; pkg[t] != 0; t++) pkgname[u++] = pkg[t];
     pkgname[u] = 0; /* terminate the string */
     /* truncate the file's extension (.zip) */
     for (t = u; t > 0; t--) {
@@ -443,7 +449,7 @@ int main(int argc, char **argv) {
     }
 
     /* prepare the zip file and install it */
-    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, pkg, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
     if (zipfileidx != NULL) {
       pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
       fclose(zipfilefd);
@@ -452,15 +458,16 @@ int main(int argc, char **argv) {
     QUIT(0)
   }
 
+  /* sparky4: Reinstall a local file! */
   if (action == ACTION_REINSTALL_LOCALFILE) {
     char pkgname[64];
     char buffmem1k[1024];
     int t, lastpathdelim = -1, u = 0;
-    for (t = 0; argv[2][t] != 0; t++) {
-      if ((argv[2][t] == '/') || (argv[2][t] == '\\')) lastpathdelim = t;
+    for (t = 0; pkg[t] != 0; t++) {
+      if ((pkg[t] == '/') || (pkg[t] == '\\')) lastpathdelim = t;
     }
     /* copy the filename into pkgname (without path elements) */
-    for (t = lastpathdelim + 1; argv[2][t] != 0; t++) pkgname[u++] = argv[2][t];
+    for (t = lastpathdelim + 1; pkg[t] != 0; t++) pkgname[u++] = pkg[t];
     pkgname[u] = 0; /* terminate the string */
     /* truncate the file's extension (.zip) */
     for (t = u; t > 0; t--) {
@@ -471,7 +478,7 @@ int main(int argc, char **argv) {
     }
 
     /* prepare the zip file */
-    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, pkg, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
     /* if the zip file is ok, remove the old package and install our zip file */
     if (zipfileidx != NULL) {
       if (pkgrem(pkgname, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
@@ -502,8 +509,8 @@ int main(int argc, char **argv) {
     QUIT(0)
   }
 
-  // sparky4: check arg2 for a . if ther eis one in existance then skip networking initiation
-  if (!((argv[2][arglen - 4] == '.') && (tolower(argv[2][arglen - 3]) == 'z') && (tolower(argv[2][arglen - 2]) == 'i'))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+  /* sparky4: check arg2 for a . if ther eis one in existance then skip networking initiation */
+  if (!((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i'))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
     /* if there is at least one online repo, init the Watt32 stack */
     for (x = 0; x < repolistcount; x++) {
       if (detect_localpath(repolist[x]) == 0) {
@@ -644,36 +651,36 @@ int main(int argc, char **argv) {
       }
       if (action == ACTION_SEARCH) { /* for search: iterate through the sorted db, and print out all packages that match the pattern */
         if (argc == 3) { /* a search term has been provided */
-          pkgsearch(pkgdb, argv[2], verbosemode, repolist);
+          pkgsearch(pkgdb, pkg, verbosemode, repolist);
         } else {
           pkgsearch(pkgdb, NULL, verbosemode, repolist);
         }
       } else if (action == ACTION_INSTALL) {
-        if (validate_package_not_installed(argv[2], dosdir, mapdrv) == 0) { /* check that package is not already installed first */
+        if (validate_package_not_installed(pkg, dosdir, mapdrv) == 0) { /* check that package is not already installed first */
           char membuff1k[1024];
-          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, pkg, tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
           if (zipfileidx != NULL) {
-            pkginstall_installpackage(argv[2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+            pkginstall_installpackage(pkg, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
             fclose(zipfilefd);
           }
         }
       } else if (action == ACTION_UPDATE) { /* UPDATE, but only for a SINGLE package */
-        if (is_package_installed(argv[2], dosdir, mapdrv) == 0) { /* is this package installed at all? */
-          kitten_printf(10, 6, "Package %s is not installed.", argv[2]);
+        if (is_package_installed(pkg, dosdir, mapdrv) == 0) { /* is this package installed at all? */
+          kitten_printf(10, 6, "Package %s is not installed.", pkg);
           puts("");
-        } else if (checkupdates(dosdir, pkgdb, repolist, argv[2], tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
-          kitten_printf(10, 2, "No update found for the '%s' package.", argv[2]);
+        } else if (checkupdates(dosdir, pkgdb, repolist, pkg, tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
+          kitten_printf(10, 2, "No update found for the '%s' package.", pkg);
           puts("");
         } else { /* the package is locally installed, and an update have been found - let's proceed */
           char membuff1k[1024];
           /* prepare the zip file */
-          zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, pkg, tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
           /* if the zip file is ok, remove the old package and install our zip file */
           if (zipfileidx != NULL) {
-            if (pkgrem(argv[2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+            if (pkgrem(pkg, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
               zip_freelist(&zipfileidx);
             } else {
-              pkginstall_installpackage(argv[2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+              pkginstall_installpackage(pkg, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
             }
             fclose(zipfilefd);
           }
@@ -685,13 +692,13 @@ int main(int argc, char **argv) {
       } else if (action == ACTION_REINSTALL) { /* REINSTALL, but only for a SINGLE package */
         char membuff1k[1024];
         /* prepare the zip file */
-        zipfileidx = pkginstall_preparepackage(pkgdb, argv[2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+        zipfileidx = pkginstall_preparepackage(pkgdb, pkg, tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
         /* if the zip file is ok, remove the old package and install our zip file */
         if (zipfileidx != NULL) {
-          if (pkgrem(argv[2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+          if (pkgrem(pkg, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
             zip_freelist(&zipfileidx);
           } else {
-            pkginstall_installpackage(argv[2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+            pkginstall_installpackage(pkg, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
           }
           fclose(zipfilefd);
         }
@@ -700,7 +707,7 @@ int main(int argc, char **argv) {
       freedb(&pkgdb);
     } /* pkgdb != NULL */
   } /* action == ACTION_LISTREP */
-
+  } /* sparky4: end of that huge for loop. This loop manages the packages in the argument list! :D */
   freeconf(repolist, repolistcount, &dirlist);
   QUIT(0);
 }

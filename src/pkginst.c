@@ -12,7 +12,7 @@
 #include <strings.h>   /* strcasecmp() */
 #include <unistd.h>    /* read() */
 #include <sys/types.h> /* struct utimbuf */
-#include <malloc.h>   /* _heapmin() */
+#include <malloc.h>    /* _heapmin() */
 
 #include "crc32.h"     /* all CRC32 related stuff */
 #include "fdnpkg16.h"  /* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
