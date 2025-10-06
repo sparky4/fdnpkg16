@@ -455,14 +455,14 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       if (forceflag < 2) kitten_puts(3, 9, "Error: Package contains a file that already exists locally:");
       printf(" %s\n", fname);
       if (forceflag == 0) {
-        kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
+        kitten_printf(3, 24, "Force install of package? (1 = NO)(2 = YES)");
         puts("");
         for (;;) {
           kitten_printf(3, 4, "Your choice:");
           printf(" ");
           fgets(userchoicestr, 6, stdin);
           userchoice = atoi(userchoicestr);
-          if ((userchoice < 1) || (userchoice >= 3)) {
+          if ((userchoice < 1) || (userchoice >= 3/*forceflag*/)) {
             kitten_puts(3, 5, "Invalid choice!");
           } else {
             break;
@@ -471,7 +471,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         forceflag = userchoice;
       }
     }
-    // if no or 1 is selected
+    // if no is selected
     if (forceflag == 1) {
       zip_freelist(&ziplinkedlist);
       fclose(*zipfd);
