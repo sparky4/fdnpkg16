@@ -26,14 +26,13 @@ rm *.o
 mv fdnpkg16.exe fdnpkg16/BIN/
 mv fdnpkg86.exe fdnpkg16/BIN/
 mv httpget.exe fdnpkg16/BIN/
-mv unzip16.exe fdnpkg16/BIN/
 cp -p *.txt fdnpkg16/DOC/FDNPKG16/
+mkdir fdnpkg16/SOURCE/fdnpkg16
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
+rm -r fdnpkg16/SOURCE/fdnpkg16/src
+mkdir fdnpkg16/SOURCE/fdnpkg16/src
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
-#rsync -avr --delete src/ fdnpkg16/SOURCE/fdnpkg16/src/
-#cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
-cd fdnpkg16
-cd SOURCE/fdnpkg16/src/
+cd fdnpkg16/SOURCE/fdnpkg16/src/
 if [ -e "WATT32" ]; then
   mv WATT32/INC WATT32INC
   mv WATT32/LIB WATT32LIB
@@ -49,7 +48,17 @@ elif [ -e "watt32" ]; then
   mv watt32inc watt32/inc
   mv watt32lib watt32/lib
 fi
-cd ../../../
+cd ../
+#cd ../../../
+#cd fdnpkg16/SOURCE/fdnpkg16/
+rm ../source.zip
+zip -r ../source.zip *
+cd ../../
+#rsync -avr --delete src/ fdnpkg16/SOURCE/fdnpkg16/src/
+#cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
+#pwd
+
+rm -r SOURCE/fdnpkg16
 zip -r ../fdnpkg16.zip *
 cd ..
 mv .temp/* .
