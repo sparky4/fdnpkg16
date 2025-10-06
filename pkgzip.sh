@@ -29,6 +29,8 @@ mv httpget.exe fdnpkg16/BIN/
 mv unzip16.exe fdnpkg16/BIN/
 cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
+rm -r fdnpkg16/SOURCE/fdnpkg16/src
+mkdir fdnpkg16/SOURCE/fdnpkg16/src
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
 #rsync -avr --delete src/ fdnpkg16/SOURCE/fdnpkg16/src/
 #cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
