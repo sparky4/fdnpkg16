@@ -59,14 +59,18 @@
 //unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
 #ifndef USE_EXTERNAL_MTCP
+#define EXECNAME "16"
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */
+#else
+#define EXECNAME "86"
 #endif
 
 static void printhelp(void) {
-  puts("FDNPKG16 v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
+  puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
   puts("");
-  kitten_puts(1, 1, "Usage: FDNPKG16 action [parameters]");
+  kitten_printf(1, 1, "Usage: FDNPKG%s action [parameters]", EXECNAME);
+  puts("");
   puts("");
   kitten_puts(1, 2,  "Where action is one of the following:");
   printf(" search [str]      "); kitten_puts(1, 3,  "- search net repositories for package containing 'string'");
@@ -87,27 +91,32 @@ static void printhelp(void) {
 #ifdef DEBUG
 #if defined(__WATCOMC__)
 #if (__WATCOMC__ >= 1200)
-  printf ("FDNPKG16 is Compiled with OpenWatcom %d.%d\n",
+  printf ("FDNPKG%s is Compiled with OpenWatcom %d.%d\n", EXECNAME,
                   (__WATCOMC__/100) - 11, (__WATCOMC__ % 100) / 10);
 #else
-  printf ("FDNPKG16 is Compiled with Watcom C %d.%d\n", __WATCOMC__/100, __WATCOMC__ % 100);
+  printf ("FDNPKG%s is Compiled with Watcom C %d.%d\n", EXECNAME, __WATCOMC__/100, __WATCOMC__ % 100);
 #endif /* #if (__WATCOMC__ >= 1200) */
 #endif /* #if defined(__WATCOMC__) */
+  puts("");
 #endif /* #ifdef DEBUG */
 #ifndef USE_EXTERNAL_MTCP
-  kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
+  kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
+  puts("");
   puts(wattcpVersion());
 #else
-  kitten_puts(1, 21, "FDNPKG16 is using mTCP");
+  kitten_printf(1, 21, "FDNPKG%s is using mTCP", EXECNAME);
+  puts("");
+  puts("");
 #endif
 }
 
 
 static void printhelpshort(void) {
-  puts("FDNPKG16 v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
+  puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
   puts("");
-  kitten_puts(1, 1, "Usage: FDNPKG16 action [parameters]");
+  kitten_printf(1, 1, "Usage: FDNPKG%s action [parameters]", EXECNAME);
+  puts("");
   puts("");
   kitten_puts(1, 2,  "Where action is one of the following:");
   printf(" se [str]          "); kitten_puts(1, 3,  "- search net repositories for package containing 'string'");
@@ -128,24 +137,28 @@ static void printhelpshort(void) {
 #ifdef DEBUG
 #if defined(__WATCOMC__)
 #if (__WATCOMC__ >= 1200)
-  printf ("FDNPKG16 is Compiled with OpenWatcom %d.%d\n",
+  printf ("FDNPKG%s is Compiled with OpenWatcom %d.%d\n", EXECNAME,
                   (__WATCOMC__/100) - 11, (__WATCOMC__ % 100) / 10);
 #else
-  printf ("FDNPKG16 is Compiled with Watcom C %d.%d\n", __WATCOMC__/100, __WATCOMC__ % 100);
+  printf ("FDNPKG%s is Compiled with Watcom C %d.%d\n", EXECNAME, __WATCOMC__/100, __WATCOMC__ % 100);
 #endif /* #if (__WATCOMC__ >= 1200) */
 #endif /* #if defined(__WATCOMC__) */
+  puts("");
 #endif /* #ifdef DEBUG */
 #ifndef USE_EXTERNAL_MTCP
-  kitten_puts(1, 9, "FDNPKG16 is linked against the Watt-32 version below:");
+  kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
+  puts("");
   puts(wattcpVersion());
 #else
-  kitten_puts(1, 21, "FDNPKG16 is using mTCP");
+  kitten_printf(1, 21, "FDNPKG%s is using mTCP", EXECNAME);
+  puts("");
+  puts("");
 #endif
 }
 
 
 static void printlic(void) {
-  puts("FDNPKG16 v" PVER " - FreeDOS Network Package manager\r\n"
+  puts("FDNPKG" EXECNAME " v" PVER " - FreeDOS Network Package manager\r\n"
        "Copyright (C) " PDATE " Mateusz Viste && Victoria Crenshaw\r\n");
 
   puts("Permission is hereby granted, free of charge, to any person obtaining a copy\r\n"
