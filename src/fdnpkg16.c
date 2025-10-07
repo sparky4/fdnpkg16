@@ -286,21 +286,19 @@ int main(int argc, char **argv) {
     }
   }
 
+  argci = argc;
+
   // sparky4: get the for loop condition numbe ready! :D
   if (argc > 2) {
     argci = argc - 2;
-  } else {
-    argci = argc;
   }
   /* sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D */
   for (i = 0; i < argci; i++) {
 
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg action [param] */
-    if (argc > 2) {
-      if (argv[2] != NULL) {
-        strcpy(pkg, argv[i+2]);
-      }
+    if ((argc > 2) && (argv[2] != NULL)) {
+      strcpy(pkg, argv[i+2]);
     }
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
       if (argc < 3) {
