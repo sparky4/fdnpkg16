@@ -246,8 +246,11 @@ int main(int argc, char **argv) {
   char commandforbatch[512];
 #endif
   int arglen;
+  int argci;
   static char pkg[13];
-  static char argone[14];
+  static char argone[16];
+
+  strcpy(pkg, "");
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -283,24 +286,31 @@ int main(int argc, char **argv) {
     }
   }
 
+  // sparky4: get the for loop condition numbe ready! :D
+  if (argc > 2) {
+    argci = argc - 2;
+  } else {
+    argci = argc;
+  }
   /* sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D */
-  for (i = 0; i < argc; i++) {
-    if (argv[i+2] != NULL) {
-      strcpy(pkg, argv[i+2]);
-      arglen = strlen(pkg);
-    }
+  for (i = 0; i < argci; i++) {
 
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg action [param] */
+    if (argc > 2) {
+      if (argv[2] != NULL) {
+        strcpy(pkg, argv[i+2]);
+      }
+    }
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
-      if (argc < 2) {
+      if (argc < 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
         action = ACTION_SEARCH;
       }
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
-      if (argc < 2) {
+      if (argc < 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
@@ -310,10 +320,11 @@ int main(int argc, char **argv) {
     } else if (((strcasecmp(argone, "install") && strcasecmp(argone, "in")) == 0) || ((strcasecmp(argone, "install-nosrc") && strcasecmp(argone, "in-nosrc")) == 0) || ((strcasecmp(argone, "install-wsrc") && strcasecmp(argone, "in-wsrc")) == 0)) {
       if ((strcasecmp(argone, "install-nosrc") && strcasecmp(argone, "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
       if ((strcasecmp(argone, "install-wsrc") && strcasecmp(argone, "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
-      if (argc < 2) {
+      if (argc < 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
+        arglen = strlen(pkg);
         action = ACTION_INSTALL;
         if (arglen > 4) {
           if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
@@ -322,7 +333,7 @@ int main(int argc, char **argv) {
         }
       }
     } else if ((strcasecmp(argone, "remove") && strcasecmp(argone, "rm")) == 0) {
-      if (argc < 2) {
+      if (argc < 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
       } else {
         pkgrem(pkg, dosdir, mapdrv);
@@ -332,20 +343,21 @@ int main(int argc, char **argv) {
       if (argc >= 3) {
         action = ACTION_UPDATE;
       } else if (argc == 2) {
+        argci--;
         action = ACTION_UPGRADE;
       } else {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       }
     } else if (((strcasecmp(argone, "listlocal") && strcasecmp(argone, "ll")) == 0) || ((strcasecmp(argone, "showinstalled") && strcasecmp(argone, "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
-      if (argc < 2) {
+      if (argc < 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
         action = ACTION_LISTLOCAL;
       }
     } else if ((strcasecmp(argone, "listfiles") && strcasecmp(argone, "lf")) == 0) {
-      if (argc < 2) {
+      if (argc < 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0);
       } else {
@@ -380,7 +392,7 @@ int main(int argc, char **argv) {
         action = ACTION_CLEARCACHE;
       }
     } else if ((strcasecmp(argone, "reinstall") && strcasecmp(argone, "ri")) == 0) {
-      if (argc < 2) {
+      if (argc < 3) {
         kitten_puts(2, 4, "Invalid number of arguments. Run fdnpkg16 without any parameter for help.");
         QUIT(0)
       } else {
@@ -401,7 +413,7 @@ int main(int argc, char **argv) {
       QUIT(0)
     }
   }
-  
+
   /* Dual help! this runs both helps! :D */
   if (action == ACTION_HELP) {
     printhelp();
