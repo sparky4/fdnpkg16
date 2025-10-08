@@ -108,8 +108,6 @@ static void printhelp(void) {
   puts("");
 #endif
 }
-
-
 static void printhelpshort(void) {
   puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
