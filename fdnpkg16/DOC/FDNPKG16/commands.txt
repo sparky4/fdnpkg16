@@ -1,0 +1,14 @@
+commands
+  kitten_puts(1, 3,  " search [string]   - search net repositories for package containing 'string'");
+  kitten_puts(1, 4,  " vsearch [string]  - same as 'search', but prints also source repositories");
+  kitten_puts(1, 5,  " install pkg       - install the package 'pkg' (or local zip file)");
+  kitten_puts(1, 10, " install-nosrc pkg - install the package 'pkg' (or local zip file) w/o sources");
+  kitten_puts(1, 11, " install-wsrc pkg  - install the package 'pkg' (or local zip file) with sources");
+  kitten_puts(1, 6,  " remove pkgname    - remove the package 'pkgname'");
+  kitten_puts(1, 16, " listlocal [str]   - list all local (installed) packages containing 'str'");
+  kitten_puts(1, 18, " listfiles pkg     - list files owned by the package 'pkg'");
+  kitten_puts(1, 13, " checkupdates      - check for available updates of packages and display them");
+  kitten_puts(1, 15, " update [pkg]      - update 'pkg' to last version (or all packages if no arg)");
+  kitten_puts(1, 7,  " dumpcfg           - print out the configuration loaded from the cfg file");
+  kitten_puts(1, 19, " clearcache        - clear FDNPKG16's local cache");
+  kitten_puts(1, 8,  " license           - print out the license of this program");

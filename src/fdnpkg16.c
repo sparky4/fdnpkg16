@@ -55,7 +55,6 @@
 
 /* #define DEBUG */ /* uncomment this to enable debug mode */
 
-
 //unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
 #ifndef USE_EXTERNAL_MTCP
@@ -85,7 +84,7 @@ static void printhelp(void) {
   printf(" checkupdates      "); kitten_puts(1, 13, "- check for available updates of packages and display them");
   printf(" update [pkg]      "); kitten_puts(1, 15, "- update 'pkg' to last version (or all packages if no arg)");
   printf(" dumpcfg           "); kitten_puts(1, 7,  "- print out the configuration loaded from the cfg file");
-  printf(" clearcache        "); kitten_puts(1, 19, "- clear FDNPKG16's local cache");
+  printf(" clearcache        "); kitten_printf(1,19,"- clear FDNPKG%s's local cache", EXECNAME); puts("");
   printf(" license           "); kitten_puts(1, 8,  "- print out the license of this program");
 //  puts("");
 #ifdef DEBUG
@@ -131,7 +130,7 @@ static void printhelpshort(void) {
   printf(" cu                "); kitten_puts(1, 13, "- check for available updates of packages and display them");
   printf(" up [pkg]          "); kitten_puts(1, 15, "- update 'pkg' to last version (or all packages if no arg)");
   printf(" dc                "); kitten_puts(1, 7,  "- print out the configuration loaded from the cfg file");
-  printf(" cc                "); kitten_puts(1, 19, "- clear FDNPKG16's local cache");
+  printf(" cc                "); kitten_printf(1,19,"- clear FDNPKG%s's local cache", EXECNAME); puts("");
   printf(" li                "); kitten_puts(1, 8,  "- print out the license of this program");
 //  puts("");
 #ifdef DEBUG
