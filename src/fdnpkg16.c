@@ -57,6 +57,7 @@
 
 //unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
+// sparky4: just some program naming her for fdnpkg16 and fdnpkg86
 #ifndef USE_EXTERNAL_MTCP
 #define EXECNAME "16"
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */
@@ -72,7 +73,7 @@ static void printhelp(void) {
   puts("");
   puts("");
   kitten_puts(1, 2,  "Where action is one of the following:");
-  printf(" search [str]      "); kitten_puts(1, 3,  "- search net repositories for package containing 'string'");
+  printf(" search [str]      "); kitten_puts(1, 3,  "- search net repositories for package containing 'str'");
   printf(" vsearch [str]     "); kitten_puts(1, 4,  "- same as 'search', but prints also source repositories");
   printf(" install pkg       "); kitten_puts(1, 5,  "- install the package 'pkg' (or local zip file)");
   printf(" install-nosrc pkg "); kitten_puts(1, 10, "- install the package 'pkg' (or local zip file) w/o sources");
@@ -116,7 +117,7 @@ static void printhelpshort(void) {
   puts("");
   puts("");
   kitten_puts(1, 2,  "Where action is one of the following:");
-  printf(" se [str]          "); kitten_puts(1, 3,  "- search net repositories for package containing 'string'");
+  printf(" se [str]          "); kitten_puts(1, 3,  "- search net repositories for package containing 'str'");
   printf(" vs [str]          "); kitten_puts(1, 4,  "- same as 'search', but prints also source repositories");
   printf(" in pkg            "); kitten_puts(1, 5,  "- install the package 'pkg' (or local zip file)");
   printf(" in-nosrc pkg      "); kitten_puts(1, 10, "- install the package 'pkg' (or local zip file) w/o sources");
