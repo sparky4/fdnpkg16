@@ -68,7 +68,7 @@ static void printhelp(void) {
   puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
   puts("");
-  kitten_printf(1, 1, "Usage: FDNPKG%s action [parameters]", EXECNAME);
+  kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
   puts("");
   puts("");
   kitten_puts(1, 2,  "Where action is one of the following:");
@@ -112,7 +112,7 @@ static void printhelpshort(void) {
   puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
   puts("");
-  kitten_printf(1, 1, "Usage: FDNPKG%s action [parameters]", EXECNAME);
+  kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
   puts("");
   puts("");
   kitten_puts(1, 2,  "Where action is one of the following:");
