@@ -4,8 +4,10 @@ if you dont know how to install it in your FreeDOS system. here is the steps
 use mtcp's htget to get it (works on 16 bit systems!)
 
 
+```
 htget -o fdnpkg16.zip http://4ch.su/freedos/fdnpkg16.zip
 fdinst install fdnpkg16.zip
+```
 
 
 Thats it! then you have it!
