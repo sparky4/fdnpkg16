@@ -1,4 +1,4 @@
-#The actual FreeDOS package is the file fdnpkg16.zip
+# The actual FreeDOS package is the file fdnpkg16.zip
 If you dont know how to install it in your FreeDOS system. here is the steps
 use mtcp's htget to get it (works on 16 bit systems!)
 
@@ -16,7 +16,7 @@ Just make sure you configure the repository system in fdnpkg16.cfg in the bin fo
 The program and config file can be placed anywhere. As long as they are together in same location! It supports that now!
 
 
-# The config files included is
+### The config files included is
 
 fdnpkg16.cfg for ibiblio repository
 
@@ -34,6 +34,7 @@ zlib can be compiled with either! :D
 
 
 
+# Stability report so far
 Currently at 0.99.8244 we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
 
 I am awaiting for fdrepo to be updated for fdnpkg16 then i will implement stable features and test it.
