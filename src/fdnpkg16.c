@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
 #endif
   int arglen;
   int argci;
-  static char pkg[13];
+  static char pkg[12];
   static char argone[16];
 
   strcpy(pkg, "");
@@ -281,9 +281,9 @@ int main(int argc, char **argv) {
 
   /* check the available memory and display a warning if too low */
   /* 128k */
-  if (farcoreleft() < ((unsigned long)(131072))) {
+  /*0000if (farcoreleft() < ((unsigned long)(131072))) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
-  }
+  }*/ // sparky4: buggy need to debug gimmie a bit for this
 
   /* Load the list of package repositories */
   repolistcount = loadconf(cfgfile, repolist, MAXREPS, &cfgfilecrc, &maxcachetime, &dirlist, &flags, &proxy, &proxyport, &mapdrv);
