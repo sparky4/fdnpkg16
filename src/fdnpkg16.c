@@ -79,7 +79,7 @@ static void printhelp(void) {
   printf(" install-nosrc pkg "); kitten_puts(1, 10, "- install the package 'pkg' (or local zip file) w/o sources");
   printf(" install-wsrc pkg  "); kitten_puts(1, 11, "- install the package 'pkg' (or local zip file) with sources");
   printf(" reinstall pkg     "); kitten_puts(1, 20, "- reinstall the package 'pkg' (or local zip file)");
-  printf(" remove pkgname    "); kitten_puts(1, 6,  "- remove the package 'pkgname'");
+  printf(" remove pkg    "); kitten_puts(1, 6,  "- remove the package 'pkg'");
   printf(" listlocal [str]   "); kitten_puts(1, 16, "- list all local (installed) packages containing 'str'");
   printf(" listfiles pkg     "); kitten_puts(1, 18, "- list files owned by the package 'pkg'");
   printf(" checkupdates      "); kitten_puts(1, 13, "- check for available updates of packages and display them");
@@ -123,7 +123,7 @@ static void printhelpshort(void) {
   printf(" in-nosrc pkg      "); kitten_puts(1, 10, "- install the package 'pkg' (or local zip file) w/o sources");
   printf(" in-wsrc pkg       "); kitten_puts(1, 11, "- install the package 'pkg' (or local zip file) with sources");
   printf(" ri pkg            "); kitten_puts(1, 20, "- reinstall the package 'pkg' (or local zip file)");
-  printf(" rm pkgname        "); kitten_puts(1, 6,  "- remove the package 'pkgname'");
+  printf(" rm pkg            "); kitten_puts(1, 6,  "- remove the package 'pkg'");
   printf(" ll [str]          "); kitten_puts(1, 16, "- list all local (installed) packages containing 'str'");
   printf(" lf pkg            "); kitten_puts(1, 18, "- list files owned by the package 'pkg'");
   printf(" cu                "); kitten_puts(1, 13, "- check for available updates of packages and display them");
