@@ -52,6 +52,7 @@
 #include "readenv.h"  /* readenv() */
 #include "showinst.h" /* showinstalledpkgs() */
 #include "version.h"
+#include "hc.h"
 
 /* #define DEBUG */ /* uncomment this to enable debug mode */
 
@@ -278,15 +279,17 @@ int main(int argc, char **argv) {
     QUIT(0);
   }
 
-  /* check the available virtual memory and display a warning if too low */
-  /*----if (_go32_dpmi_remaining_virtual_memory() < (3 * 1024 * 1024)) {
-    kitten_puts(2, 17, "WARNING: Virtual memory too low. FDNPKG might behave unreliably.");
-  }*/
+  /* check the available memory and display a warning if too low */
+  /* 128k */
+  if (farcoreleft() < ((unsigned long)(131072))) {
+    kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
+  }
 
   /* Load the list of package repositories */
   repolistcount = loadconf(cfgfile, repolist, MAXREPS, &cfgfilecrc, &maxcachetime, &dirlist, &flags, &proxy, &proxyport, &mapdrv);
   if (repolistcount < 0) return(5);
 
+  // sparky4: check for /
   if (argc > 1) { // Ensure argv[1] exists
     if (argv[1][0] == '/') { // Check if the first character is '/'
       // Option 1: Shift the pointer to effectively remove the first character
@@ -569,7 +572,7 @@ int main(int argc, char **argv) {
       printf("%s -> %s\n", dircursor->name, dircursor->location);
     }
     if (dirlist != NULL) puts("");
-    kitten_puts(2, 8, "The list of configured fdnpkg16 repositories follows:");
+    kitten_printf(2, 8, "The list of configured FDNPKG%s repositories follows:", EXECNAME); puts("");
     for (x = 0; x < repolistcount; x++) puts(repolist[x]);
     puts("");
   } else { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */

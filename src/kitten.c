@@ -88,7 +88,7 @@ char lastcr = 0;		/* for 2byte CR LF sequences     */
 /* DOS handle based file usage */
 
 int
-dos_open (char *filename, int mode)
+dos_open (const char *filename, int mode)
 {
   union REGS r;
   struct SREGS s;
@@ -335,7 +335,7 @@ catread (char *catfile)
 
   /* Get the whole catfile into a buffer and parse it */
 
-  file = open (catfile, O_RDONLY | O_TEXT);
+  file = __open (catfile, O_RDONLY | O_TEXT);
   if (file < 0)
     /* Cannot open the file.  Return failure */
     return 0;

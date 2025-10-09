@@ -56,8 +56,8 @@ extern "C"
 #ifndef _MICROC_
 #ifndef __DJGPP__
 
-  int dos_open (char *filename, int mode);
-#define open(filename,mode) dos_open(filename,mode)
+  int dos_open (const char *filename, int mode);
+#define __open(filename,mode) dos_open(filename,mode)
 
   int dos_read (int file, void *ptr, unsigned count);
 #define read(file, ptr, count) dos_read(file,ptr,count)
