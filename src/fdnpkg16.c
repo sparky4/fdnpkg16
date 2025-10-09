@@ -79,7 +79,7 @@ static void printhelp(void) {
   printf(" install-nosrc pkg "); kitten_puts(1, 10, "- install the package 'pkg' (or local zip file) w/o sources");
   printf(" install-wsrc pkg  "); kitten_puts(1, 11, "- install the package 'pkg' (or local zip file) with sources");
   printf(" reinstall pkg     "); kitten_puts(1, 20, "- reinstall the package 'pkg' (or local zip file)");
-  printf(" remove pkg    "); kitten_puts(1, 6,  "- remove the package 'pkg'");
+  printf(" remove pkg        "); kitten_puts(1, 6,  "- remove the package 'pkg'");
   printf(" listlocal [str]   "); kitten_puts(1, 16, "- list all local (installed) packages containing 'str'");
   printf(" listfiles pkg     "); kitten_puts(1, 18, "- list files owned by the package 'pkg'");
   printf(" checkupdates      "); kitten_puts(1, 13, "- check for available updates of packages and display them");
