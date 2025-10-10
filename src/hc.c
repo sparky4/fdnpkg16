@@ -619,7 +619,7 @@ void HC_CloseDebug()
 }
 
 #ifdef __WATCOMC__
-// from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/#post-1369237
+// from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
 long ncoreleft() {
   static long memoryAvailable;
   int SAMPLE_SIZE = 640;  /* 640 Bytes */
@@ -663,10 +663,10 @@ long ncoreleft() {
 // sparky4: modified by me xD
 long farcoreleft() {
   static long memoryAvailable;
-  int SAMPLE_SIZE = 640;  /* 640 Bytes */
+  int SAMPLE_SIZE = 640;//65534;  /* 640 Bytes */
   void __far * far *memoryBlock; /* Array of pointers */
   int i = 0, j = 0;
-  int maxBlocks = 1000; /* for a max of about 640KB */
+  int maxBlocks = 1024; /* for a max of about 640KB */
 
   _fheapgrow();
   /* Allocate memory for pointers */
@@ -699,4 +699,97 @@ long farcoreleft() {
   _fheapshrink();
   return memoryAvailable;
 }
+
+#if 0
+//sparky4: too many dependancies
+long checkMemoryAvailability() {
+  /* This function allocates as much memory is possible until error occur.
+   * The value of memory available is the sum of all the successful allocations.
+   * This is hardware intense, should be used sparingly.
+   */
+
+  unsigned int memoryChunk = 65534;
+  void __far **memoryBlocks; /* array of pointers */
+  int i = 0;
+  int maxAllocations = 100; /* Max number of allocations (indexes) */
+  void* temp = NULL;
+  int maxBlockCount, blockCount, allocatedBlocks;
+  long memoryAvailable;
+
+  /* For Logging */
+  char memoryString[32];
+
+  maxBlockCount = blockCount = allocatedBlocks = 0;
+
+  /* Log current status */
+//  logCurrentStatus("CHECKING MEMORY AVAILABILITY.");
+
+  /* Make sure enough pointer track elements are available before launching the memory test */
+  if (((maxBlockCount - blockCount) < 100)) { // 100 becasue the memory check will at least allocate 90 chunks in a 640K RAM environment
+    /* Increase buffer capacity */
+    maxBlockCount += 128;
+    /* Attempt to reallocate */
+    temp = realloc(allocatedBlocks, maxBlockCount * sizeof(memoryBlock));
+    if (temp != NULL) {
+      allocatedBlocks = (memoryBlock*)temp;
+    } else {
+          /* Log the error */
+//          logCurrentStatus("ERROR: NOT ENOUGH MEMORY TO ALLOCATE FOR MEMORY TRACKER.");
+    }
+  }
+
+    /* Reset the counter of the memory available */
+  memoryAvailable = 0;
+
+  memoryBlocks = _fmalloc((maxAllocations * sizeof(void *)), 9979); /* Allocate memory for pointers */
+  if (memoryBlocks == NULL) {
+      /* Error */
+      displayError(error18);
+      return 0;
+  }
+
+  /* Initialize memoryBlocks array to NULL */
+  for (i = 0; i < maxAllocations; i++) {
+      memoryBlocks[i] = NULL;
+  }
+
+  /* Allocate as much memory as possible */
+  for (i = 0; memoryChunk > 1 && i < maxAllocations; i++) {
+    memoryBlocks[i] = _fmalloc(memoryChunk, 9978);
+    if (memoryBlocks[i] == NULL) {
+      memoryChunk /= 2;
+      /* Make sure memoryChunk doesn't go below 1Byte */
+      if (memoryChunk <=1) break;
+      i--; /* try again with half memory chunk */
+    } else {
+      memoryAvailable += memoryChunk;
+    }
+  }
+
+  /* Free each allocated block */
+  for (i = 0; i < maxAllocations; i++) {
+    if (memoryBlocks[i] != NULL) {
+      _ffree(memoryBlocks[i]);
+      memoryBlocks[i] = NULL;
+    }
+  }
+
+    /* Free the array of pointers itself */
+  _ffree(memoryBlocks);
+  memoryBlocks = NULL;
+
+  /* Check if memory available is low */
+/*  if (memoryAvailable <= minMemoryAllowed) {
+      displayError(error1);
+  }*/
+
+  /* Log memory available */
+/*  if (logFileFlag) {
+      sprintf(memoryString, "MEMORY AVAILABLE: %ld", memoryAvailable);
+      logCurrentStatus(memoryString);
+  }*/
+
+  return memoryAvailable;
+}
+#endif /* #if 0 */
 #endif
