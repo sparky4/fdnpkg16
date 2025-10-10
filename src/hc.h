@@ -73,8 +73,10 @@ void HC_OpenDebug();
 void HC_CloseDebug();
 
 #ifdef __WATCOMC__
-unsigned long farcoreleft();
-unsigned long coreleft();
+long farcoreleft();
+long coreleft();
+//long ncoreleft();
+//long fcoreleft();
 #endif
 
 #endif /* __16HC__ */

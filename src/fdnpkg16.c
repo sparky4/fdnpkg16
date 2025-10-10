@@ -281,9 +281,16 @@ int main(int argc, char **argv) {
 
   /* check the available memory and display a warning if too low */
   /* 128k */
-  /*0000if (farcoreleft() < ((unsigned long)(131072))) {
+#ifdef DEBUG
+  printf("farcoreleft() == %ld\n", farcoreleft());
+  //printf("ncoreleft() == %ld\n", ncoreleft());
+  //printf("farcoreleft() == %lu    \n", farcoreleft());
+  printf("coreleft() == %u\n", coreleft());
+  getch();
+#endif
+  if (farcoreleft() < ((long)(131072))) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
-  }*/ // sparky4: buggy need to debug gimmie a bit for this
+  } // sparky4: seems to work now with the new farcoreleft function from vfed!
 
   /* Load the list of package repositories */
   repolistcount = loadconf(cfgfile, repolist, MAXREPS, &cfgfilecrc, &maxcachetime, &dirlist, &flags, &proxy, &proxyport, &mapdrv);
