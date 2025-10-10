@@ -457,7 +457,7 @@ int main(int argc, char **argv) {
     char *filterstr = NULL;
     if (argc >= 3) filterstr = pkg;
     showinstalledpkgs(filterstr, dosdir);
-    QUIT(0);
+//----    QUIT(0);
   }
 
   /* listing local files need no special preparation - do it now and quit */
@@ -584,7 +584,7 @@ int main(int argc, char **argv) {
     kitten_printf(2, 8, "The list of configured FDNPKG%s repositories follows:", EXECNAME); puts("");
     for (x = 0; x < repolistcount; x++) puts(repolist[x]);
     puts("");
-  } else { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
+  } else if (action != ACTION_LISTLOCAL) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
     pkgdb = createdb();
     if (pkgdb != NULL) {
       char tempfilegz[512];
