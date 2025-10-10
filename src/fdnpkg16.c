@@ -369,7 +369,7 @@ int main(int argc, char **argv) {
         QUIT(0);
       }
     } else if (((strcasecmp(argone, "listlocal") && strcasecmp(argone, "ll")) == 0) || ((strcasecmp(argone, "showinstalled") && strcasecmp(argone, "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
-      if (argc < 3) {
+      if (argc < 2) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0);
       } else {
@@ -455,7 +455,7 @@ int main(int argc, char **argv) {
   /* listing local packages need no special preparation - do it now and quit */
   if (action == ACTION_LISTLOCAL) {
     char *filterstr = NULL;
-    if (argc == 3) filterstr = pkg;
+    if (argc >= 3) filterstr = pkg;
     showinstalledpkgs(filterstr, dosdir);
     QUIT(0);
   }
