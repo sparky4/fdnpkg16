@@ -362,7 +362,7 @@ int main(int argc, char **argv) {
       if (argc >= 3) {
         action = ACTION_UPDATE;
       } else if (argc == 2) {
-        argci--;
+        argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_UPGRADE;
       } else {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
@@ -387,6 +387,7 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
+        argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_DUMPCFG;
       }
     } else if ((strcasecmp(argone, "license") && strcasecmp(argone, "li")) == 0) {
@@ -401,6 +402,7 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
+        argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_CHECKUPDATES;
       }
     } else if ((strcasecmp(argone, "clearcache") && strcasecmp(argone, "cc")) == 0) {
