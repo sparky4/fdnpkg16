@@ -455,7 +455,7 @@ int main(int argc, char **argv) {
   /* listing local packages need no special preparation - do it now and quit */
   if (action == ACTION_LISTLOCAL) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;
+    if (argc >= 3) filterstr = pkg; else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
     showinstalledpkgs(filterstr, dosdir);
 //----    QUIT(0);  // sparky4: disabled for more than 1 package listings
   }
@@ -518,7 +518,7 @@ int main(int argc, char **argv) {
     zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, pkg, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
     /* if the zip file is ok, remove the old package and install our zip file */
     if (zipfileidx != NULL) {
-      if (pkgrem(pkgname, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+      if (pkgrem(pkgname, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
         zip_freelist(&zipfileidx);
       } else {
         pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
@@ -732,7 +732,7 @@ int main(int argc, char **argv) {
         zipfileidx = pkginstall_preparepackage(pkgdb, pkg, tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
         /* if the zip file is ok, remove the old package and install our zip file */
         if (zipfileidx != NULL) {
-          if (pkgrem(pkg, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+          if (pkgrem(pkg, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
             zip_freelist(&zipfileidx);
           } else {
             pkginstall_installpackage(pkg, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
