@@ -1,2 +1,0 @@
-I NEED 8088/8086 PORT!
-meaning no warnings with the shifting!
