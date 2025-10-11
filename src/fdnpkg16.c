@@ -326,6 +326,7 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
+        argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_SEARCH;
       }
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
@@ -333,6 +334,7 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
+        argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_SEARCH;
         verbosemode = 1;
       }
