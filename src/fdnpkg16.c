@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
         action = ACTION_SEARCH;
       }
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
-      if (argc < 3) {
+      if (argc < 2) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
@@ -687,7 +687,7 @@ int main(int argc, char **argv) {
         }
       }
       if (action == ACTION_SEARCH) { /* for search: iterate through the sorted db, and print out all packages that match the pattern */
-        if (argc == 3) { /* a search term has been provided */
+        if (argc >= 3) { /* a search term has been provided */
           pkgsearch(pkgdb, pkg, verbosemode, repolist);
         } else {
           pkgsearch(pkgdb, NULL, verbosemode, repolist);
