@@ -322,7 +322,7 @@ int main(int argc, char **argv) {
       strcpy(pkg, argv[i+2]);
     }
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
-      if (argc < 3) {
+      if (argc < 2) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
