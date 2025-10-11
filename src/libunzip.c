@@ -21,6 +21,7 @@
 #include "kprintf.h"
 #include "parsecmd.h"
 #ifndef NOLZMA
+  #define _LZMA_UINT32_IS_ULONG
   #include "lzmadec.h"   /* LZMA support */
 #endif
 #include "inf.h"   /* DEFLATE support */

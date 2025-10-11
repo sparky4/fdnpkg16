@@ -259,8 +259,8 @@ int main(int argc, char **argv) {
 #endif
   int arglen;
   int argci;
-  static char pkg[12];
-  static char argone[16];
+  static char pkg[13];  // sparky4: long enough for 8+.+3+\0 long filenames
+  static char argone[18];  // sparky4: this gotta be long enough for the commands
 
   strcpy(pkg, "");
 
@@ -435,7 +435,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  /* Dual help! this runs both helps! :D */
+  /* sparky4: Dual help! this runs both helps! :D */
   if (action == ACTION_HELP) {
     printhelp();
     printf("Press any key but Q to continue...\n");
@@ -457,7 +457,7 @@ int main(int argc, char **argv) {
     char *filterstr = NULL;
     if (argc >= 3) filterstr = pkg;
     showinstalledpkgs(filterstr, dosdir);
-//----    QUIT(0);
+//----    QUIT(0);  // sparky4: disabled for more than 1 package listings
   }
 
   /* listing local files need no special preparation - do it now and quit */

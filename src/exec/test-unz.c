@@ -5,14 +5,15 @@
  * Test program for libunzip.
  */
 
-#include <dpmi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>     /* ctime() */
 #include "crc32.h"
 #include "libunzip.h"
-#include "lzmadec.h"
+#ifndef NOLZMA
+  #include "lzmadec.h"
+#endif
 
 //----unsigned _stklen = 1048576; /* we want 1M of stack space */
 
@@ -23,7 +24,7 @@ int main(int argc, char **argv) {
   int filescount = 0;
   FILE *fd;
 
-  printf("Available physical mem: %lu KiB\nAvailable virtual mem: %lu KiB\n\n", _go32_dpmi_remaining_physical_memory() / 1024, _go32_dpmi_remaining_virtual_memory() / 1024);
+//----  printf("Available physical mem: %lu KiB\nAvailable virtual mem: %lu KiB\n\n", _go32_dpmi_remaining_physical_memory() / 1024, _go32_dpmi_remaining_virtual_memory() / 1024);
 
   if (argc != 2) {
     puts("Usage: test-unz file.zip");
