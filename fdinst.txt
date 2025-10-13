@@ -1,4 +1,4 @@
-
+sparky4: THIS IS ALSO OUTDATED I NEED TO UPDATE THIS
                FDINST - minimalistic FreeDOS package installer
                     Copyright (C) 2015-2019 Mateusz Viste
 

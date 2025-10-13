@@ -38,8 +38,8 @@ if [ -e "WATT32" ]; then
   mv WATT32/LIB WATT32LIB
   rm -rf WATT32
   mkdir watt32
-  mv WATT32INC watt32/INC
-  mv WATT32LIB watt32/LIB
+  mv WATT32INC watt32/inc
+  mv WATT32LIB watt32/lib
 elif [ -e "watt32" ]; then
   mv watt32/inc watt32inc
   mv watt32/lib watt32lib
@@ -51,8 +51,8 @@ fi
 cd ../
 #cd ../../../
 #cd fdnpkg16/SOURCE/fdnpkg16/
-rm ../source.zip
-zip -r ../source.zip *
+rm ../fdnpkg16.zip
+zip -r ../fdnpkg16.zip *
 cd ../../
 #rsync -avr --delete src/ fdnpkg16/SOURCE/fdnpkg16/src/
 #cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/

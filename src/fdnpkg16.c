@@ -320,13 +320,12 @@ int main(int argc, char **argv) {
   if (argc > 1) { /* fdnpkg action [param] */
     if ((argc > 2) && (argv[2] != NULL)) {
       strcpy(pkg, argv[i+2]);
-    }
+    } else if (argc == 2) argci--; // sparky4: bug fix to prevent looping twice for these functions
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
       //if (argc < 2) {
       //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
       //  QUIT(0)
       //} else {
-        if (argc == 2) argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_SEARCH;
       //}
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
@@ -334,7 +333,6 @@ int main(int argc, char **argv) {
       //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
       //  QUIT(0)
       //} else {
-        if (argc == 2) argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_SEARCH;
         verbosemode = 1;
       //}
@@ -365,7 +363,6 @@ int main(int argc, char **argv) {
       if (argc >= 3) {
         action = ACTION_UPDATE;
       } else if (argc == 2) {
-        argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_UPGRADE;
       } else {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
@@ -390,7 +387,6 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
-        argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_DUMPCFG;
       }
     } else if ((strcasecmp(argone, "license") && strcasecmp(argone, "li")) == 0) {
@@ -405,7 +401,6 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
-        argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_CHECKUPDATES;
       }
     } else if ((strcasecmp(argone, "clearcache") && strcasecmp(argone, "cc")) == 0) {
@@ -436,7 +431,7 @@ int main(int argc, char **argv) {
       printf("‚Û‚¢I‚—");
       QUIT(0)
     } else if ((strcasecmp(argone, "fcl")) == 0) {
-      printf("farcoreleft() == %ld\n", farcoreleft());
+      printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
       QUIT(0)
     }
   }
@@ -461,7 +456,7 @@ int main(int argc, char **argv) {
   /* listing local packages need no special preparation - do it now and quit */
   if (action == ACTION_LISTLOCAL) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg; else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = pkg;// else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
     showinstalledpkgs(filterstr, dosdir);
 //----    QUIT(0);  // sparky4: disabled for more than 1 package listings
   }
@@ -469,7 +464,7 @@ int main(int argc, char **argv) {
   /* listing local files need no special preparation - do it now and quit */
   if (action == ACTION_LISTFILES) {
     listfilesofpkg(pkg, dosdir);
-    QUIT(0);
+//----    QUIT(0);  // sparky4: disabled for more than 1 package listings
   }
 
   /* if we install from a local file, do it and quit */
@@ -498,7 +493,7 @@ int main(int argc, char **argv) {
       fclose(zipfilefd);
     }
 
-    QUIT(0)
+//----    QUIT(0)  // sparky4: disabled for more than 1 package listings
   }
 
   /* sparky4: Reinstall a local file! */
@@ -531,7 +526,7 @@ int main(int argc, char **argv) {
       }
       fclose(zipfilefd);
     }
-    QUIT(0)
+//----    QUIT(0)  // sparky4: disabled for more than 1 package listings
   }
 
   /* clear cache? */
@@ -590,7 +585,7 @@ int main(int argc, char **argv) {
     kitten_printf(2, 8, "The list of configured FDNPKG%s repositories follows:", EXECNAME); puts("");
     for (x = 0; x < repolistcount; x++) puts(repolist[x]);
     puts("");
-  } else if ((action != ACTION_LISTLOCAL) && (action != ACTION_REMOVE)) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
+  } else if ((action != ACTION_LISTLOCAL) && (action != ACTION_REMOVE) && (action != ACTION_LISTFILES) && (action != ACTION_REINSTALL_LOCALFILE) && (action != ACTION_INSTALL_LOCALFILE)) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
     pkgdb = createdb();
     if (pkgdb != NULL) {
       char tempfilegz[512];

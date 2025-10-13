@@ -2,6 +2,21 @@
 * FDNPKG16 history file *
 
 
+FDNPKG16 v0.99.8248c [13 Oct 2025]
+ - [nfo] many changes since the last 2 weeks
+ - [new] You can now manipulate multiple packages! (install reinstall remove update)
+ - [new] Added QoL short commands
+ - [new] added reinstall feature!
+ - [new] added ability to reinstall local packages
+ - [new] The cfg file now needs to be in same dir as program instead of being in a hard coded place like %DOSDIR%\bin\
+ - [new] added force install feature!
+ - [new] international support added back!
+ - [fix] updated translations and got them going!
+ - [new] polished and reimplemented the memory detection function for reliability reasons
+ - [new] added back lzma support!
+ - [new] force package installation prompt added!
+ - [fix] TONS of bug fixes that where introduced.
+
 FDNPKG16 v0.99.8 [01 Oct 2025]
  - [nfo] sparky4 (victoria crenshaw) picked up the project for FreeDOS
  - [new] renamed project to FDNPKG16 for 16 bit emphasis.
