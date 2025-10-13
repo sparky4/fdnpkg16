@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
   }
 
   /* check the available memory and display a warning if too low */
-  /* 128k */
+  /* 192k */
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
   //printf("ncoreleft() == %ld\n", ncoreleft());
@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
   if (argc > 1) { /* fdnpkg action [param] */
     if ((argc > 2) && (argv[2] != NULL)) {
       strcpy(pkg, argv[i+2]);
-    } else if (argc == 2) argci--; // sparky4: bug fix to prevent looping twice for these functions
+    } else argci--; // sparky4: bug fix to prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
       //if (argc < 2) {
       //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
