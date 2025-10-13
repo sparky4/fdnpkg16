@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
   printf("coreleft() == %u\n", coreleft());
   getch();
 #endif
-  if (farcoreleft() < ((long)(131072))) {
+  if (farcoreleft() < 196608L) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
   } // sparky4: seems to work now with the new farcoreleft function from vfed!
 
@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
       //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
       //  QUIT(0)
       //} else {
-        argci--; // sparky4: bug fix to prevent looping twice for these functions
+        if (argc == 2) argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_SEARCH;
       //}
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
@@ -334,7 +334,7 @@ int main(int argc, char **argv) {
       //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
       //  QUIT(0)
       //} else {
-        argci--; // sparky4: bug fix to prevent looping twice for these functions
+        if (argc == 2) argci--; // sparky4: bug fix to prevent looping twice for these functions
         action = ACTION_SEARCH;
         verbosemode = 1;
       //}
@@ -357,9 +357,10 @@ int main(int argc, char **argv) {
       if (argc < 3) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
       } else {
+        action = ACTION_REMOVE;
         pkgrem(pkg, dosdir, mapdrv);
       }
-      QUIT(0);
+//----      QUIT(0);  // sparky4: this is a loop now so we can do this now! :D
     } else if ((strcasecmp(argone, "update") && strcasecmp(argone, "up")) == 0) {
       if (argc >= 3) {
         action = ACTION_UPDATE;
@@ -434,13 +435,16 @@ int main(int argc, char **argv) {
     } else if ((strcasecmp(argone, "poi")) == 0) {
       printf("Ç€Ç¢ÅIÇó");
       QUIT(0)
+    } else if ((strcasecmp(argone, "fcl")) == 0) {
+      printf("farcoreleft() == %ld\n", farcoreleft());
+      QUIT(0)
     }
   }
 
   /* sparky4: Dual help! this runs both helps! :D */
   if (action == ACTION_HELP) {
     printhelp();
-    printf("Press any key but Q to continue...\n");
+    kitten_puts(2, 21, "Press any key but Q to continue...");
     while ((y = getch()) == 'q') { QUIT(0) }
     printhelpshort();
     puts("");
@@ -586,7 +590,7 @@ int main(int argc, char **argv) {
     kitten_printf(2, 8, "The list of configured FDNPKG%s repositories follows:", EXECNAME); puts("");
     for (x = 0; x < repolistcount; x++) puts(repolist[x]);
     puts("");
-  } else if (action != ACTION_LISTLOCAL) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
+  } else if ((action != ACTION_LISTLOCAL) && (action != ACTION_REMOVE)) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
     pkgdb = createdb();
     if (pkgdb != NULL) {
       char tempfilegz[512];
@@ -595,7 +599,8 @@ int main(int argc, char **argv) {
       int ungzres;
       sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
       if (loaddb_fromcache(pkgdb, tempfile, cfgfilecrc, maxcachetime) == 0) { /* load db from cache (if not older than 2h) */
-        kitten_puts(2, 13, "Package database loaded from local cache.");
+        // sparky4: I added this ==== line so the user know the loop is going on! :D and not have to be spammed with the kitten message below.
+        if (i == 0) kitten_puts(2, 13, "Package database loaded from local cache."); else puts("========================================");
       } else {
         freedb(&pkgdb);      /* recreate the db from scratch, because after */
         pkgdb = createdb();  /* a cache attempt it might contain garbage */
