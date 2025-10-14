@@ -307,20 +307,17 @@ int main(int argc, char **argv) {
     }
   }
 
+  // sparky4: for now initiate this variable as the same value as argc we will change it later
   argci = argc;
 
-  // sparky4: get the for loop condition numbe ready! :D
-  if (argc > 2) {
-    argci = argc - 2;
-  }
   /* sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D */
   for (i = 0; i < argci; i++) {
-
   /* parse cli parameters */
-  if (argc > 1) { /* fdnpkg action [param] */
-    if ((argc > 2) && (argv[2] != NULL)) {
-      strcpy(pkg, argv[i+2]);
-    } else argci--; // sparky4: bug fix to prevent looping twice for these functions (this only happens if argc == 2)
+  if (argc > 1) { /* fdnpkg16 action [param] */
+    if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
+      argci = argc - 2;  // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
+      strcpy(pkg, argv[i+2]);  // sparky4: this is to remove the program name and action from the argument list
+    } else argci--;  // sparky4: bug fix to prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
       //if (argc < 2) {
       //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
