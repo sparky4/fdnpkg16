@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
     if (argv[1][0] == '/') { // Check if the first character is '/'
       // Option 1: Shift the pointer to effectively remove the first character
       // This modifies what argone points to, but not the underlying string data
-      strcpy(argone, argv[1]++);
+      strcpy(argone, (++argv[1]));
     } else {
       strcpy(argone, argv[1]);
     }
