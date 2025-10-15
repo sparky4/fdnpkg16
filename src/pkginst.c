@@ -309,6 +309,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
         if (htgetres > 0) break;
         #ifndef USE_EXTERNAL_MTCP
+        _fheapmin();
+        _fheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
         htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
         //      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
         #else
@@ -341,12 +343,12 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       }
       #ifndef USE_EXTERNAL_MTCP
       if (htgetres <= 0) {
-        #else
-        if (htgetres != 21) {
-          #endif
-          kitten_puts(3, 7, "Error downloading package. Aborted.");
-          return(NULL);
-        }
+      #else
+      if (htgetres != 21) {
+      #endif
+        kitten_puts(3, 7, "Error downloading package. Aborted.");
+        return(NULL);
+      }
         puts("ok"); // just let the user know the file was downloaded and installed
       } else { /* else it's an on-disk repo, so we can use the package right from there */
         sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
@@ -452,8 +454,10 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     strcat(fname, shortfile);
     if ((findfileinlist(flist, fname) == NULL) && (fileexists(fname) != 0)) {
       char userchoicestr[8];
-      if (forceflag < 2) kitten_puts(3, 9, "Error: Package contains a file that already exists locally:");
-      printf(" %s\n", fname);
+      if (forceflag < 2) {
+        kitten_puts(3, 9, "Error: Package contains a file that already exists locally:");
+        printf(" %s\n", fname);
+      }
       if (forceflag == 0) {
         kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
         puts("");

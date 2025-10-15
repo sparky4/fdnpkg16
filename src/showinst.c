@@ -170,9 +170,10 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
                 /* ooops, package removal failed... */
                 zip_freelist(&zipfileidx);
               } else {  /* pkgrem == 0 */
-                pkginstall_installpackage(packagelist[x], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
-                packages_updated += 1;
-                packages_updatefailed -= 1; /* decrement the updatefailed counter to leverage the fact we incremented it without reason earlier */
+                if (pkginstall_installpackage(packagelist[x], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv) == 0) {  // sparky4: no errors returned
+                  packages_updated += 1;
+                  packages_updatefailed -= 1; /* decrement the updatefailed counter to leverage the fact we incremented it without reason earlier */
+                }
               }
               fclose(zipfilefd);
             }

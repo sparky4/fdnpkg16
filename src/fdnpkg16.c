@@ -620,6 +620,8 @@ int main(int argc, char **argv) {
               #endif
               #ifndef USE_EXTERNAL_MTCP
               if (htgetres > 0) break;
+              _fheapmin();
+              _fheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
               htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
               #else
               if (htgetres == 21) break;
