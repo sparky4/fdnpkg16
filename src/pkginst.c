@@ -514,7 +514,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 
 /* install a package that has been prepared already. returns 0 on success,
  * or a negative value on error, or a positive value on warning */
-int pkginstall_installpackage(char *pkgname, char *dosdir, struct customdirs *dirlist, struct ziplist *ziplinkedlist, FILE *zipfd, char *mapdrv) {
+long pkginstall_installpackage(char *pkgname, char *dosdir, struct customdirs *dirlist, struct ziplist *ziplinkedlist, FILE *zipfd, char *mapdrv) {
   char *buff;
   char *fulldestfilename;
   char packageslst[64];
