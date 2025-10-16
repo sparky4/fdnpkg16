@@ -67,7 +67,7 @@ extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 #endif
 
 static void printhelp(void) {
-  puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
+  puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
   puts("");
   kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
@@ -111,7 +111,7 @@ static void printhelp(void) {
 #endif
 }
 static void printhelpshort(void) {
-  puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste && Victoria Crenshaw");
+  puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
   puts("");
   kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
@@ -158,7 +158,7 @@ static void printhelpshort(void) {
 
 static void printlic(void) {
   puts("FDNPKG" EXECNAME " v" PVER " - FreeDOS Network Package manager\r\n"
-       "Copyright (C) " PDATE " Mateusz Viste && Victoria Crenshaw\r\n");
+       "Copyright (C) " PDATE " Mateusz Viste & Victoria Crenshaw\r\n");
 
   puts("Permission is hereby granted, free of charge, to any person obtaining a copy\r\n"
        "of this software and associated documentation files (the \"Software\"), to deal\r\n"
