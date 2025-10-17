@@ -259,8 +259,8 @@ int main(int argc, char **argv) {
 #endif
   int arglen;
   int argci;
-  static char pkg[13];  // sparky4: long enough for 8+.+3+\0 long filenames
-  static char argone[18];  // sparky4: this gotta be long enough for the commands
+  char pkg[13];  // sparky4: long enough for 8+.+3+\0 long filenames
+  char argone[18];  // sparky4: this gotta be long enough for the commands
 
   strcpy(pkg, "");
 
@@ -544,8 +544,8 @@ int main(int argc, char **argv) {
     QUIT(0)
   }
 
-  /* sparky4: check arg2 for a . if ther eis one in existance then skip networking initiation */
-  if (!((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i'))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+  /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
+  if ((!((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i'))) && (action != ACTION_REMOVE)) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
     /* if there is at least one online repo, init the Watt32 stack */
     for (x = 0; x < repolistcount; x++) {
       if (detect_localpath(repolist[x]) == 0) {
@@ -564,6 +564,7 @@ int main(int argc, char **argv) {
           kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
           QUIT(0)
         }
+        puts("");
         break;
       }
     }
@@ -654,8 +655,8 @@ int main(int argc, char **argv) {
           }
           #ifndef USE_EXTERNAL_MTCP
           if (htgetres <= 0) {
-            #else
-            if (htgetres != 21) {
+          #else
+          if (htgetres != 21) {
               #endif
               kitten_puts(2, 10, "Repository download failed!");
               #ifndef ERRCACHE
@@ -678,7 +679,7 @@ int main(int argc, char **argv) {
               printf("\n%s\n", dbmsg);
               free(dbmsg);
             }
-            if (htgetres > 0) puts("ok"); // just let the user know the file was downloaded and installed
+            if (htgetres > 0) puts("ok");  // sparky4: just let the user know the file was downloaded and installed
           }
         }
         /* save results into the (new) cache file db */

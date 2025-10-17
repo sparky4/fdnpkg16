@@ -21,6 +21,7 @@ cp -rp fdpget.bat fdnpkg16/BIN/
 cp -rp fdnpkg16.cfg fdnpkg16/BIN/
 cp -rp fdnpkg16.oem fdnpkg16/BIN/
 cp -rp fdnpkg16.4 fdnpkg16/BIN/
+cp -rp fdnpkg16.ico fdnpkg16/BIN/
 . ./build.sh
 rm *.o
 mv fdnpkg16.exe fdnpkg16/BIN/
