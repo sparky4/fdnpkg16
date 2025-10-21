@@ -572,10 +572,9 @@ int main(int argc, char **argv) {
           QUIT(0)
         }
         puts("");
-        // sparky4: this define is here for SLOW OLD LAPTOPS! XD
-#ifndef USE_EXTERNAL_MTCP
+//#ifndef USE_EXTERNAL_MTCP
         net_initflag = 1;
-#endif
+//#endif
         break;
       }
     }
