@@ -10,3 +10,8 @@ cant seem to update when there is an update...
         try the reinstall command
     actual solution: we will use modification date to determine this! :D but
             this requires collab help! <3
+
+cant seem to get fdnpkg16 to work on a system with lower ram
+    cant run fdnpkg16 on a system with less ram than 480kb avalible
+        try fdnpkg86 and if that dont work try to maximize your ram for fdnpkg86 to work
+    actual solution: i need to make the program smaller there is alot of unused stuff

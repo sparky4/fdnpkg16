@@ -309,12 +309,15 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
         if (htgetres > 0) break;
         #ifndef USE_EXTERNAL_MTCP
-        _fheapmin();
-        _fheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+        _nheapgrow();
+        _fheapgrow();
         htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
+        _fheapshrink();
+        _nheapshrink();
         //      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
         #else
         sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
+        //sprintf(command, "@echo off\nhttpget %s %s", fname, zipfile);
 
         proxy = downloadingstring = NULL;
         proxyport = 8080;
@@ -327,8 +330,10 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         } else {
           fprintf(batch_file, "%s", command);
           fclose(batch_file);
-          _heapmin();
-          _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+          _nheapmin();
+          //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+          _fheapmin();
+          //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
           htgetres = system(commandforbatch);
         }
         #endif /* #ifndef USE_EXTERNAL_MTCP */

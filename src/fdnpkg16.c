@@ -54,7 +54,7 @@
 #include "version.h"
 #include "hc.h"
 
-/* #define DEBUG */ /* uncomment this to enable debug mode */
+//#define DEBUG  /* uncomment this to enable debug mode */
 
 //unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
@@ -261,6 +261,7 @@ int main(int argc, char **argv) {
   int argci;
   char pkg[13];  // sparky4: long enough for 8+.+3+\0 long filenames
   char argone[18];  // sparky4: this gotta be long enough for the commands
+  int net_initflag = 0;
 
   strcpy(pkg, "");
 
@@ -286,7 +287,7 @@ int main(int argc, char **argv) {
   //printf("ncoreleft() == %ld\n", ncoreleft());
   //printf("farcoreleft() == %lu    \n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
-  getch();
+  //getch();
 #endif
   if (farcoreleft() < 196608L) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
@@ -345,6 +346,7 @@ int main(int argc, char **argv) {
         if (arglen > 4) {
           if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
             action = ACTION_INSTALL_LOCALFILE;
+            net_initflag = 1;
           }
         }
       }
@@ -354,6 +356,7 @@ int main(int argc, char **argv) {
       } else {
         action = ACTION_REMOVE;
         pkgrem(pkg, dosdir, mapdrv);
+        net_initflag = 1;
       }
 //----      QUIT(0);  // sparky4: this is a loop now so we can do this now! :D
     } else if ((strcasecmp(argone, "update") && strcasecmp(argone, "up")) == 0) {
@@ -371,6 +374,7 @@ int main(int argc, char **argv) {
       //  QUIT(0);
       //} else {
         action = ACTION_LISTLOCAL;
+        net_initflag = 1;
       //}
     } else if ((strcasecmp(argone, "listfiles") && strcasecmp(argone, "lf")) == 0) {
       if (argc < 3) {
@@ -385,6 +389,7 @@ int main(int argc, char **argv) {
         QUIT(0)
       } else {
         action = ACTION_DUMPCFG;
+        net_initflag = 1;
       }
     } else if ((strcasecmp(argone, "license") && strcasecmp(argone, "li")) == 0) {
       if (argc != 2) {
@@ -406,6 +411,7 @@ int main(int argc, char **argv) {
         QUIT(0)
       } else {
         action = ACTION_CLEARCACHE;
+        net_initflag = 1;
       }
     } else if ((strcasecmp(argone, "reinstall") && strcasecmp(argone, "ri")) == 0) {
       if (argc < 3) {
@@ -417,6 +423,7 @@ int main(int argc, char **argv) {
         if (arglen > 4) {
           if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
             action = ACTION_REINSTALL_LOCALFILE;
+            net_initflag = 1;
           }
         }
       }
@@ -545,7 +552,7 @@ int main(int argc, char **argv) {
   }
 
   /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
-  if ((!((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i'))) && (action != ACTION_REMOVE)) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+  if ((!((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i'))) && (net_initflag == 0)) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
     /* if there is at least one online repo, init the Watt32 stack */
     for (x = 0; x < repolistcount; x++) {
       if (detect_localpath(repolist[x]) == 0) {
@@ -565,6 +572,10 @@ int main(int argc, char **argv) {
           QUIT(0)
         }
         puts("");
+        // sparky4: this define is here for SLOW OLD LAPTOPS! XD
+#ifndef USE_EXTERNAL_MTCP
+        net_initflag = 1;
+#endif
         break;
       }
     }
@@ -613,6 +624,7 @@ int main(int argc, char **argv) {
             htgetres = 0;
             #ifdef USE_EXTERNAL_MTCP
             sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
+            //sprintf(command, "@echo off\nhttpget %s %s", repoindex, tempfilegz);
             #endif
             for (y = 0; y < MAXINDEXRETRIES; y++) {
               sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
@@ -621,9 +633,15 @@ int main(int argc, char **argv) {
               #endif
               #ifndef USE_EXTERNAL_MTCP
               if (htgetres > 0) break;
-              _fheapmin();
-              _fheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+              //_nheapmin();
+              //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+              //_fheapmin();
+              //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
+              _nheapgrow();
+              _fheapgrow();
               htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
+              _fheapshrink();
+              _nheapshrink();
               #else
               if (htgetres == 21) break;
               // lets try this
@@ -635,8 +653,10 @@ int main(int argc, char **argv) {
               } else {
                 fprintf(batch_file, "%s", command);
                 fclose(batch_file);
-                _heapmin();
-                _heapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+                _nheapmin();
+                //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+                _fheapmin();
+                //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
                 htgetres = system(commandforbatch);
               }
               #endif
