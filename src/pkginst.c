@@ -16,7 +16,7 @@
 
 #include "crc32.h"     /* all CRC32 related stuff */
 #include "fdnpkg16.h"  /* PKGINST_NOSOURCE, PKGINST_SKIPLINKS... */
-#ifndef USE_EXTERNAL_MTCP
+#ifdef USE_INTERNAL_WATTCP
 #include "http.h"
 #endif
 #include "helpers.h"   /* slash2backslash(), strtolower() */
@@ -26,6 +26,13 @@
 #include "showinst.h"  /* pkg_loadflist() */
 #include "pkginst.h"   /* include self for control */
 #include "version.h"
+
+
+//#define DEBUG_MEM  // uncomment this to enable debug mode of ram
+#ifdef DEBUG_MEM
+//#include <conio.h>
+#include "hc.h"
+#endif
 
 
 /* return 1 if fname looks like a link filename, 0 otherwise */
@@ -218,7 +225,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     unsigned char *buff;
     int buffreadres;
     char *pkgext; /* zip or zib */
-#ifdef USE_EXTERNAL_MTCP
+#ifndef USE_INTERNAL_WATTCP
     char command[512];
     FILE *batch_file;
     char commandforbatch[512];
@@ -304,20 +311,41 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       sprintf(zipfile, "%s\\fdnpkg16.tmp", tempdir);
       kitten_printf(3, 6, "Downloading package %s...", fname);
       puts("");
-      htgetres = 0;
+//      htgetres = 0;
+      htgetres = -1;
       for (y = 0; y < MAXINDEXRETRIES; y++) {
         sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
-        if (htgetres > 0) break;
-        #ifndef USE_EXTERNAL_MTCP
+//        if (htgetres > 0) break;
+        if (htgetres == 0) break;
+        #ifdef USE_INTERNAL_WATTCP
+#ifdef DEBUG_MEM
+        printf("farcoreleft() == %ld\n", farcoreleft());
+        printf("coreleft() == %u\n", coreleft());
+#endif
         _nheapgrow();
         _fheapgrow();
+#ifdef DEBUG_MEM
+        printf("farcoreleft() == %ld\n", farcoreleft());
+        printf("coreleft() == %u\n", coreleft());
+#endif
         htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
+#ifdef DEBUG_MEM
+        printf("farcoreleft() == %ld\n", farcoreleft());
+        printf("coreleft() == %u\n", coreleft());
+#endif
         _fheapshrink();
         _nheapshrink();
+#ifdef DEBUG_MEM
+        printf("farcoreleft() == %ld\n", farcoreleft());
+        printf("coreleft() == %u\n", coreleft());
+#endif
         //      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
         #else
+        #ifdef USE_MTCP
         sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
-        //sprintf(command, "@echo off\nhttpget %s %s", fname, zipfile);
+        #else
+        sprintf(command, "@echo off\nhttpget %s %s", fname, zipfile);
+        #endif
 
         proxy = downloadingstring = NULL;
         proxyport = 8080;
@@ -336,21 +364,22 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
           //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
           htgetres = system(commandforbatch);
         }
-        #endif /* #ifndef USE_EXTERNAL_MTCP */
+        #endif /* #ifdef USE_INTERNAL_WATTCP */
         #ifdef DEBUG
         printf("htgetres returned: %ld\n", htgetres);
         #endif
-        #ifndef USE_EXTERNAL_MTCP
-        if (htgetres <= 0) putchar('.');
-        #else
-        if (htgetres != 21) putchar('.');
-        #endif
+//        #ifdef USE_INTERNAL_WATTCP
+//        if (htgetres <= 0) putchar('.');
+//        #else
+//        if (htgetres != 21) putchar('.');
+//        #endif
       }
-      #ifndef USE_EXTERNAL_MTCP
-      if (htgetres <= 0) {
-      #else
-      if (htgetres != 21) {
-      #endif
+//      #ifdef USE_INTERNAL_WATTCP
+//      if (htgetres <= 0) {
+//      #else
+//      if (htgetres != 21) {
+//      #endif
+      if (htgetres != 0) {
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }
@@ -382,6 +411,11 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       return(NULL);
     }
   } /* if (zipfile[0] == 0) */
+#endif
+
+#ifdef DEBUG_MEM
+  printf("farcoreleft() == %ld\n", farcoreleft());
+  printf("coreleft() == %u\n", coreleft());
 #endif
 
   /* Now let's check the content of the zip file */

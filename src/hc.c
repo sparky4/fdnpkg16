@@ -27,7 +27,7 @@
 #include <malloc.h>
 
 int heaphandle;
-unsigned char heapdumpfilename[13];
+unsigned char heapdumpfilename[12];
 
 void printmeminfoline(unsigned char *strc, const unsigned char *pee, size_t h_total, size_t h_used, size_t h_free)
 {

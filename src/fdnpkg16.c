@@ -34,7 +34,7 @@
 
 #include "fdnpkg16.h" /* this file */
 #include "helpers.h"  /* various helper functions */
-#ifndef USE_EXTERNAL_MTCP
+#ifdef USE_INTERNAL_WATTCP
 #include "http.h"     /* http_get() */
 #endif
 #include "kitten.h"   /* required for kitten subsystem */
@@ -42,7 +42,7 @@
 #include "libgz.h"    /* ungz() */
 #include "libunzip.h" /* zip_freelist()... */
 #include "loadconf.h" /* loadconf() */
-#ifndef USE_EXTERNAL_MTCP
+#ifdef USE_INTERNAL_WATTCP
 #include "net.h"      /* net_init() */
 #endif
 #include "pkgdb.h"    /* createdb(), findpkg()... */
@@ -59,11 +59,11 @@
 //unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
 // sparky4: just some program naming her for fdnpkg16 and fdnpkg86
-#ifndef USE_EXTERNAL_MTCP
-#define EXECNAME "16"
+#ifdef USE_INTERNAL_WATTCP
+#define EXECNAME "86"
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 #else
-#define EXECNAME "86"
+#define EXECNAME "16"
 #endif
 
 static void printhelp(void) {
@@ -100,12 +100,12 @@ static void printhelp(void) {
 #endif /* #if defined(__WATCOMC__) */
   puts("");
 #endif /* #ifdef DEBUG */
-#ifndef USE_EXTERNAL_MTCP
+#ifdef USE_INTERNAL_WATTCP
   kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
   puts("");
   puts(wattcpVersion());
 #else
-  kitten_printf(1, 21, "FDNPKG%s is using mTCP", EXECNAME);
+  puts("");//  kitten_printf(1, 21, "FDNPKG%s is using mTCP", EXECNAME);
   puts("");
   puts("");
 #endif
@@ -144,12 +144,12 @@ static void printhelpshort(void) {
 #endif /* #if defined(__WATCOMC__) */
   puts("");
 #endif /* #ifdef DEBUG */
-#ifndef USE_EXTERNAL_MTCP
+#ifdef USE_INTERNAL_WATTCP
   kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
   puts("");
   puts(wattcpVersion());
 #else
-  kitten_printf(1, 21, "FDNPKG%s is using mTCP", EXECNAME);
+  puts("");//  kitten_printf(1, 21, "FDNPKG%s is using mTCP", EXECNAME);
   puts("");
   puts("");
 #endif
@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
   int netinitres;
-#ifdef USE_EXTERNAL_MTCP
+#ifndef USE_INTERNAL_WATTCP
   char command[512];
   FILE *batch_file;
   char commandforbatch[512];
@@ -556,25 +556,27 @@ int main(int argc, char **argv) {
     /* if there is at least one online repo, init the Watt32 stack */
     for (x = 0; x < repolistcount; x++) {
       if (detect_localpath(repolist[x]) == 0) {
-        #ifdef USE_EXTERNAL_MTCP
+        #ifndef USE_INTERNAL_WATTCP
         #ifdef DEBUG
         printf("mTCP is used\n");
         #endif /* #ifdef DEBUG */
+        #ifdef USE_MTCP
         netinitres = system("dhcp");
-        #else /* #ifdef USE_EXTERNAL_MTCP */
+        #else
+        netinitres = 0; // use dhcp in httpget
+        #endif
+        #else /* #ifndef USE_INTERNAL_WATTCP */
         #ifdef DEBUG
         printf("watt32 is used\n");
         #endif /* #ifdef DEBUG */
         netinitres = net_init();
-        #endif /* #ifdef USE_EXTERNAL_MTCP */
+        #endif /* #ifndef USE_INTERNAL_WATTCP */
         if (netinitres != 0) {
           kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
           QUIT(0)
         }
         puts("");
-//#ifndef USE_EXTERNAL_MTCP
         net_initflag = 1;
-//#endif
         break;
       }
     }
@@ -620,17 +622,21 @@ int main(int argc, char **argv) {
             #ifdef DEBUG
             puts("DEBUG: download start");
             #endif
-            htgetres = 0;
-            #ifdef USE_EXTERNAL_MTCP
+//            htgetres = 0;
+            htgetres = -1;
+            #ifndef USE_INTERNAL_WATTCP
+            #ifdef USE_MTCP
             sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
-            //sprintf(command, "@echo off\nhttpget %s %s", repoindex, tempfilegz);
+            #else
+            sprintf(command, "@echo off\nhttpget %s %s", repoindex, tempfilegz);
+            #endif
             #endif
             for (y = 0; y < MAXINDEXRETRIES; y++) {
               sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
               #ifdef DEBUG
               printf("\trepoindex: %s\n", repoindex);
               #endif
-              #ifndef USE_EXTERNAL_MTCP
+              #ifdef USE_INTERNAL_WATTCP
               if (htgetres > 0) break;
               //_nheapmin();
               //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
@@ -642,7 +648,8 @@ int main(int argc, char **argv) {
               _fheapshrink();
               _nheapshrink();
               #else
-              if (htgetres == 21) break;
+//              if (htgetres == 21) break;
+              if (htgetres == 0) break;
               // lets try this
               sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
               batch_file = fopen(commandforbatch, "w");
@@ -662,21 +669,22 @@ int main(int argc, char **argv) {
               #ifdef DEBUG
               printf("htgetres returned: %d\n", htgetres);
               #endif
-              #ifndef USE_EXTERNAL_MTCP
-              if (htgetres <= 0) putchar('.');
-              #else
-              if (htgetres != 21) putchar('.');
-              #endif
+//              #ifdef USE_INTERNAL_WATTCP
+//              if (htgetres <= 0) putchar('.');
+//              #else
+//              if (htgetres != 21) putchar('.');
+//              #endif
             }
             #ifdef DEBUG
             puts("DEBUG: download stop");
             #endif
           }
-          #ifndef USE_EXTERNAL_MTCP
-          if (htgetres <= 0) {
-          #else
-          if (htgetres != 21) {
-              #endif
+//          #ifdef USE_INTERNAL_WATTCP
+//          if (htgetres <= 0) {
+//          #else
+//          if (htgetres != 21) {
+//              #endif
+            if (htgetres != 0) {
               kitten_puts(2, 10, "Repository download failed!");
               #ifndef ERRCACHE
               maxcachetime = 0; /* disable cache writing this time */
@@ -761,7 +769,7 @@ int main(int argc, char **argv) {
           fclose(zipfilefd);
         }
       }
-      /* free memory of the pkg database */
+       /* free memory of the pkg database */
       freedb(&pkgdb);
     } /* pkgdb != NULL */
   } /* action == ACTION_LISTREP */

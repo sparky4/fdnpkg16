@@ -77,6 +77,7 @@ int net_init() {
 }
 
 
+//0000 BUG! sparky4: there is a memory eating bug here it eats 6400 bytes everytime it is called
 struct net_tcpsocket *net_connect(unsigned long ipaddr, int port) {
   struct net_tcpsocket *resultsock;
   int status = 0;
@@ -93,7 +94,7 @@ struct net_tcpsocket *net_connect(unsigned long ipaddr, int port) {
     return(NULL);
   }
   sock_setbuf (resultsock->sock, resultsock->buffer, resultsock->buffersize);
-  sock_wait_established (resultsock->sock, sock_delay, NULL, &status);
+  sock_wait_established (resultsock->sock, sock_delay, NULL, &status);  // sparky4: happens around here let me check something
   sock_tick (resultsock->sock, statusptr);      /* in case they sent reset */
   return(resultsock);
 
