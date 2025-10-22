@@ -436,6 +436,7 @@ int main(int argc, char **argv) {
       QUIT(0)
     } else if ((strcasecmp(argone, "fcl")) == 0) {
       printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
+      printf("coreleft() == %ld Byte(s) Free\n", coreleft());
       QUIT(0)
     }
   }
