@@ -35,6 +35,6 @@ zlib can be compiled with either! :D
 
 
 # Stability report so far
-Currently at 0.99.8244 we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
+Currently at 0.99.8249 we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
 
 I am awaiting for fdrepo to be updated for fdnpkg16 then i will implement stable features and test it.
