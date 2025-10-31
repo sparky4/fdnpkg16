@@ -25,7 +25,6 @@ cp -rp fdnpkg16.ico fdnpkg16/BIN/
 . ./build.sh
 rm *.o
 mv fdnpkg16.exe fdnpkg16/BIN/
-mv fdnpkg86.exe fdnpkg16/BIN/
 mv httpget.exe fdnpkg16/BIN/
 cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 mkdir fdnpkg16/SOURCE/fdnpkg16

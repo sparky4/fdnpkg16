@@ -105,7 +105,7 @@ static void printhelp(void) {
   puts("");
   puts(wattcpVersion());
 #else
-  puts("");//  kitten_printf(1, 21, "FDNPKG%s is using mTCP", EXECNAME);
+  kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
   puts("");
   puts("");
 #endif
@@ -149,7 +149,7 @@ static void printhelpshort(void) {
   puts("");
   puts(wattcpVersion());
 #else
-  puts("");//  kitten_printf(1, 21, "FDNPKG%s is using mTCP", EXECNAME);
+  kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
   puts("");
   puts("");
 #endif
