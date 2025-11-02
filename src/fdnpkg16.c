@@ -629,7 +629,7 @@ int main(int argc, char **argv) {
             #ifdef USE_MTCP
             sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
             #else
-            sprintf(command, "@echo off\nhttpget %s %s", repoindex, tempfilegz);
+            sprintf(command, "@echo off\nhttpget.exe %s %s /q", repoindex, tempfilegz);
             #endif
             #endif
             for (y = 0; y < MAXINDEXRETRIES; y++) {
@@ -645,7 +645,7 @@ int main(int argc, char **argv) {
               //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
               _nheapgrow();
               _fheapgrow();
-              htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL);
+              htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL, 1);
               _fheapshrink();
               _nheapshrink();
               #else

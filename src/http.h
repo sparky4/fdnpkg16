@@ -7,6 +7,6 @@
 #ifndef HTTP_GET_H_SENTINEL
 #define HTTP_GET_H_SENTINEL
 
-long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *downloadingstring);
+long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *downloadingstring, int quietflag);
 
 #endif

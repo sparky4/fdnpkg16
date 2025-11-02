@@ -43,7 +43,7 @@ static int sock_getline(struct net_tcpsocket *socket, char *buf, int len) {
 
 /* returns 0 on success, non-zero otherwise
    Warning: Requires net_init() to be run before! */
-long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *downloadingstring) {
+long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *downloadingstring, int quietflag) {
   char *host = NULL;
   char *path = NULL;
   char *buffer = NULL;
@@ -149,7 +149,7 @@ long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *
         lastrefreshtime = curtime;
         printf("\r"); /* go back to start of line, but don't scroll down */
         printf(downloadingstring, shorturlfilename, fdlen);
-        if (expectedfilelen > 100) { /* only if > 100 because otherwise we'd get a nasty division by zero! */
+        if ((expectedfilelen > 100) && (quietflag != 0)) { /* only if > 100 because otherwise we'd get a nasty division by zero! */
           printf(" [%ld%%]", ((fdlen / 100) * 100) / (expectedfilelen / 100));
         }
       }

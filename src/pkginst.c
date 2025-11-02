@@ -328,7 +328,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         printf("farcoreleft() == %ld\n", farcoreleft());
         printf("coreleft() == %u\n", coreleft());
 #endif
-        htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring);
+        htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring, 0);
 #ifdef DEBUG_MEM
         printf("farcoreleft() == %ld\n", farcoreleft());
         printf("coreleft() == %u\n", coreleft());
@@ -344,7 +344,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         #ifdef USE_MTCP
         sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
         #else
-        sprintf(command, "@echo off\nhttpget %s %s", fname, zipfile);
+        sprintf(command, "@echo off\nhttpget.exe %s %s /q", fname, zipfile);
         #endif
 
         proxy = downloadingstring = NULL;
