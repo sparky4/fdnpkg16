@@ -344,7 +344,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         #ifdef USE_MTCP
         sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
         #else
-        sprintf(command, "@echo off\nhttpget.exe %s %s /q", fname, zipfile);
+        sprintf(command, "@echo off\nhttpget.exe %s %s", fname, zipfile);
         #endif
 
         proxy = downloadingstring = NULL;
