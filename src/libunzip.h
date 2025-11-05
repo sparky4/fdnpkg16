@@ -18,7 +18,7 @@
 #define ZIP_FLAG_ENCRYPTED 2
 
 //#define NOLZMA         /* no 7z... yet */
-#undef NOLZMA
+//#undef NOLZMA
 
 struct ziplist {
   long filelen;

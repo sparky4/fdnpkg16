@@ -2,6 +2,14 @@
 * FDNPKG16 history file *
 
 
+FDNPKG16 v0.99.8249b [04 Nov 2025]
+ - [fix] many fixes and such over the month!
+ - [fix] merged fdnpkg16 and fdnpkg86 to 1 program and httpget.exe is called externally due to a memory leak bug with watt32
+ - [new] added back fdinst as fdinst16.exe to prevent conflicts with existing fdinst.exe
+ - [fix] many MANY bug fixes since last version here with multi package install
+ - [nfo] a bunch of testing from me has been done over the past 2 weeks for finding anymore bugs
+ - [nfo] FDNPKG16 is nice to use now. Very close to stable.
+
 FDNPKG16 v0.99.8248c [13 Oct 2025]
  - [nfo] many changes since the last 2 weeks
  - [new] You can now manipulate multiple packages! (install reinstall remove update)

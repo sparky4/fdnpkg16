@@ -411,6 +411,11 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       return(NULL);
     }
   } /* if (zipfile[0] == 0) */
+#else
+  proxy = downloadingstring = tempdir = NULL;
+  proxyport = 8080;
+  pkgdb;
+  repolist = NULL;
 #endif
 
 #ifdef DEBUG_MEM
