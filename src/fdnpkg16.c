@@ -110,6 +110,7 @@ static void printhelp(void) {
   puts("");
 #endif
 }
+
 static void printhelpshort(void) {
   puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
@@ -155,7 +156,6 @@ static void printhelpshort(void) {
 #endif
 }
 
-
 static void printlic(void) {
   puts("FDNPKG" EXECNAME " v" PVER " - FreeDOS Network Package manager\r\n"
        "Copyright (C) " PDATE " Mateusz Viste & Victoria Crenshaw\r\n");
@@ -180,6 +180,11 @@ static void printlic(void) {
   puts("\nIf you want to contribute, let me know! https://discord.com/invite/qBH9W7fXHJ\n"
        "or join my irc and ping me irc://4ch.mooo.com/#fdnpkg16");
 }
+
+/*static void printhelpheader(void) {
+  puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
+  kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
+}*/
 
 
 enum actions {
@@ -584,17 +589,43 @@ int main(int argc, char **argv) {
   }
 
   if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
+    short dci;
     struct customdirs *dircursor;
+    dci = 4;
+
+    kitten_puts(2, 21, "Press any key but Q to continue...");
+    while ((y = getch()) == 'q') { QUIT(0) }
     printf("maxcachetime: %ld seconds\n", maxcachetime);
     printf("installsources: %d\n", (flags & PKGINST_NOSOURCE) != 0);
     printf("mapdrives: %s\n", mapdrv);
     puts("");
+
     for (dircursor = dirlist; dircursor != NULL; dircursor = dircursor->next) {
-      printf("%s -> %s\n", dircursor->name, dircursor->location);
+      switch (dci) {
+        case 24:
+          getch();
+          dci = 0;
+        break;
+        default:
+          printf("%s -> %s\n", dircursor->name, dircursor->location);
+          dci++;
+        break;
+      }
     }
     if (dirlist != NULL) puts("");
-    kitten_printf(2, 8, "The list of configured FDNPKG%s repositories follows:", EXECNAME); puts("");
-    for (x = 0; x < repolistcount; x++) puts(repolist[x]);
+    kitten_printf(2, 8, "The list of configured FDNPKG%s repositories follows:", EXECNAME); puts(""); dci++;
+    for (x = 0; x < repolistcount; x++) {
+      switch (dci) {
+        case 24:
+          getch();
+          dci = 0;
+        break;
+        default:
+          puts(repolist[x]);
+          dci++;
+        break;
+      }
+    }
     puts("");
   } else if ((action != ACTION_LISTLOCAL) && (action != ACTION_REMOVE) && (action != ACTION_LISTFILES) && (action != ACTION_REINSTALL_LOCALFILE) && (action != ACTION_INSTALL_LOCALFILE)) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
     pkgdb = createdb();

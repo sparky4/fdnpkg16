@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-#define PVER "0.99.8249b"
+#define PVER "0.99.8249c"
 #define PDATE "2012-2021 & 2025"
 
 /* uncomment the line below to enable fopen/fclose and malloc/free stats. you
