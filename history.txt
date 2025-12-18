@@ -1,6 +1,8 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8249c [18 Dec 2025]
+ - [new] dumpcfg/dc pauses now at 25 lines now. sorry 50 lines!
 
 FDNPKG16 v0.99.8249b [04 Nov 2025]
  - [fix] many fixes and such over the month!
