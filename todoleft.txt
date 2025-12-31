@@ -76,3 +76,5 @@ if there is a typo it dose this on purpose.. to mention to user the help.
 > 5. a simple pause after each side would be enough.
 i think i can implement this too
 
+
+remove unused code from hc.c!
