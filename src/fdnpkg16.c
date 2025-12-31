@@ -1,7 +1,7 @@
 /*
  * FDNPKG16 - FreeDOS Network Package manager
  * Copyright (C) 2012-2017 Mateusz Viste
- * Copyright (C) 2025 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),

@@ -26,6 +26,7 @@
 #include "hc.h"
 #include <malloc.h>
 
+#if 0
 int heaphandle;
 unsigned char heapdumpfilename[12];
 
@@ -576,6 +577,7 @@ unsigned long fcoreleft()
 #endif
 }
 #endif
+#endif	//sparky4: end if to disable a code not used..
 
 long coreleft()
 {
@@ -585,6 +587,7 @@ long coreleft()
 }
 //#endif
 
+#if 0
 /*
 ============================
 =
@@ -617,6 +620,7 @@ void HC_CloseDebug()
 	strcpy(heapdumpfilename, "heap.16w");
 #endif
 }
+#endif //sparky4: disabled not used
 
 #ifdef __WATCOMC__
 // from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076

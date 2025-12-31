@@ -26,7 +26,7 @@
 #ifndef __16HC__
 #define __16HC__
 
-
+#if 0
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,6 +71,7 @@ void HCL_heapstat(int heap_status);
 
 void HC_OpenDebug();
 void HC_CloseDebug();
+#endif
 
 #ifdef __WATCOMC__
 long farcoreleft();

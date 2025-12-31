@@ -3,7 +3,7 @@
  * http://fdnpkg.sourceforge.net
  *
  * Copyright (C) 2012-2016 Mateusz Viste. All rights reserved.
- * Copyright (C) 2025 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
  *
  * Simple library providing functions to unzip files from zip archives.
  */

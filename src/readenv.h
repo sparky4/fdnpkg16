@@ -5,7 +5,7 @@
  * Returns 0 on success, non-zero otherwise.
  *
  * Copyright (C) 2012-2016 Mateusz Viste
- * Copyright (C) 2025 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
  */
 
 #ifndef READENV_H_SENTINEL
