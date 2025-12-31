@@ -450,7 +450,7 @@ int main(int argc, char **argv) {
   if (action == ACTION_HELP) {
     printhelp();
     kitten_puts(2, 21, "Press any key but Q to continue...");
-    while ((y = getch()) == 'q') { QUIT(0) }
+    while (tolower(y = getch()) == 'q') { QUIT(0) }
     printhelpshort();
     puts("");
     QUIT(0)
