@@ -31,7 +31,7 @@
 #include <stdio.h>
 
 #define PVER "0.99.8249c"
-#define PDATE "2012-2021 & 2025"
+#define PDATE "2012-2021 & 2025-2026"
 
 /* uncomment the line below to enable fopen/fclose and malloc/free stats. you
  * will also have to link the application with dbg.o, and call dbg_stats()
