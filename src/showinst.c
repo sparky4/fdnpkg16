@@ -1,6 +1,7 @@
 /*
- * This file is part of FDNPKG
+ * This file is part of FDNPKG16
  * Copyright (C) 2013-2017 Mateusz Viste. All rights reserved.
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
  */
 
 #include <stdio.h>
@@ -46,7 +47,7 @@ static void clrline(void) {
 }
 
 
-static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packagelist_maxlen, char *filterstr, char *dosdir) {
+static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packagelist_maxlen, char *filterstr, char *dosdir, short lsxflag) {
   DIR *dp;
   int packagelist_len = 0, x;
   struct dirent *ep;
@@ -59,7 +60,11 @@ static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packa
       if (ep->d_name[0] != '.') { /* ignore '.', '..', and hidden directories */
         if (strlen(ep->d_name) > 4) {
           int tlen = strlen(ep->d_name);
-          if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 't')) continue;  /* if it's not an .lst file, skip it silently */
+          if (lsxflag == 0) {
+            if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 't')) continue;  /* if it's not an .lst file, skip it silently */
+          } else {
+            if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 'x')) continue;  /* if it's not an .lsx file, skip it silently */
+          }
 
           if (filterstr != NULL) {
             if (fdnpkg_strcasestr(ep->d_name, filterstr) == NULL) continue; /* if it's not matching the non-NULL filter, skip it */
@@ -98,7 +103,27 @@ void showinstalledpkgs(char *filterstr, char *dosdir) {
   int packagelist_len, x;
 
   /* load the list of packages */
-  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, filterstr, dosdir);   /* Populate the packages list */
+  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, filterstr, dosdir, 0);   /* Populate the packages list */
+  if (packagelist_len < 0) return;
+  if (packagelist_len == 0) {
+    kitten_puts(5, 0, "No package matched the search.");
+    return;
+  }
+
+  /* iterate through all packages */
+  for (x = 0; x < packagelist_len; x++) {
+    /* print the package/version couple on screen */
+    printf("%s %s\n", packagelist[x], packagelist_ver[x]);
+  }
+}
+
+void showheldedpkgs(char *filterstr, char *dosdir) {
+  char *packagelist[packagelist_maxlen];
+  char *packagelist_ver[packagelist_maxlen];
+  int packagelist_len, x;
+
+  /* load the list of packages */
+  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, filterstr, dosdir, 1);   /* Populate the packages list */
   if (packagelist_len < 0) return;
   if (packagelist_len == 0) {
     kitten_puts(5, 0, "No package matched the search.");
@@ -121,7 +146,7 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
   char *packagelist_ver[packagelist_maxlen];
   int packagelist_len, x, foundupdate = 0, totalupdatesfound = 0;
   int packages_updated = 0, packages_updatefailed = 0;
-  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, NULL, dosdir);
+  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, NULL, dosdir, 0);
   for (x = 0; x < packagelist_len; x++) {
     if (pkg != NULL) {
       if (strcasecmp(pkg, packagelist[x]) != 0) continue; /* if we got asked for a specific package, skip all other packages. */
@@ -274,4 +299,43 @@ void listfilesofpkg(char *pkgname, char *dosdir) {
   }
   /* free the list of files */
   pkg_freeflist(flist);
+}
+
+
+void holdpkg(char *pkgname, char *dosdir) {
+  char old_filename[512];
+  char new_filename[512];
+
+  sprintf(old_filename, "%s\\packages\\%s.lst", dosdir, pkgname);
+  sprintf(new_filename, "%s\\packages\\%s.lsx", dosdir, pkgname);
+  if (fileexists(old_filename) == 0) { /* file does not exist */
+    kitten_printf(9, 1, "Error: Local package %s not found.", pkgname);
+    puts("");
+    return;
+  }
+
+  // Use the rename function
+  if (rename(old_filename, new_filename) != 0) {
+    // Non-zero return value indicates an error
+    kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", old_filename);
+  }
+}
+
+void unholdpkg(char *pkgname, char *dosdir) {
+  char old_filename[512];
+  char new_filename[512];
+
+  sprintf(old_filename, "%s\\packages\\%s.lsx", dosdir, pkgname);
+  sprintf(new_filename, "%s\\packages\\%s.lst", dosdir, pkgname);
+  if (fileexists(old_filename) == 0) { /* file does not exist */
+    kitten_printf(9, 1, "Error: Local package %s not found.", pkgname);
+    puts("");
+    return;
+  }
+
+  // Use the rename function
+  if (rename(old_filename, new_filename) != 0) {
+    // Non-zero return value indicates an error
+    kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", old_filename);
+  }
 }

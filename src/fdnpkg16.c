@@ -85,6 +85,9 @@ static void printhelp(void) {
   printf(" listfiles pkg     "); kitten_puts(1, 18, "- list files owned by the package 'pkg'");
   printf(" checkupdates      "); kitten_puts(1, 13, "- check for available updates of packages and display them");
   printf(" update [pkg]      "); kitten_puts(1, 15, "- update 'pkg' to last version (or all packages if no arg)");
+  printf(" holdlist [str]    "); kitten_puts(1, 22, "- list held all packages or packages containing 'str'");
+  printf(" hold pkg          "); kitten_puts(1, 23, "- hold 'pkg' at current version");
+  printf(" unhold pkg        "); kitten_puts(1, 24, "- unhold 'pkg' for updates");
   printf(" dumpcfg           "); kitten_puts(1, 7,  "- print out the configuration loaded from the cfg file");
   printf(" clearcache        "); kitten_printf(1,19,"- clear FDNPKG%s's local cache", EXECNAME); puts("");
   printf(" license           "); kitten_puts(1, 8,  "- print out the license of this program");
@@ -105,12 +108,9 @@ static void printhelp(void) {
   puts("");
   puts(wattcpVersion());
 #else
-  kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
-  puts("");
-  puts("");
+  //kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
 #endif
 }
-
 static void printhelpshort(void) {
   puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
@@ -130,6 +130,9 @@ static void printhelpshort(void) {
   printf(" lf pkg            "); kitten_puts(1, 18, "- list files owned by the package 'pkg'");
   printf(" cu                "); kitten_puts(1, 13, "- check for available updates of packages and display them");
   printf(" up [pkg]          "); kitten_puts(1, 15, "- update 'pkg' to last version (or all packages if no arg)");
+  printf(" hl [str]          "); kitten_puts(1, 22, "- list held all packages or packages containing 'str'");
+  printf(" ho pkg            "); kitten_puts(1, 23, "- hold 'pkg' at current version");
+  printf(" uh pkg            "); kitten_puts(1, 24, "- unhold 'pkg' for updates");
   printf(" dc                "); kitten_puts(1, 7,  "- print out the configuration loaded from the cfg file");
   printf(" cc                "); kitten_printf(1,19,"- clear FDNPKG%s's local cache", EXECNAME); puts("");
   printf(" li                "); kitten_puts(1, 8,  "- print out the license of this program");
@@ -151,8 +154,6 @@ static void printhelpshort(void) {
   puts(wattcpVersion());
 #else
   kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
-  puts("");
-  puts("");
 #endif
 }
 
@@ -202,7 +203,10 @@ enum actions {
   ACTION_UPDATE,
   ACTION_CLEARCACHE,
   ACTION_REINSTALL,
-  ACTION_REINSTALL_LOCALFILE
+  ACTION_REINSTALL_LOCALFILE,
+  ACTION_HOLDLIST,
+  ACTION_HOLD,
+  ACTION_UNHOLD
 };
 
 
@@ -432,6 +436,22 @@ int main(int argc, char **argv) {
           }
         }
       }
+    } else if ((strcasecmp(argone, "holdlist") && strcasecmp(argone, "hl")) == 0) {
+        action = ACTION_HOLDLIST;
+    } else if ((strcasecmp(argone, "hold") && strcasecmp(argone, "ho")) == 0) {
+      if (argc < 3) {
+        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+        QUIT(0);
+      } else {
+        action = ACTION_HOLD;
+      }
+    } else if ((strcasecmp(argone, "unhold") && strcasecmp(argone, "uh")) == 0) {
+      if (argc < 3) {
+        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+        QUIT(0);
+      } else {
+        action = ACTION_UNHOLD;
+      }
       // sparky4: <3
     } else if ((strcasecmp(argone, "bibabo")) == 0) {
       printf("ビバボ！ｗ");
@@ -475,6 +495,28 @@ int main(int argc, char **argv) {
   if (action == ACTION_LISTFILES) {
     listfilesofpkg(pkg, dosdir);
 //----    QUIT(0);  // sparky4: disabled for more than 1 package listings
+  }
+
+  /* locally held at version package listings */
+  if (action == ACTION_HOLDLIST) {
+    char *filterstr = NULL;
+    if (argc >= 3) filterstr = pkg;// else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
+    showheldedpkgs(filterstr, dosdir);
+    //----    QUIT(0);  // sparky4: disabled for more than 1 package listings
+  }
+
+  /* hold a package and dont change it */
+  if (action == ACTION_HOLD) {
+    char *filterstr = NULL;
+    if (argc >= 3) filterstr = pkg;// else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
+    holdpkg(filterstr, dosdir);
+  }
+
+  /* unhold a package and do change it */
+  if (action == ACTION_UNHOLD) {
+    char *filterstr = NULL;
+    if (argc >= 3) filterstr = pkg;// else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
+    unholdpkg(filterstr, dosdir);
   }
 
   /* if we install from a local file, do it and quit */
@@ -569,7 +611,7 @@ int main(int argc, char **argv) {
         #ifdef USE_MTCP
         netinitres = system("dhcp");
         #else
-        netinitres = 0; // use dhcp in httpget
+        netinitres = 0; // use dhcp in httpget this is currently used
         #endif
         #else /* #ifndef USE_INTERNAL_WATTCP */
         #ifdef DEBUG
@@ -627,7 +669,7 @@ int main(int argc, char **argv) {
       }
     }
     puts("");
-  } else if ((action != ACTION_LISTLOCAL) && (action != ACTION_REMOVE) && (action != ACTION_LISTFILES) && (action != ACTION_REINSTALL_LOCALFILE) && (action != ACTION_INSTALL_LOCALFILE)) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
+  } else if ((action != ACTION_LISTLOCAL) && (action != ACTION_REMOVE) && (action != ACTION_LISTFILES) && (action != ACTION_REINSTALL_LOCALFILE) && (action != ACTION_INSTALL_LOCALFILE) && (action != ACTION_HOLDLIST) && (action != ACTION_HOLD) && (action != ACTION_UNHOLD)) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
     pkgdb = createdb();
     if (pkgdb != NULL) {
       char tempfilegz[512];
