@@ -318,6 +318,7 @@ void holdpkg(char *pkgname, char *dosdir) {
   if (rename(old_filename, new_filename) != 0) {
     // Non-zero return value indicates an error
     kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", old_filename);
+    puts("");
   }
 }
 
@@ -337,5 +338,6 @@ void unholdpkg(char *pkgname, char *dosdir) {
   if (rename(old_filename, new_filename) != 0) {
     // Non-zero return value indicates an error
     kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", old_filename);
+    puts("");
   }
 }
