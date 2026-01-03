@@ -438,12 +438,14 @@ int main(int argc, char **argv) {
       }
     } else if ((strcasecmp(argone, "holdlist") && strcasecmp(argone, "hl")) == 0) {
         action = ACTION_HOLDLIST;
+        net_initflag = 1;
     } else if ((strcasecmp(argone, "hold") && strcasecmp(argone, "ho")) == 0) {
       if (argc < 3) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0);
       } else {
         action = ACTION_HOLD;
+        net_initflag = 1;
       }
     } else if ((strcasecmp(argone, "unhold") && strcasecmp(argone, "uh")) == 0) {
       if (argc < 3) {
@@ -451,6 +453,7 @@ int main(int argc, char **argv) {
         QUIT(0);
       } else {
         action = ACTION_UNHOLD;
+        net_initflag = 1;
       }
       // sparky4: <3
     } else if ((strcasecmp(argone, "bibabo")) == 0) {
