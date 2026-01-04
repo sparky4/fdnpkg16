@@ -271,6 +271,7 @@ int main(int argc, char **argv) {
   char pkg[13];  // sparky4: long enough for 8+.+3+\0 long filenames
   char argone[18];  // sparky4: this gotta be long enough for the commands
   int net_initflag = 0;
+  short localaction = 0;
 
   strcpy(pkg, "");
 
@@ -356,6 +357,7 @@ int main(int argc, char **argv) {
           if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
             action = ACTION_INSTALL_LOCALFILE;
             net_initflag = 1;
+            localaction = 1;
           }
         }
       }
@@ -366,6 +368,7 @@ int main(int argc, char **argv) {
         action = ACTION_REMOVE;
         pkgrem(pkg, dosdir, mapdrv);
         net_initflag = 1;
+        localaction = 1;
       }
 //----      QUIT(0);  // sparky4: this is a loop now so we can do this now! :D
     } else if ((strcasecmp(argone, "update") && strcasecmp(argone, "up")) == 0) {
@@ -384,6 +387,7 @@ int main(int argc, char **argv) {
       //} else {
         action = ACTION_LISTLOCAL;
         net_initflag = 1;
+        localaction = 1;
       //}
     } else if ((strcasecmp(argone, "listfiles") && strcasecmp(argone, "lf")) == 0) {
       if (argc < 3) {
@@ -391,6 +395,7 @@ int main(int argc, char **argv) {
         QUIT(0);
       } else {
         action = ACTION_LISTFILES;
+        localaction = 1;
       }
     } else if ((strcasecmp(argone, "dumpcfg") && strcasecmp(argone, "dc")) == 0) {
       if (argc != 2) {
@@ -433,12 +438,14 @@ int main(int argc, char **argv) {
           if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
             action = ACTION_REINSTALL_LOCALFILE;
             net_initflag = 1;
+            localaction = 1;
           }
         }
       }
     } else if ((strcasecmp(argone, "holdlist") && strcasecmp(argone, "hl")) == 0) {
         action = ACTION_HOLDLIST;
         net_initflag = 1;
+        localaction = 1;
     } else if ((strcasecmp(argone, "hold") && strcasecmp(argone, "ho")) == 0) {
       if (argc < 3) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
@@ -446,6 +453,7 @@ int main(int argc, char **argv) {
       } else {
         action = ACTION_HOLD;
         net_initflag = 1;
+        localaction = 1;
       }
     } else if ((strcasecmp(argone, "unhold") && strcasecmp(argone, "uh")) == 0) {
       if (argc < 3) {
@@ -454,6 +462,7 @@ int main(int argc, char **argv) {
       } else {
         action = ACTION_UNHOLD;
         net_initflag = 1;
+        localaction = 1;
       }
       // sparky4: <3
     } else if ((strcasecmp(argone, "bibabo")) == 0) {
@@ -672,7 +681,7 @@ int main(int argc, char **argv) {
       }
     }
     puts("");
-  } else if ((action != ACTION_LISTLOCAL) && (action != ACTION_REMOVE) && (action != ACTION_LISTFILES) && (action != ACTION_REINSTALL_LOCALFILE) && (action != ACTION_INSTALL_LOCALFILE) && (action != ACTION_HOLDLIST) && (action != ACTION_HOLD) && (action != ACTION_UNHOLD)) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
+  } else if (localaction == 0) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
     pkgdb = createdb();
     if (pkgdb != NULL) {
       char tempfilegz[512];
