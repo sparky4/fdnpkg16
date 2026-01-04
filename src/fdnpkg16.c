@@ -271,7 +271,7 @@ int main(int argc, char **argv) {
   char pkg[13];  // sparky4: long enough for 8+.+3+\0 long filenames
   char argone[18];  // sparky4: this gotta be long enough for the commands
   int net_initflag = 0;
-  short localaction = 0;
+  short localaction = 0; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories
 
   strcpy(pkg, "");
 
