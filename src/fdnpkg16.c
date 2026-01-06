@@ -69,7 +69,7 @@ extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 static void printhelp(void) {
   puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
-  puts("");
+//  puts("");
   kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
   puts("");
   puts("");
@@ -114,7 +114,7 @@ static void printhelp(void) {
 static void printhelpshort(void) {
   puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
-  puts("");
+//  puts("");
   kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
   puts("");
   puts("");
