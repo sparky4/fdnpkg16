@@ -1,5 +1,5 @@
 /*
- * Version strings used by both FDNPKG and FDINST, and possibly other common
+ * Version strings used by both FDNPKG16 and FDINST16, and possibly other common
  * definitions. This file should be included by every single module.
  *
  * http://fdnpkg.sourceforge.net
@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-#define PVER "0.99.8250"
+#define PVER "0.99.8250a"
 #define PDATE "2012-2021 & 2025-2026"
 
 /* uncomment the line below to enable fopen/fclose and malloc/free stats. you

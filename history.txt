@@ -1,6 +1,10 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8250a [06 Jan 2026]
+ - [fix] found another spot where press q to quit was not fixed. it was fixed
+ - [nfo] The code got slightly optimized with ifelse at the bottom of fdnpkg16.c with a variable named norepoaction
+
 FDNPKG16 v0.99.8250 [02 Jan 2026]
  - [new] hold and unhold features! lists hold packages too! <3
  - [fix] fixed the press q to quit for uppercased Q and lower case q dose same thing now! :D

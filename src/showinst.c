@@ -60,7 +60,7 @@ static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packa
       if (ep->d_name[0] != '.') { /* ignore '.', '..', and hidden directories */
         if (strlen(ep->d_name) > 4) {
           int tlen = strlen(ep->d_name);
-          if (lsxflag == 0) {
+          if (lsxflag == 0) { // sparky4: this variable is for enabling the listing of held files and will eventually list them
             if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 't')) continue;  /* if it's not an .lst file, skip it silently */
           } else {
             if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 'x')) continue;  /* if it's not an .lsx file, skip it silently */
@@ -302,6 +302,7 @@ void listfilesofpkg(char *pkgname, char *dosdir) {
 }
 
 
+// sparky4: hold packages
 void holdpkg(char *pkgname, char *dosdir) {
   char old_filename[512];
   char new_filename[512];
@@ -322,6 +323,7 @@ void holdpkg(char *pkgname, char *dosdir) {
   }
 }
 
+// sparky4: unhold packages
 void unholdpkg(char *pkgname, char *dosdir) {
   char old_filename[512];
   char new_filename[512];
