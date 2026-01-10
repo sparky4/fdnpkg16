@@ -227,8 +227,11 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     char *pkgext; /* zip or zib */
 #ifndef USE_INTERNAL_WATTCP
     char command[512];
+//NO NEED FOR THIS!
+#if 0
     FILE *batch_file;
     char commandforbatch[512];
+#endif
 #endif
     long htgetres;
     int y;
@@ -344,12 +347,14 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         #ifdef USE_MTCP
         sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
         #else
-        sprintf(command, "@echo off\nhttpget.exe %s %s", fname, zipfile);
+        sprintf(command, "httpget.exe %s %s", fname, zipfile);
         #endif
 
         proxy = downloadingstring = NULL;
         proxyport = 8080;
         // lets try this
+//NO NEED FOR THIS!
+#if 0
         sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
         batch_file = fopen(commandforbatch, "w");
         if (batch_file == NULL) {
@@ -358,12 +363,16 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         } else {
           fprintf(batch_file, "%s", command);
           fclose(batch_file);
+#endif
           _nheapmin();
           //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
           _fheapmin();
           //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
-          htgetres = system(commandforbatch);
+          htgetres = system(command/*forbatch*/);
+//NO NEED FOR THIS!
+#if 0
         }
+#endif
         #endif /* #ifdef USE_INTERNAL_WATTCP */
         #ifdef DEBUG
         printf("htgetres returned: %ld\n", htgetres);

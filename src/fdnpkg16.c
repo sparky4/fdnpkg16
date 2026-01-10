@@ -263,8 +263,11 @@ int main(int argc, char **argv) {
   int netinitres;
 #ifndef USE_INTERNAL_WATTCP
   char command[512];
+//NO NEED FOR THIS!
+#if 0
   FILE *batch_file;
   char commandforbatch[512];
+#endif
 #endif
   int arglen;
   int argci;
@@ -291,6 +294,7 @@ int main(int argc, char **argv) {
   }
 
   /* check the available memory and display a warning if too low */
+  // sparky4: function from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
   /* 192k */
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
@@ -301,7 +305,7 @@ int main(int argc, char **argv) {
 #endif
   if (farcoreleft() < 196608L) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
-  } // sparky4: seems to work now with the new farcoreleft function from vfed!
+  } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
 
   /* Load the list of package repositories */
   repolistcount = loadconf(cfgfile, repolist, MAXREPS, &cfgfilecrc, &maxcachetime, &dirlist, &flags, &proxy, &proxyport, &mapdrv);
@@ -714,7 +718,7 @@ int main(int argc, char **argv) {
             #ifdef USE_MTCP
             sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
             #else
-            sprintf(command, "@echo off\nhttpget.exe %s %s /q", repoindex, tempfilegz);
+            sprintf(command, "httpget.exe %s %s /q", repoindex, tempfilegz);
             #endif
             #endif
             for (y = 0; y < MAXINDEXRETRIES; y++) {
@@ -737,6 +741,8 @@ int main(int argc, char **argv) {
 //              if (htgetres == 21) break;
               if (htgetres == 0) break;
               // lets try this
+//NO NEED FOR THIS!
+#if 0
               sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
               batch_file = fopen(commandforbatch, "w");
               if (batch_file == NULL) {
@@ -745,12 +751,16 @@ int main(int argc, char **argv) {
               } else {
                 fprintf(batch_file, "%s", command);
                 fclose(batch_file);
+#endif
                 _nheapmin();
                 //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
                 _fheapmin();
                 //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
-                htgetres = system(commandforbatch);
+                htgetres = system(command/*forbatch*/);
+//NO NEED FOR THIS!
+#if 0
               }
+#endif
               #endif
               #ifdef DEBUG
               printf("htgetres returned: %d\n", htgetres);
