@@ -227,11 +227,6 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     char *pkgext; /* zip or zib */
 #ifndef USE_INTERNAL_WATTCP
     char command[512];
-//NO NEED FOR THIS!
-#if 0
-    FILE *batch_file;
-    char commandforbatch[512];
-#endif
 #endif
     long htgetres;
     int y;
@@ -314,11 +309,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       sprintf(zipfile, "%s\\fdnpkg16.tmp", tempdir);
       kitten_printf(3, 6, "Downloading package %s...", fname);
       puts("");
-//      htgetres = 0;
       htgetres = -1;
       for (y = 0; y < MAXINDEXRETRIES; y++) {
         sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
-//        if (htgetres > 0) break;
         if (htgetres == 0) break;
         #ifdef USE_INTERNAL_WATTCP
 #ifdef DEBUG_MEM
@@ -352,27 +345,11 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 
         proxy = downloadingstring = NULL;
         proxyport = 8080;
-        // lets try this
-//NO NEED FOR THIS!
-#if 0
-        sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
-        batch_file = fopen(commandforbatch, "w");
-        if (batch_file == NULL) {
-          kitten_printf(3, 10, "Error: Could not create %s!");
-          htgetres = -1;
-        } else {
-          fprintf(batch_file, "%s", command);
-          fclose(batch_file);
-#endif
-          _nheapmin();
-          //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
-          _fheapmin();
-          //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
-          htgetres = system(command/*forbatch*/);
-//NO NEED FOR THIS!
-#if 0
-        }
-#endif
+        _nheapmin();
+        //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+        _fheapmin();
+        //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
+        htgetres = system(command);
         #endif /* #ifdef USE_INTERNAL_WATTCP */
         #ifdef DEBUG
         printf("htgetres returned: %ld\n", htgetres);

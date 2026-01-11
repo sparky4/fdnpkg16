@@ -58,6 +58,7 @@
 
 //unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
+// sparky4: may not be used
 // sparky4: just some program naming her for fdnpkg16 and fdnpkg86
 #ifdef USE_INTERNAL_WATTCP
 #define EXECNAME "86"
@@ -91,7 +92,6 @@ static void printhelp(void) {
   printf(" dumpcfg           - "); kitten_puts(1, 7,  "print out the configuration loaded from the cfg file");
   printf(" clearcache        - "); kitten_printf(1,19,"clear FDNPKG%s's local cache", EXECNAME); puts("");
   printf(" license           - "); kitten_puts(1, 8,  "print out the license of this program");
-//  puts("");
 #ifdef DEBUG
 #if defined(__WATCOMC__)
 #if (__WATCOMC__ >= 1200)
@@ -136,7 +136,6 @@ static void printhelpshort(void) {
   printf(" dc                - "); kitten_puts(1, 7,  "print out the configuration loaded from the cfg file");
   printf(" cc                - "); kitten_printf(1,19,"clear FDNPKG%s's local cache", EXECNAME); puts("");
   printf(" li                - "); kitten_puts(1, 8,  "print out the license of this program");
-//  puts("");
 #ifdef DEBUG
 #if defined(__WATCOMC__)
 #if (__WATCOMC__ >= 1200)
@@ -156,7 +155,6 @@ static void printhelpshort(void) {
   kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
 #endif
 }
-
 static void printlic(void) {
   puts("FDNPKG" EXECNAME " v" PVER " - FreeDOS Network Package manager\r\n"
        "Copyright (C) " PDATE " Mateusz Viste & Victoria Crenshaw\r\n");
@@ -182,12 +180,13 @@ static void printlic(void) {
        "or join my irc and ping me irc://4ch.mooo.com/#fdnpkg16");
 }
 
+// sparky4: for possible short and long help header and such
 /*static void printhelpheader(void) {
   puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
 }*/
 
-
+// sparky4: actions the program can do
 enum actions {
   ACTION_HELP,
   ACTION_SEARCH,
@@ -260,23 +259,24 @@ int main(int argc, char **argv) {
   enum actions action = ACTION_HELP;
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
-  int netinitres;
+
+  //sparky4: new variables from me! <3
+  int netinitres;   // sparky4: for netowrking initialization for internal networking (external for now)
 #ifndef USE_INTERNAL_WATTCP
   char command[512];
-//NO NEED FOR THIS!
-#if 0
-  FILE *batch_file;
-  char commandforbatch[512];
 #endif
-#endif
-  int arglen;
-  int argci;
-  char pkg[13];  // sparky4: long enough for 8+.+3+\0 long filenames
+  int arglen;       // sparky4: pkgname length
+  int argci;        // sparky4: argument variable for number of variables. for multi packages
+  char pkg[13];     // sparky4: long enough for 8+.+3+\0 long filenames
   char argone[18];  // sparky4: this gotta be long enough for the commands
-  int net_initflag = 0;
+
+  //TODO: COMBINE THESE 2 TO 1 FLAG VARIABLE CHAR WITH BITWISE OPERATION EACH BIT AS 1 FLAG FOR 1 VARIABLE
+  short net_initflag = 0;
   short norepoaction = 0; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
 
+  // sparky4: empty string initiation
   strcpy(pkg, "");
+  strcpy(argone, "");
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -294,7 +294,7 @@ int main(int argc, char **argv) {
   }
 
   /* check the available memory and display a warning if too low */
-  // sparky4: function from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
+  // sparky4: farcoreleft() function from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
   /* 192k */
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
@@ -311,10 +311,10 @@ int main(int argc, char **argv) {
   repolistcount = loadconf(cfgfile, repolist, MAXREPS, &cfgfilecrc, &maxcachetime, &dirlist, &flags, &proxy, &proxyport, &mapdrv);
   if (repolistcount < 0) return(5);
 
-  // sparky4: check for /
+  // sparky4: check for / at front of action argument 1
   if (argc > 1) { // Ensure argv[1] exists
     if (argv[1][0] == '/') { // Check if the first character is '/'
-      // Option 1: Shift the pointer to effectively remove the first character
+      // Shift the pointer to effectively remove the first character
       // This modifies what argone points to, but not the underlying string data
       strcpy(argone, (++argv[1]));
     } else {
@@ -334,20 +334,10 @@ int main(int argc, char **argv) {
       strcpy(pkg, argv[i+2]);  // sparky4: this is to remove the program name and action from the argument list
     } else argci--;  // sparky4: bug fix to prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
-      //if (argc < 2) {
-      //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-      //  QUIT(0)
-      //} else {
         action = ACTION_SEARCH;
-      //}
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
-      //if (argc < 2) {
-      //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-      //  QUIT(0)
-      //} else {
         action = ACTION_SEARCH;
         verbosemode = 1;
-      //}
     } else if (((strcasecmp(argone, "install") && strcasecmp(argone, "in")) == 0) || ((strcasecmp(argone, "install-nosrc") && strcasecmp(argone, "in-nosrc")) == 0) || ((strcasecmp(argone, "install-wsrc") && strcasecmp(argone, "in-wsrc")) == 0)) {
       if ((strcasecmp(argone, "install-nosrc") && strcasecmp(argone, "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
       if ((strcasecmp(argone, "install-wsrc") && strcasecmp(argone, "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
@@ -374,7 +364,7 @@ int main(int argc, char **argv) {
         net_initflag = 1;
         norepoaction = 1;
       }
-//----      QUIT(0);  // sparky4: this is a loop now so we can do this now! :D
+    // sparky4: this is a loop now so we can do this now! :D
     } else if ((strcasecmp(argone, "update") && strcasecmp(argone, "up")) == 0) {
       if (argc >= 3) {
         action = ACTION_UPDATE;
@@ -385,14 +375,9 @@ int main(int argc, char **argv) {
         QUIT(0);
       }
     } else if (((strcasecmp(argone, "listlocal") && strcasecmp(argone, "ll")) == 0) || ((strcasecmp(argone, "showinstalled") && strcasecmp(argone, "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
-      //if (argc < 2) {
-      //  kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-      //  QUIT(0);
-      //} else {
         action = ACTION_LISTLOCAL;
         net_initflag = 1;
         norepoaction = 1;
-      //}
     } else if ((strcasecmp(argone, "listfiles") && strcasecmp(argone, "lf")) == 0) {
       if (argc < 3) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
@@ -502,36 +487,33 @@ int main(int argc, char **argv) {
   /* listing local packages need no special preparation - do it now and quit */
   if (action == ACTION_LISTLOCAL) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;// else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = pkg;  // sparky4: again this is to stop it from listing all files 2x ...
     showinstalledpkgs(filterstr, dosdir);
-//----    QUIT(0);  // sparky4: disabled for more than 1 package listings
   }
 
   /* listing local files need no special preparation - do it now and quit */
   if (action == ACTION_LISTFILES) {
     listfilesofpkg(pkg, dosdir);
-//----    QUIT(0);  // sparky4: disabled for more than 1 package listings
   }
 
   /* locally held at version package listings */
   if (action == ACTION_HOLDLIST) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;// else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = pkg;  // sparky4: again this is to stop it from listing all files 2x ...
     showheldedpkgs(filterstr, dosdir);
-    //----    QUIT(0);  // sparky4: disabled for more than 1 package listings
   }
 
   /* hold a package and dont change it */
   if (action == ACTION_HOLD) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;// else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = pkg;  // sparky4: again this is to stop it from listing all files 2x ...
     holdpkg(filterstr, dosdir);
   }
 
   /* unhold a package and do change it */
   if (action == ACTION_UNHOLD) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;// else argci--;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = pkg;  // sparky4: again this is to stop it from listing all files 2x ...
     unholdpkg(filterstr, dosdir);
   }
 
@@ -560,8 +542,6 @@ int main(int argc, char **argv) {
       pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
       fclose(zipfilefd);
     }
-
-//----    QUIT(0)  // sparky4: disabled for more than 1 package listings
   }
 
   /* sparky4: Reinstall a local file! */
@@ -594,7 +574,6 @@ int main(int argc, char **argv) {
       }
       fclose(zipfilefd);
     }
-//----    QUIT(0)  // sparky4: disabled for more than 1 package listings
   }
 
   /* clear cache? */
@@ -712,7 +691,6 @@ int main(int argc, char **argv) {
             #ifdef DEBUG
             puts("DEBUG: download start");
             #endif
-//            htgetres = 0;
             htgetres = -1;
             #ifndef USE_INTERNAL_WATTCP
             #ifdef USE_MTCP
@@ -740,27 +718,11 @@ int main(int argc, char **argv) {
               #else
 //              if (htgetres == 21) break;
               if (htgetres == 0) break;
-              // lets try this
-//NO NEED FOR THIS!
-#if 0
-              sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
-              batch_file = fopen(commandforbatch, "w");
-              if (batch_file == NULL) {
-                kitten_printf(3, 10, "Error: Could not create %s!");
-                htgetres = -1;
-              } else {
-                fprintf(batch_file, "%s", command);
-                fclose(batch_file);
-#endif
                 _nheapmin();
                 //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
                 _fheapmin();
                 //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
                 htgetres = system(command/*forbatch*/);
-//NO NEED FOR THIS!
-#if 0
-              }
-#endif
               #endif
               #ifdef DEBUG
               printf("htgetres returned: %d\n", htgetres);

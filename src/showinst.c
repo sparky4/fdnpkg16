@@ -47,7 +47,7 @@ static void clrline(void) {
 }
 
 
-static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packagelist_maxlen, char *filterstr, char *dosdir, short lsxflag) {
+static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packagelist_maxlen, char *filterstr, char *dosdir, char lsxflag) {
   DIR *dp;
   int packagelist_len = 0, x;
   struct dirent *ep;
@@ -60,7 +60,7 @@ static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packa
       if (ep->d_name[0] != '.') { /* ignore '.', '..', and hidden directories */
         if (strlen(ep->d_name) > 4) {
           int tlen = strlen(ep->d_name);
-          if (lsxflag == 0) { // sparky4: this variable is for enabling the listing of held files and will eventually list them
+          if (lsxflag == 0) {     // sparky4: this variable is for enabling the listing of held files and will eventually list them
             if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 't')) continue;  /* if it's not an .lst file, skip it silently */
           } else {
             if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 'x')) continue;  /* if it's not an .lsx file, skip it silently */
