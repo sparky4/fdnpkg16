@@ -1,6 +1,9 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8250b [10 Jan 2026]
+ - [fix] Disabled temp BAT script creation!
+
 FDNPKG16 v0.99.8250a [06 Jan 2026]
  - [fix] found another spot where press q to quit was not fixed. it was fixed
  - [nfo] The code got slightly optimized with ifelse at the bottom of fdnpkg16.c with a variable named norepoaction
