@@ -706,10 +706,6 @@ int main(int argc, char **argv) {
               #endif
               #ifdef USE_INTERNAL_WATTCP
               if (htgetres > 0) break;
-              //_nheapmin();
-              //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
-              //_fheapmin();
-              //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
               _nheapgrow();
               _fheapgrow();
               htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL, 1);
@@ -722,7 +718,7 @@ int main(int argc, char **argv) {
                 //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
                 _fheapmin();
                 //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
-                htgetres = system(command/*forbatch*/);
+                htgetres = system(command);
               #endif
               #ifdef DEBUG
               printf("htgetres returned: %d\n", htgetres);
