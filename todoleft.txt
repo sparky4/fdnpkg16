@@ -46,6 +46,8 @@ DONE!
 
 
 
+
+
 - additional todo thanks to willi! :D
 1. /? "Press any key except Q to continue" This works, but is unusual for me, as in most cases it shows the options twice and nerves the user. I would do it as follows:
         "Press S to show the short options" (otherwise it exits)
@@ -76,5 +78,3 @@ if there is a typo it dose this on purpose.. to mention to user the help.
 > 5. a simple pause after each side would be enough.
 i think i can implement this too
 
-
-remove unused code from hc.c!

@@ -31,7 +31,7 @@
 //#define DEBUG_MEM  // uncomment this to enable debug mode of ram
 #ifdef DEBUG_MEM
 //#include <conio.h>
-#include "hc.h"
+#include "memcore.h"
 #endif
 
 

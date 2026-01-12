@@ -52,7 +52,7 @@
 #include "readenv.h"  /* readenv() */
 #include "showinst.h" /* showinstalledpkgs() */
 #include "version.h"
-#include "hc.h"
+#include "memcore.h"
 
 //#define DEBUG  /* uncomment this to enable debug mode */
 
