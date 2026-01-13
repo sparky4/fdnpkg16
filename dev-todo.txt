@@ -2,10 +2,8 @@ experimental dev cleanup todo for dev branch
   it's mostly clean up of old code i made because the project is a little messy where i worked at.
   this is ok it works fine i just need to fix things
 
-eliminate the batch script for faster access
-clean up old network code not used
-clean up old code not used
-fix local actions and merge the 2 variables
+clean up old network code not used          --eventually
+fix local actions and merge the 2 variables --eventually
 optimize things for 8088/8086
   database operations
   just over all reduce disk access where unessessary!

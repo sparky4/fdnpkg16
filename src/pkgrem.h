@@ -1,6 +1,7 @@
 /*
- * This file is part of the FDNPKG project.
+ * This file is part of the FDNPKG16 project.
  * Copyright (C) Mateusz Viste 2012-2016. All rights reserved.
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
  */
 
 #ifndef pkgrem_sentinel
