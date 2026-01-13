@@ -43,3 +43,4 @@ ps.exe
 # Ignore objects and archives.
 *.[oa]
 *lnk
+*.fig
