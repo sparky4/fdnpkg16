@@ -471,7 +471,7 @@ int main(int argc, char **argv) {
   if (action == ACTION_HELP) {
     printhelp();
     kitten_puts(2, 21, "Press any key but Q to continue...");
-    while (tolower(y = getch()) == 'q') { QUIT(0) }
+    while (tolower(getch()) == 'q') { QUIT(0) }
     printhelpshort();
     puts("");
     QUIT(0)
@@ -631,7 +631,7 @@ int main(int argc, char **argv) {
     dci = 4;
 
     kitten_puts(2, 21, "Press any key but Q to continue...");
-    while (tolower(y = getch()) == 'q') { QUIT(0) }
+    while (tolower(getch()) == 'q') { QUIT(0) }
     printf("maxcachetime: %ld seconds\n", maxcachetime);
     printf("installsources: %d\n", (flags & PKGINST_NOSOURCE) != 0);
     printf("mapdrives: %s\n", mapdrv);
