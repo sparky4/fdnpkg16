@@ -3,6 +3,11 @@
  * Copyright (C) Mateusz Viste 2013-2015. All rights reserved.
  * Copyright (C) Victoria Crenshaw (sparky4) 2025-2026. All rights reserved
  */
+/*
+ * HTTPGET.EXE part of FDNPKG16.
+ * Currently in use as the networking part of FDNPKG16 to get the packages.
+ * Can be used as stand alone software
+ */
 
 #include <stdio.h>
 #include <strings.h>
