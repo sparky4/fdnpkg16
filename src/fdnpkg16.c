@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
   //sparky4: new variables from me! <3
   int netinitres;   // sparky4: for netowrking initialization for internal networking (external for now)
 #ifndef USE_INTERNAL_WATTCP
-  char command[512];
+  char command[512];// sparky4: for the download command for external programs
 #endif
   int arglen;       // sparky4: pkgname length
   int argci;        // sparky4: argument variable for number of variables. for multi packages

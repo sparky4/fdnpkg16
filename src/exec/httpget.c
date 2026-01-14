@@ -1,7 +1,7 @@
 /*
- * test app for the FDNPKG http module.
+ * test app for the FDNPKG16 http module.
  * Copyright (C) Mateusz Viste 2013-2015. All rights reserved.
- * Copyright (C) Victoria Crenshaw (sparky4) 2025. All rights reserved
+ * Copyright (C) Victoria Crenshaw (sparky4) 2025-2026. All rights reserved
  */
 
 #include <stdio.h>
@@ -17,15 +17,15 @@
 
 long coreleft()
 {
-	_nheapgrow();
-	return _memavl();
+  _nheapgrow();
+  return _memavl();
 }
 
 // from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
 // sparky4: modified by me xD
 long farcoreleft() {
   static long memoryAvailable;
-  int SAMPLE_SIZE = 640;//65534;  /* 640 Bytes */
+  int SAMPLE_SIZE = 640;  /* 640 Bytes */
   void __far * far *memoryBlock; /* Array of pointers */
   int i = 0, j = 0;
   int maxBlocks = 1024; /* for a max of about 640KB */
