@@ -24,7 +24,7 @@ fdnpkg16.oem for my repository mirror with fdnpkg16 added
 
 fdnpkg16.4 is just my config file for specifically my FreeDOS installs on my computers!
 
-if u got a very old (1.0) FreeDOS install with all the stuff in fdos dir then use this one!
+If u got a very old (1.0) FreeDOS install with all the stuff in fdos dir then use this one!
 
 
 # The program itself is compiled with Open Watcom 2.0
@@ -33,8 +33,7 @@ watt32 is compiles with Open Watcom 1.9
 zlib can be compiled with either! :D
 
 
-
 # Stability report so far
-Currently at 0.99.8249 we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
+Currently at 0.99.8250b we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
 
 I am awaiting for fdrepo to be updated for fdnpkg16 then i will implement stable features and test it.
