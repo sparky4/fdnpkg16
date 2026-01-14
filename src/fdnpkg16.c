@@ -310,23 +310,23 @@ int main(int argc, char **argv) {
     if (argv[1][0] == '/') { // Check if the first character is '/'
       // Shift the pointer to effectively remove the first character
       // This modifies what argone points to, but not the underlying string data
-      strcpy(argone, (++argv[1]));
+      strcpy(argone, (++argv[1])); // sparky4: if there is /, copy the argument with out /.
     } else {
-      strcpy(argone, argv[1]);
+      strcpy(argone, argv[1]);     // sparky4: copy the argument directly if there is no /
     }
   }
 
   // sparky4: for now initiate this variable as the same value as argc we will change it later
   argci = argc;
 
-  /* sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D */
+  // sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D
   for (i = 0; i < argci; i++) {
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg16 action [param] */
     if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
-      argci = argc - 2;  // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
-      strcpy(pkg, argv[i+2]);  // sparky4: this is to remove the program name and action from the argument list
-    } else argci--;  // sparky4: bug fix to prevent looping twice for these functions (this only happens if argc == 2)
+      argci = argc - 2;       // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
+      strcpy(pkg, argv[i+2]); // sparky4: this is to remove the program name and action from the argument list
+    } else argci--;           // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
         action = ACTION_SEARCH;
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
