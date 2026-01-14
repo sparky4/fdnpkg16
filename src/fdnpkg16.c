@@ -226,15 +226,9 @@ static int trycreatefileindir(char *dirname) {
 }
 
 
-#ifndef DEBUG
 #define QUIT(x) \
   kittenclose(); \
   return(x);
-#else
-#define QUIT(x) \
-  kittenclose(); \
-  return(x);
-#endif
 
 
 int main(int argc, char **argv) {
