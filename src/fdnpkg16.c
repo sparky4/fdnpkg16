@@ -265,8 +265,8 @@ int main(int argc, char **argv) {
   char argone[18];  // sparky4: this gotta be long enough for the commands
 
   //TODO: COMBINE THESE 2 TO 1 FLAG VARIABLE CHAR WITH BITWISE OPERATION EACH BIT AS 1 FLAG FOR 1 VARIABLE
-  short net_initflag = 0;
-  short norepoaction = 0; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
+  short net_initflag;
+  short norepoaction; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
 
   // sparky4: empty string initiation
   strcpy(pkg, "");
@@ -321,11 +321,12 @@ int main(int argc, char **argv) {
 
   // sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D
   for (i = 0; i < argci; i++) {
+  net_initflag = norepoaction = 0;
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg16 action [param] */
     if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
       argci = argc - 2;                            // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
-      strcpy(pkg, argv[i+2]);                      // sparky4: this is to remove the program name and action from the argument list
+      strcpy(pkg, get_filename(argv[i+2])); // sparky4: this is to remove the program name and action from the argument list
     } else argci--;                                // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
         action = ACTION_SEARCH;
@@ -339,10 +340,10 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
-        arglen = strlen(pkg);
+        arglen = strlen(argv[i+2]);
         action = ACTION_INSTALL;
         if (arglen > 4) {
-          if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+          if ((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
             action = ACTION_INSTALL_LOCALFILE;
             net_initflag = 1;
             norepoaction = 1;
@@ -415,10 +416,10 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
         QUIT(0)
       } else {
-        arglen = strlen(pkg);
+        arglen = strlen(argv[i+2]);
         action = ACTION_REINSTALL;
         if (arglen > 4) {
-          if ((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+          if ((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
             action = ACTION_REINSTALL_LOCALFILE;
             net_initflag = 1;
             norepoaction = 1;
