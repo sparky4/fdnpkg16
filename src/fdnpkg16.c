@@ -324,9 +324,9 @@ int main(int argc, char **argv) {
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg16 action [param] */
     if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
-      argci = argc - 2;       // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
-      strcpy(pkg, argv[i+2]); // sparky4: this is to remove the program name and action from the argument list
-    } else argci--;           // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
+      argci = argc - 2;                            // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
+      strcpy(pkg, argv[i+2]);                      // sparky4: this is to remove the program name and action from the argument list
+    } else argci--;                                // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
         action = ACTION_SEARCH;
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
@@ -531,7 +531,7 @@ int main(int argc, char **argv) {
     }
 
     /* prepare the zip file and install it */
-    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, pkg, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
     if (zipfileidx != NULL) {
       pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
       fclose(zipfilefd);
@@ -558,7 +558,7 @@ int main(int argc, char **argv) {
     }
 
     /* prepare the zip file */
-    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, pkg, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+    zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
     /* if the zip file is ok, remove the old package and install our zip file */
     if (zipfileidx != NULL) {
       if (pkgrem(pkgname, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
