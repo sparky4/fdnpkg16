@@ -261,9 +261,7 @@ int main(int argc, char **argv) {
 #endif
   int arglen;       // sparky4: pkgname length
   int argci;        // sparky4: argument variable for number of variables. for multi packages
-  //TODO: redundant variable! i will merge it with argv[i+2]
-//--  char argv[i+2][13];     // sparky4: long enough for 8+.+3+\0 long filenames
-  //End todo
+//--  char argv[i+2][13];     // sparky4: redundant
   char argone[18];  // sparky4: this gotta be long enough for the commands
 
   //TODO: COMBINE THESE 2 TO 1 FLAG VARIABLE CHAR WITH BITWISE OPERATION EACH BIT AS 1 FLAG FOR 1 VARIABLE
