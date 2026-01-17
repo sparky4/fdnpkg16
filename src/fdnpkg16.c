@@ -261,7 +261,9 @@ int main(int argc, char **argv) {
 #endif
   int arglen;       // sparky4: pkgname length
   int argci;        // sparky4: argument variable for number of variables. for multi packages
-  char pkg[13];     // sparky4: long enough for 8+.+3+\0 long filenames
+  //TODO: redundant variable! i will merge it with argv[i+2]
+//--  char argv[i+2][13];     // sparky4: long enough for 8+.+3+\0 long filenames
+  //End todo
   char argone[18];  // sparky4: this gotta be long enough for the commands
 
   //TODO: COMBINE THESE 2 TO 1 FLAG VARIABLE CHAR WITH BITWISE OPERATION EACH BIT AS 1 FLAG FOR 1 VARIABLE
@@ -269,7 +271,7 @@ int main(int argc, char **argv) {
   short norepoaction; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
 
   // sparky4: empty string initiation
-  strcpy(pkg, "");
+//--  strcpy(argv[i+2], "");
   strcpy(argone, "");
 
   #ifdef DEBUG
@@ -326,7 +328,7 @@ int main(int argc, char **argv) {
   if (argc > 1) { /* fdnpkg16 action [param] */
     if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
       argci = argc - 2;                            // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
-      strcpy(pkg, get_filename(argv[i+2])); // sparky4: this is to remove the program name and action from the argument list
+//--      strcpy(argv[i+2], get_filename(argv[i+2]));        // sparky4: this is to remove the program name and action from the argument list
     } else argci--;                                // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
         action = ACTION_SEARCH;
@@ -355,7 +357,7 @@ int main(int argc, char **argv) {
         kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
       } else {
         action = ACTION_REMOVE;
-        pkgrem(pkg, dosdir, mapdrv);
+        pkgrem(argv[i+2], dosdir, mapdrv);
         net_initflag = 1;
         norepoaction = 1;
       }
@@ -482,33 +484,33 @@ int main(int argc, char **argv) {
   /* listing local packages need no special preparation - do it now and quit */
   if (action == ACTION_LISTLOCAL) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
     showinstalledpkgs(filterstr, dosdir);
   }
 
   /* listing local files need no special preparation - do it now and quit */
   if (action == ACTION_LISTFILES) {
-    listfilesofpkg(pkg, dosdir);
+    listfilesofpkg(argv[i+2], dosdir);
   }
 
   /* locally held at version package listings */
   if (action == ACTION_HOLDLIST) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
     showheldedpkgs(filterstr, dosdir);
   }
 
   /* hold a package and dont change it */
   if (action == ACTION_HOLD) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
     holdpkg(filterstr, dosdir);
   }
 
   /* unhold a package and do change it */
   if (action == ACTION_UNHOLD) {
     char *filterstr = NULL;
-    if (argc >= 3) filterstr = pkg;  // sparky4: again this is to stop it from listing all files 2x ...
+    if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
     unholdpkg(filterstr, dosdir);
   }
 
@@ -517,11 +519,11 @@ int main(int argc, char **argv) {
     char pkgname[64];
     char buffmem1k[1024];
     int t, lastpathdelim = -1, u = 0;
-    for (t = 0; pkg[t] != 0; t++) {
-      if ((pkg[t] == '/') || (pkg[t] == '\\')) lastpathdelim = t;
+    for (t = 0; argv[i+2][t] != 0; t++) {
+      if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
     }
     /* copy the filename into pkgname (without path elements) */
-    for (t = lastpathdelim + 1; pkg[t] != 0; t++) pkgname[u++] = pkg[t];
+    for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
     pkgname[u] = 0; /* terminate the string */
     /* truncate the file's extension (.zip) */
     for (t = u; t > 0; t--) {
@@ -544,11 +546,11 @@ int main(int argc, char **argv) {
     char pkgname[64];
     char buffmem1k[1024];
     int t, lastpathdelim = -1, u = 0;
-    for (t = 0; pkg[t] != 0; t++) {
-      if ((pkg[t] == '/') || (pkg[t] == '\\')) lastpathdelim = t;
+    for (t = 0; argv[i+2][t] != 0; t++) {
+      if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
     }
     /* copy the filename into pkgname (without path elements) */
-    for (t = lastpathdelim + 1; pkg[t] != 0; t++) pkgname[u++] = pkg[t];
+    for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
     pkgname[u] = 0; /* terminate the string */
     /* truncate the file's extension (.zip) */
     for (t = u; t > 0; t--) {
@@ -590,7 +592,7 @@ int main(int argc, char **argv) {
   }
 
   /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
-  if ((!((pkg[arglen - 4] == '.') && (tolower(pkg[arglen - 3]) == 'z') && (tolower(pkg[arglen - 2]) == 'i'))) && (net_initflag == 0)) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+  if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i'))) && (net_initflag == 0)) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
     /* if there is at least one online repo, init the Watt32 stack */
     for (x = 0; x < repolistcount; x++) {
       if (detect_localpath(repolist[x]) == 0) {
@@ -766,36 +768,36 @@ int main(int argc, char **argv) {
       }
       if (action == ACTION_SEARCH) { /* for search: iterate through the sorted db, and print out all packages that match the pattern */
         if (argc >= 3) { /* a search term has been provided */
-          pkgsearch(pkgdb, pkg, verbosemode, repolist);
+          pkgsearch(pkgdb, argv[i+2], verbosemode, repolist);
         } else {
           pkgsearch(pkgdb, NULL, verbosemode, repolist);
         }
       } else if (action == ACTION_INSTALL) {
-        if (validate_package_not_installed(pkg, dosdir, mapdrv) == 0) { /* check that package is not already installed first */
+        if (validate_package_not_installed(argv[i+2], dosdir, mapdrv) == 0) { /* check that package is not already installed first */
           char membuff1k[1024];
-          zipfileidx = pkginstall_preparepackage(pkgdb, pkg, tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
           if (zipfileidx != NULL) {
-            pkginstall_installpackage(pkg, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+            pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
             fclose(zipfilefd);
           }
         }
       } else if (action == ACTION_UPDATE) { /* UPDATE, but only for a SINGLE package */
-        if (is_package_installed(pkg, dosdir, mapdrv) == 0) { /* is this package installed at all? */
-          kitten_printf(10, 6, "Package %s is not installed.", pkg);
+        if (is_package_installed(argv[i+2], dosdir, mapdrv) == 0) { /* is this package installed at all? */
+          kitten_printf(10, 6, "Package %s is not installed.", argv[i+2]);
           puts("");
-        } else if (checkupdates(dosdir, pkgdb, repolist, pkg, tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
-          kitten_printf(10, 2, "No update found for the '%s' package.", pkg);
+        } else if (checkupdates(dosdir, pkgdb, repolist, argv[i+2], tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
+          kitten_printf(10, 2, "No update found for the '%s' package.", argv[i+2]);
           puts("");
         } else { /* the package is locally installed, and an update have been found - let's proceed */
           char membuff1k[1024];
           /* prepare the zip file */
-          zipfileidx = pkginstall_preparepackage(pkgdb, pkg, tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
           /* if the zip file is ok, remove the old package and install our zip file */
           if (zipfileidx != NULL) {
-            if (pkgrem(pkg, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+            if (pkgrem(argv[i+2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
               zip_freelist(&zipfileidx);
             } else {
-              pkginstall_installpackage(pkg, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+              pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
             }
             fclose(zipfilefd);
           }
@@ -807,13 +809,13 @@ int main(int argc, char **argv) {
       } else if (action == ACTION_REINSTALL) { /* REINSTALL, but only for a SINGLE package */
         char membuff1k[1024];
         /* prepare the zip file */
-        zipfileidx = pkginstall_preparepackage(pkgdb, pkg, tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+        zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
         /* if the zip file is ok, remove the old package and install our zip file */
         if (zipfileidx != NULL) {
-          if (pkgrem(pkg, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
+          if (pkgrem(argv[i+2], dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
             zip_freelist(&zipfileidx);
           } else {
-            pkginstall_installpackage(pkg, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+            pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
           }
           fclose(zipfilefd);
         }
