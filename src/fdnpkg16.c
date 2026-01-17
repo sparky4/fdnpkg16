@@ -261,7 +261,6 @@ int main(int argc, char **argv) {
 #endif
   int arglen;       // sparky4: pkgname length
   int argci;        // sparky4: argument variable for number of variables. for multi packages
-//--  char argv[i+2][13];     // sparky4: redundant
   char argone[18];  // sparky4: this gotta be long enough for the commands
 
   //TODO: COMBINE THESE 2 TO 1 FLAG VARIABLE CHAR WITH BITWISE OPERATION EACH BIT AS 1 FLAG FOR 1 VARIABLE
@@ -269,7 +268,6 @@ int main(int argc, char **argv) {
   short norepoaction; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
 
   // sparky4: empty string initiation
-//--  strcpy(argv[i+2], "");
   strcpy(argone, "");
 
   #ifdef DEBUG
@@ -326,7 +324,6 @@ int main(int argc, char **argv) {
   if (argc > 1) { /* fdnpkg16 action [param] */
     if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
       argci = argc - 2;                            // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
-//--      strcpy(argv[i+2], get_filename(argv[i+2]));        // sparky4: this is to remove the program name and action from the argument list
     } else argci--;                                // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
         action = ACTION_SEARCH;
