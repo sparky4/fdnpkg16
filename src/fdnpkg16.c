@@ -323,8 +323,8 @@ int main(int argc, char **argv) {
   /* parse cli parameters */
   if (argc > 1) { /* fdnpkg16 action [param] */
     if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
-      argci = argc - 2;                            // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
-    } else argci--;                                // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
+      argci = argc - 2; // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
+    } else argci--;     // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
     if ((strcasecmp(argone, "search") && strcasecmp(argone, "se")) == 0) {
         action = ACTION_SEARCH;
     } else if ((strcasecmp(argone, "vsearch") && strcasecmp(argone, "vs")) == 0) {
