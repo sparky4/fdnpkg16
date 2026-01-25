@@ -7,10 +7,13 @@
 #ifndef FDNPKG_H_SENTINEL
 #define FDNPKG_H_SENTINEL
 
-/* flags used by FDNPKG */
+/* flags used by FDNPKG16 */
 #define PKGINST_NOSOURCE  1
 #define PKGINST_SKIPLINKS 2
 #define PKGINST_UPDATE    4
+
+#define FDNPKG16_NETINIT  1 // sparky4: no network action
+#define FDNPKG16_NOREPOA  2 // sparky4: no repository action
 
 #define MAXINDEXRETRIES   10  // maximum number of retries for downloading a repository index
 //#define DEBUG                 // uncomment this to enable debug mode
