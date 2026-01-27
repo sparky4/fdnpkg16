@@ -42,18 +42,18 @@ enum ACTIONTYPES {
 
 
 static int showhelp(void) {
-  printf("FDINST16 v" PVER " Copyright (C) " PDATE " Mateusz Viste & Victoria Crenshaw\n"
-         "\n"
+  printf("FDINST16 v" PVER " Copyright (C)" POLDDATE " Mateusz Viste\n"
+         "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood\n\n"
          "FDINST16 is a lightweigth package installer for FreeDOS. It is an alternative\n"
-         "to FDNPKG, when only basic, local install/remove actions are necessary. FDINST\n"
-         "is a 16-bit, 8086-compatible application running in real mode.\n"
+         "to FDNPKG16, when only basic, local install/remove actions are necessary.\n"
+         "FDINST16 is a 16-bit, 8086-compatible application running in real mode.\n"
          "\n"
          "Usage: FDINST16 install package.zip\n"
          "       FDINST16 remove package\n"
          "\n"
          "FDINST16 is published under the MIT license, and shares most of its source code\n"
-         "with FDNPKG to guarantee consistent behaviour of both tools. It also uses\n"
-         "FDNPKG's configuration file.\n"
+         "with FDNPKG16 to guarantee consistent behaviour of both tools. It also uses\n"
+         "FDNPKG16's configuration file.\n"
          );
   return(1);
 }

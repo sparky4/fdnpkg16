@@ -1,65 +1,141 @@
-CFLAGS = -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpc -i=src -i=src/zlib -i=src/watt32/inc
-CLIBS = src/zlib/zlib_l.lib src/watt32/lib/wattcpwl.lib
+#
+# Generic make file for a C program with multiple targets
+#
 
-#all: fdnpkg.exe test-ver.exe test-url.exe testhttp.exe test-unz.exe
-all: fdnpkg16.exe
+!ifdef __LINUX__ || __BSD__
+#!ifdef UNIX
+to_os_path=\=/
+REMOVECOMMAND=rm -f
+COPYCOMMAND=cp -f
+MOVECOMMAND=mv
+DIRSEP=/
+OBJ=obj
+DUMP=cat
+!else		#DOS ^^
+to_os_path=/=\
+REMOVECOMMAND=del
+COPYCOMMAND=copy /y
+MOVECOMMAND=move /y
+DIRSEP=\
+OBJ=obj
+DUMP=type
+!endif
 
-# This target produces a fdnpkg0.exe that is not compressed and do not have cwsdpmi embedded
-fdnpkg16.exe: fdnpkg16.obj crc32.obj inf.obj kprintf.obj kittendj.obj fileexst.obj http.obj libgz.obj libunzip.obj loadconf.obj lsm.obj net.obj lzmadec.obj pkgdb.obj pkginst.obj pkgsrch.obj pkgrem.obj readenv.obj showinst.obj getdelim.obj rtrim.obj parsecmd.obj parseurl.obj helpers.obj
-	wcc fdnpkg.obj crc32.obj inf.obj kprintf.obj kittendj.obj fileexst.obj http.obj libgz.obj libunzip.obj loadconf.obj lsm.obj net.obj lzmadec.obj pkgdb.obj pkginst.obj pkgsrch.obj pkgrem.obj readenv.obj showinst.obj getdelim.obj rtrim.obj parsecmd.obj parseurl.obj helpers.obj $(CLIBS)
+# --- MACROS ---
 
-# targets below are useful only for testing purposes
-test-url.exe: test-url.c parseurl.obj
-	wcc test-url.c parseurl.obj -o test-url.exe $(CFLAGS)
+# Compiler: use wcc for 16-bit, wcc386 for 32-bit (common for Linux and extended DOS)
+# The specific compiler will depend on the chosen System target
+COMPILER_16 = wcc
 
-test-ver.exe: test-ver.c kprintf.obj kittendj.obj helpers.obj lsm.obj rtrim.obj
-	wcc test-ver.c kprintf.obj kittendj.obj helpers.obj lsm.obj rtrim.obj -o test-ver.exe $(CFLAGS)
+# Compiler Options: Add desired options (e.g., debugging -g, optimization -O)
+# -bt=<system> is often passed via command line or inferred by wcl/wcl386
+COMPILER_OPTIONS = -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -fo=.$(OBJ) -i=src -i=src/zlib -i=src/watt32/inc
+COMPILER_OPTIONS2 = -DNOREPOS -DNOLZMA
 
-testhttp.exe: testhttp.c helpers.obj http.obj parseurl.obj net.obj
-	wcc testhttp.c helpers.obj http.obj parseurl.obj net.obj src/watt32/lib/wattcpwl.lib -o testhttp.exe $(CFLAGS)
+# Linker Options
+LINKER_OPTIONS = src/zlib/zlib_l.lib
+LINKER_OPTIONS_HTTPGET = src/watt32/lib/wattcpwl.lib
+LINKER_OPTIONS_FDINST = src/zlib/zlib_l.lib
 
-test-unz.exe: test-unz.c crc32.obj kittendj.obj kprintf.obj libunzip.obj lzmadec.obj tinfl.obj
-	wcc -g test-unz.c crc32.obj kittendj.obj kprintf.obj libunzip.obj lzmadec.obj tinfl.obj -o test-unz.exe $(CFLAGS)
+# Source files
+C_SOURCE = src/fdnpkg16.c src/crc32.c src/fileexst.c src/kprintf.c src/loadconf.c src/parsecmd.c src/pkginst.c src/readenv.c src/getdelim.c src/inf.c src/libgz.c src/lsm.c src/parseurl.c src/pkgrem.c src/rtrim.c src/helpers.c src/kitten.c src/libunzip.c src/pkgdb.c src/pkgsrch.c src/memcore.c src/showinst.c src/lzmadec.c
+C_SOURCE_HTTPGET = src/exec/httpget.c src/net.c src/http.c src/parseurl.c src/helpers.c
+C_SOURCE_FDINST = src/exec/fdinst16.c src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/exec/kprintf0.c
+#-DNOREPOS -DNOLZMA
 
-test-gz.exe: test-gz.c crc32.obj libgz.obj tinfl.obj
-	wcc -g test-gz.c crc32.obj libgz.obj tinfl.obj -o test-gz.exe $(CFLAGS)
+# Object files (derived from source files, adjust extension as needed for your setup)
+OBJECTS = $(C_SOURCE:../.c=.$(OBJ))
+OBJ_HTTPGET = $(C_SOURCE_HTTPGET:../.c=.$(OBJ))
+OBJ_FDINST = $(C_SOURCE_FDINST:../.c=.$(OBJ))
+EXEC = &
+     fdnpkg16.exe &
+     httpget.exe &
+     fdinst16.exe
 
-pkg: fdnpkg.exe fdinst/fdinst.exe
+#.PHONY: all clean dos
+
+# --- TARGETS ---
+
+all: $(EXEC)
+
+# Generic rule to build the executable
+fdnpkg16.exe: $(OBJECTS)
+    # Use wcl or wcl386 utility to compile and link in one step
+    # wcl automatically calls wcc/wlink and sets system-specific options
+    # Use wcl386 for 32-bit targets, wcl for 16-bit targets
+    #@echo Building for $(System)
+    *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJECTS) $(LINKER_OPTIONS)
+    #@echo Finished building $(Exe_file)
+
+httpget.exe: $(OBJ_HTTPGET)
+    # Use wcl or wcl386 utility to compile and link in one step
+    # wcl automatically calls wcc/wlink and sets system-specific options
+    # Use wcl386 for 32-bit targets, wcl for 16-bit targets
+    #@echo Building for $(System)
+    *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJ_HTTPGET) $(LINKER_OPTIONS_HTTPGET)
+    #@echo Finished building httpget.exe
+
+fdinst16.exe: $(OBJECTS)
+    # Use wcl or wcl386 utility to compile and link in one step
+    # wcl automatically calls wcc/wlink and sets system-specific options
+    # Use wcl386 for 32-bit targets, wcl for 16-bit targets
+    #@echo Building for $(System)
+    $(REMOVECOMMAND) *.$(OBJ)
+    *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINST) $(LINKER_OPTIONS_FDINST)
+    $(REMOVECOMMAND) *.$(OBJ)
+    #@echo Finished building $(Exe_file_fdinst)
+
+# Generic rule to compile .c files into .$(OBJ) files
+.c.$(OBJ) :
+    *wcl $(COMPILER_OPTIONS) -c $[@
+
+#CFLAGS is neccessary here
+.$(OBJ).exe :
+    *wcl $(COMPILER_OPTIONS) $(LINKER_OPTIONS) $< -fe=$@
+
+.c : src$(DIRSEP);src$(DIRSEP)exec$(DIRSEP)
+
+.$(OBJ) : .
+.exe : .
+
+
+# Clean target to remove built files
+clean:
+    @echo Cleaning up...
+    @$(REMOVECOMMAND) *.$(OBJ) *.exe
+
+pkg: fdnpkg16.exe httpget.exe fdinst16.exe
 	mkdir appinfo
 	mkdir bin
 	mkdir doc
-	mkdir doc/fdnpkg
+	mkdir doc/fdnpkg16
 	mkdir source
-	mkdir source/fdnpkg
-	mkdir source/fdnpkg/fdinst
-	mkdir source/fdnpkg/zlib
-	copy fdnpkg.lsm appinfo
-	copy fdnpkg.exe bin
-	copy fdinst/fdinst.exe bin
-	copy fdinst/fdinst.txt doc/fdnpkg
-	copy fdnpkg.cfg bin
-	copy fdnpkg.txt doc/fdnpkg
-	copy history.txt doc/fdnpkg
-	copy *.c source/fdnpkg
-	copy *.h source/fdnpkg
-	copy *.asm source/fdnpkg
-	copy *.txt source/fdnpkg
-	copy fdinst/*.c source/fdnpkg/fdinst
-	copy fdinst/*.h source/fdnpkg/fdinst
-	copy fdinst/*.txt source/fdnpkg/fdinst
-	copy fdinst/*.bat source/fdnpkg/fdinst
-	copy zlib/*.* source/fdnpkg/zlib
-	copy makefile source/fdnpkg
-	copy *.cfg source/fdnpkg
-	copy *.bin source/fdnpkg
-	if exist fdnpkg.zip del fdnpkg.zip
-	zip -r -k -9 fdnpkg.zip appinfo bin doc nls source
+	mkdir source/fdnpkg16
+	mkdir source/fdnpkg16/fdinst
+	mkdir source/fdnpkg16/zlib
+	copy fdnpkg16.lsm appinfo
+	copy fdnpkg16.exe bin
+	copy fdinst16/fdinst16.exe bin
+	copy fdinst16/fdinst16.txt doc/fdnpkg16
+	copy fdnpkg16.cfg bin
+	copy fdnpkg16.txt doc/fdnpkg16
+	copy history.txt doc/fdnpkg16
+	copy *.c source/fdnpkg16
+	copy *.h source/fdnpkg16
+	copy *.asm source/fdnpkg16
+	copy *.txt source/fdnpkg16
+	copy fdinst/*.c source/fdnpkg16/fdinst16
+	copy fdinst/*.h source/fdnpkg16/fdinst16
+	copy fdinst/*.txt source/fdnpkg16/fdinst16
+	copy fdinst/*.bat source/fdnpkg16/fdinst16
+	copy zlib/*.* source/fdnpkg16/zlib
+	copy makefile source/fdnpkg16
+	copy *.cfg source/fdnpkg16
+	copy *.bin source/fdnpkg16
+	if exist fdnpkg16.zip del fdnpkg16.zip
+	zip -r -k -9 fdnpkg16.zip appinfo bin doc nls source
 	deltree /Y appinfo
 	deltree /Y bin
 	deltree /Y doc
 	deltree /Y source
-	echo "fdnpkg.zip ready!"
-
-clean:
-	del *.obj
-	del *.exe
+	echo "fdnpkg16.zip ready!"

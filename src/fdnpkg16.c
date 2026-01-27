@@ -1,7 +1,7 @@
 /*
  * FDNPKG16 - FreeDOS Network Package manager
  * Copyright (C) 2012-2017 Mateusz Viste
- * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -67,10 +67,17 @@ extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 #define EXECNAME "16"
 #endif
 
+// sparky4: for possible short and long help header and such
+static void printhelpheader(void) {
+ puts("FDNPKG" EXECNAME " v" PVER " Copyright (C)" POLDDATE " Mateusz Viste\r\n"
+ "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood");
+ kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
+}
+
 static void printhelp(void) {
   //puts("FDNPKG" EXECNAME " v" PVER " (C)" PDATE " Mateusz Viste & Victoria Crenshaw");
   //kitten_puts(1, 0, "This is a network package manager for FreeDOS."); puts("");
-
+  printhelpheader();
   kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
   puts("");
   puts("");
@@ -114,7 +121,7 @@ static void printhelp(void) {
 static void printhelpshort(void) {
   //puts("FDNPKG" EXECNAME " v" PVER " (C)" PDATE " Mateusz Viste & Victoria Crenshaw");
   //kitten_puts(1, 0, "This is a network package manager for FreeDOS."); puts("");
-
+  printhelpheader();
   kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
   puts("");
   puts("");
@@ -157,7 +164,8 @@ static void printhelpshort(void) {
 }
 static void printlic(void) {
   puts("FDNPKG" EXECNAME " v" PVER " - FreeDOS Network Package manager\r\n"
-       "Copyright (C) " PDATE " Mateusz Viste & Victoria Crenshaw\r\n");
+       "Copyright (C)" POLDDATE " Mateusz Viste\r\n"
+       "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood\r\n");
 
   puts("Permission is hereby granted, free of charge, to any person obtaining a copy\r\n"
        "of this software and associated documentation files (the \"Software\"), to deal\r\n"
@@ -176,15 +184,9 @@ static void printlic(void) {
        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\r\n"
        "FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS\r\n"
        "IN THE SOFTWARE.");
-  puts("\nIf you want to contribute, let me know! https://discord.com/invite/qBH9W7fXHJ\n"
+  puts("If you want to contribute, let me know! https://discord.com/invite/qBH9W7fXHJ\n"
        "or join my irc and ping me irc://4ch.mooo.com/#fdnpkg16");
 }
-
-// sparky4: for possible short and long help header and such
-/*static void printhelpheader(void) {
-  puts("FDNPKG" EXECNAME " v" PVER " (C)" PDATE " Mateusz Viste & Victoria Crenshaw");
-  kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
-}*/
 
 // sparky4: actions the program can do
 enum actions {
