@@ -1,7 +1,7 @@
 /*
  * test app for the FDNPKG16 http module.
  * Copyright (C) Mateusz Viste 2013-2015. All rights reserved.
- * Copyright (C) Victoria Crenshaw (sparky4) 2025-2026. All rights reserved
+ * Copyright (C) Victoria Crenshaw (sparky4) && Katheryn Northwood 2025-2026. All rights reserved
  */
 /*
  * HTTPGET.EXE part of FDNPKG16.

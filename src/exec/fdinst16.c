@@ -1,7 +1,7 @@
 /*
  * FDINST16 - lightweigth FreeDOS package installer
  * Copyright (C) 2015-2017 Mateusz Viste
- * Copyright (C) 2025-2026 Victoria Crenshaw
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
