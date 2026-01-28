@@ -95,15 +95,16 @@ vomitchan: .symbolic
     @if exist *.err $(DUMP) *.err
 
 
-pkg: fdnpkg16.exe httpget.exe fdinst16.exe
-	mkdir appinfo
-	mkdir bin
-	mkdir doc
-	mkdir doc/fdnpkg16
-	mkdir source
-	mkdir source/fdnpkg16
-	mkdir source/fdnpkg16/fdinst
-	mkdir source/fdnpkg16/zlib
+pkgfkjdsljflkdsajflkdsajflkdsa: fdnpkg16.exe httpget.exe fdinst16.exe
+	mkdir fdnpkg16
+	mkdir fdnpkg16/appinfo
+	mkdir fdnpkg16/bin
+	mkdir fdnpkg16/doc
+	mkdir fdnpkg16/doc/fdnpkg16
+	mkdir fdnpkg16/source
+	mkdir fdnpkg16/source/fdnpkg16
+	mkdir fdnpkg16/source/fdnpkg16/fdinst
+	mkdir fdnpkg16/source/fdnpkg16/zlib
 	copy fdnpkg16.lsm appinfo
 	copy fdnpkg16.exe bin
 	copy fdinst16/fdinst16.exe bin

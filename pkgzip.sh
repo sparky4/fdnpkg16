@@ -34,6 +34,7 @@ mkdir fdnpkg16/SOURCE/fdnpkg16
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
 rm -r fdnpkg16/SOURCE/fdnpkg16/src
 mkdir fdnpkg16/SOURCE/fdnpkg16/src
+cp -rp makefile fdnpkg16/SOURCE/fdnpkg16/
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
 cd fdnpkg16/SOURCE/fdnpkg16/src/
 if [ -e "WATT32" ]; then
