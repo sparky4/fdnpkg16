@@ -322,525 +322,526 @@ int main(int argc, char **argv) {
 
   // sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D
   for (i = 0; i < argci; i++) {
-  action_flags = 0;
-  /* parse cli parameters */
-  if (argc > 1) { /* fdnpkg16 action [param] */
-    if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
-      argci = argc - 2; // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
-    } else argci--;     // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
-    if ((strcasecmp(actionarg, "search") && strcasecmp(actionarg, "se")) == 0) {
-        action = ACTION_SEARCH;
-    } else if ((strcasecmp(actionarg, "vsearch") && strcasecmp(actionarg, "vs")) == 0) {
-        action = ACTION_SEARCH;
-        verbosemode = 1;
-    } else if (((strcasecmp(actionarg, "install") && strcasecmp(actionarg, "in")) == 0) || ((strcasecmp(actionarg, "install-nosrc") && strcasecmp(actionarg, "in-nosrc")) == 0) || ((strcasecmp(actionarg, "install-wsrc") && strcasecmp(actionarg, "in-wsrc")) == 0)) {
-      if ((strcasecmp(actionarg, "install-nosrc") && strcasecmp(actionarg, "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
-      if ((strcasecmp(actionarg, "install-wsrc") && strcasecmp(actionarg, "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
-      if (argc < 3) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-        QUIT(0)
-      } else {
-        arglen = strlen(argv[i+2]);
-        action = ACTION_INSTALL;
-        if (arglen > 4) {
-          if ((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
-            action = ACTION_INSTALL_LOCALFILE;
-            action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+    action_flags = 0;
+    /* parse cli parameters */
+    if (argc > 1) { /* fdnpkg16 action [param] */
+      if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
+        argci = argc - 2; // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
+      } else argci--;     // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
+      if ((strcasecmp(actionarg, "search") && strcasecmp(actionarg, "se")) == 0) {
+          action = ACTION_SEARCH;
+      } else if ((strcasecmp(actionarg, "vsearch") && strcasecmp(actionarg, "vs")) == 0) {
+          action = ACTION_SEARCH;
+          verbosemode = 1;
+      } else if (((strcasecmp(actionarg, "install") && strcasecmp(actionarg, "in")) == 0) || ((strcasecmp(actionarg, "install-nosrc") && strcasecmp(actionarg, "in-nosrc")) == 0) || ((strcasecmp(actionarg, "install-wsrc") && strcasecmp(actionarg, "in-wsrc")) == 0)) {
+        if ((strcasecmp(actionarg, "install-nosrc") && strcasecmp(actionarg, "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
+        if ((strcasecmp(actionarg, "install-wsrc") && strcasecmp(actionarg, "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
+        if (argc < 3) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
+        } else {
+          arglen = strlen(argv[i+2]);
+          action = ACTION_INSTALL;
+          if (arglen > 4) {
+            if ((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+              action = ACTION_INSTALL_LOCALFILE;
+              action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+            }
           }
         }
-      }
-    } else if ((strcasecmp(actionarg, "remove") && strcasecmp(actionarg, "rm")) == 0) {
-      if (argc < 3) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-      } else {
-        action = ACTION_REMOVE;
-        pkgrem(argv[i+2], dosdir, mapdrv);
-        action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
-      }
-    // sparky4: this is a loop now so we can do this now! :D
-    } else if ((strcasecmp(actionarg, "update") && strcasecmp(actionarg, "up")) == 0) {
-      if (argc >= 3) {
-        action = ACTION_UPDATE;
-      } else if (argc == 2) {
-        action = ACTION_UPGRADE;
-      } else {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-        QUIT(0);
-      }
-    } else if (((strcasecmp(actionarg, "listlocal") && strcasecmp(actionarg, "ll")) == 0) || ((strcasecmp(actionarg, "showinstalled") && strcasecmp(actionarg, "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
-        action = ACTION_LISTLOCAL;
-        action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
-    } else if ((strcasecmp(actionarg, "listfiles") && strcasecmp(actionarg, "lf")) == 0) {
-      if (argc < 3) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-        QUIT(0);
-      } else {
-        action = ACTION_LISTFILES;
-        action_flags |= (FDNPKG16_NOREPOA);
-      }
-    } else if ((strcasecmp(actionarg, "dumpcfg") && strcasecmp(actionarg, "dc")) == 0) {
-      if (argc != 2) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+      } else if ((strcasecmp(actionarg, "remove") && strcasecmp(actionarg, "rm")) == 0) {
+        if (argc < 3) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+        } else {
+          action = ACTION_REMOVE;
+          pkgrem(argv[i+2], dosdir, mapdrv);
+          action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+        }
+      // sparky4: this is a loop now so we can do this now! :D
+      } else if ((strcasecmp(actionarg, "update") && strcasecmp(actionarg, "up")) == 0) {
+        if (argc >= 3) {
+          action = ACTION_UPDATE;
+        } else if (argc == 2) {
+          action = ACTION_UPGRADE;
+        } else {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0);
+        }
+      } else if (((strcasecmp(actionarg, "listlocal") && strcasecmp(actionarg, "ll")) == 0) || ((strcasecmp(actionarg, "showinstalled") && strcasecmp(actionarg, "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
+          action = ACTION_LISTLOCAL;
+          action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+      } else if ((strcasecmp(actionarg, "listfiles") && strcasecmp(actionarg, "lf")) == 0) {
+        if (argc < 3) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0);
+        } else {
+          action = ACTION_LISTFILES;
+          action_flags |= (FDNPKG16_NOREPOA);
+        }
+      } else if ((strcasecmp(actionarg, "dumpcfg") && strcasecmp(actionarg, "dc")) == 0) {
+        if (argc != 2) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
+        } else {
+          action = ACTION_DUMPCFG;
+          action_flags |= (FDNPKG16_NETINIT);
+        }
+      } else if ((strcasecmp(actionarg, "license") && strcasecmp(actionarg, "li")) == 0) {
+        if (argc != 2) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+        } else {
+          printlic();
+        }
         QUIT(0)
-      } else {
-        action = ACTION_DUMPCFG;
-        action_flags |= (FDNPKG16_NETINIT);
-      }
-    } else if ((strcasecmp(actionarg, "license") && strcasecmp(actionarg, "li")) == 0) {
-      if (argc != 2) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-      } else {
-        printlic();
-      }
-      QUIT(0)
-    } else if ((strcasecmp(actionarg, "checkupdates") && strcasecmp(actionarg, "cu")) == 0) {
-      if (argc != 2) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-        QUIT(0)
-      } else {
-        action = ACTION_CHECKUPDATES;
-      }
-    } else if ((strcasecmp(actionarg, "clearcache") && strcasecmp(actionarg, "cc")) == 0) {
-      if (argc != 2) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-        QUIT(0)
-      } else {
-        action = ACTION_CLEARCACHE;
-        action_flags |= (FDNPKG16_NETINIT);
-      }
-    } else if ((strcasecmp(actionarg, "reinstall") && strcasecmp(actionarg, "ri")) == 0) {
-      if (argc < 3) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-        QUIT(0)
-      } else {
-        arglen = strlen(argv[i+2]);
-        action = ACTION_REINSTALL;
-        if (arglen > 4) {
-          if ((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
-            action = ACTION_REINSTALL_LOCALFILE;
-            action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+      } else if ((strcasecmp(actionarg, "checkupdates") && strcasecmp(actionarg, "cu")) == 0) {
+        if (argc != 2) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
+        } else {
+          action = ACTION_CHECKUPDATES;
+        }
+      } else if ((strcasecmp(actionarg, "clearcache") && strcasecmp(actionarg, "cc")) == 0) {
+        if (argc != 2) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
+        } else {
+          action = ACTION_CLEARCACHE;
+          action_flags |= (FDNPKG16_NETINIT);
+        }
+      } else if ((strcasecmp(actionarg, "reinstall") && strcasecmp(actionarg, "ri")) == 0) {
+        if (argc < 3) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
+        } else {
+          arglen = strlen(argv[i+2]);
+          action = ACTION_REINSTALL;
+          if (arglen > 4) {
+            if ((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+              action = ACTION_REINSTALL_LOCALFILE;
+              action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+            }
           }
         }
+      } else if ((strcasecmp(actionarg, "holdlist") && strcasecmp(actionarg, "hl")) == 0) {
+          action = ACTION_HOLDLIST;
+          action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+      } else if ((strcasecmp(actionarg, "hold") && strcasecmp(actionarg, "ho")) == 0) {
+        if (argc < 3) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0);
+        } else {
+          action = ACTION_HOLD;
+          action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+        }
+      } else if ((strcasecmp(actionarg, "unhold") && strcasecmp(actionarg, "uh")) == 0) {
+        if (argc < 3) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0);
+        } else {
+          action = ACTION_UNHOLD;
+          action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+        }
+        // sparky4: <3
+      } else if ((strcasecmp(actionarg, "bibabo")) == 0) {
+        printf("ビバボ！ｗ");
+        QUIT(0)
+      } else if ((strcasecmp(actionarg, "poi")) == 0) {
+        printf("ぽい！ｗ");
+        QUIT(0)
+      } else if ((strcasecmp(actionarg, "fcl")) == 0) {
+        printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
+        printf("coreleft() == %ld Byte(s) Free\n", coreleft());
+        QUIT(0)
       }
-    } else if ((strcasecmp(actionarg, "holdlist") && strcasecmp(actionarg, "hl")) == 0) {
-        action = ACTION_HOLDLIST;
-        action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
-    } else if ((strcasecmp(actionarg, "hold") && strcasecmp(actionarg, "ho")) == 0) {
-      if (argc < 3) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-        QUIT(0);
-      } else {
-        action = ACTION_HOLD;
-        action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
-      }
-    } else if ((strcasecmp(actionarg, "unhold") && strcasecmp(actionarg, "uh")) == 0) {
-      if (argc < 3) {
-        kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-        QUIT(0);
-      } else {
-        action = ACTION_UNHOLD;
-        action_flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
-      }
-      // sparky4: <3
-    } else if ((strcasecmp(actionarg, "bibabo")) == 0) {
-      printf("ビバボ！ｗ");
-      QUIT(0)
-    } else if ((strcasecmp(actionarg, "poi")) == 0) {
-      printf("ぽい！ｗ");
-      QUIT(0)
-    } else if ((strcasecmp(actionarg, "fcl")) == 0) {
-      printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
-      printf("coreleft() == %ld Byte(s) Free\n", coreleft());
-      QUIT(0)
     }
-  }
 
-  //sparky4: switches are faster
-  switch (action) {
-    /* sparky4: Dual help! this runs both helps! :D */
-    case ACTION_HELP:
-      printhelp();
-      PRESS_KEY();
-      printhelpshort();
+    //sparky4: switches are faster
+    switch (action) {
+      /* sparky4: Dual help! this runs both helps! :D */
+      case ACTION_HELP:
+        printhelp();
+        PRESS_KEY();
+        printhelpshort();
+        puts("");
+        QUIT(0)
+      break;
+    }
+
+    /* test if the %TEMP% directory is writeable */
+    if (trycreatefileindir(tempdir) != 0) {
+      kitten_printf(2, 18, "ERROR: Unable to write in the '%s' directory. Check your %%TEMP%% variable.", tempdir);
       puts("");
       QUIT(0)
-    break;
-  }
+    }
 
-  /* test if the %TEMP% directory is writeable */
-  if (trycreatefileindir(tempdir) != 0) {
-    kitten_printf(2, 18, "ERROR: Unable to write in the '%s' directory. Check your %%TEMP%% variable.", tempdir);
-    puts("");
-    QUIT(0)
-  }
-
-  //sparky4: switches are faster
-  switch (action) {
-    /* listing local packages need no special preparation - do it now and quit */
-    case ACTION_LISTLOCAL:
-    {
-      char *filterstr = NULL;
-      if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-      showinstalledpkgs(filterstr, dosdir);
-    }
-    break;
-    /* listing local files need no special preparation - do it now and quit */
-    case ACTION_LISTFILES:
-      listfilesofpkg(argv[i+2], dosdir);
-    break;
-    /* locally held at version package listings */
-    case ACTION_HOLDLIST:
-    {
-      char *filterstr = NULL;
-      if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-      showheldedpkgs(filterstr, dosdir);
-    }
-    break;
-    /* hold a package and dont change it */
-    case ACTION_HOLD:
-    {
-      char *filterstr = NULL;
-      if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-      holdpkg(filterstr, dosdir);
-    }
-    break;
-    /* unhold a package and do change it */
-    case ACTION_UNHOLD:
-    {
-      char *filterstr = NULL;
-      if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-      unholdpkg(filterstr, dosdir);
-    }
-    break;
-    /* if we install from a local file, do it and quit */
-    case ACTION_INSTALL_LOCALFILE:
-    {
-      char pkgname[64];
-      char buffmem1k[1024];
-      int t, lastpathdelim = -1, u = 0;
-      for (t = 0; argv[i+2][t] != 0; t++) {
-        if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
+    //sparky4: switches are faster
+    switch (action) {
+      /* listing local packages need no special preparation - do it now and quit */
+      case ACTION_LISTLOCAL:
+      {
+        char *filterstr = NULL;
+        if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
+        showinstalledpkgs(filterstr, dosdir);
       }
-      /* copy the filename into pkgname (without path elements) */
-      for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
-      pkgname[u] = 0; /* terminate the string */
-      /* truncate the file's extension (.zip) */
-      for (t = u; t > 0; t--) {
-        if (pkgname[t] == '.') {
-          pkgname[t] = 0;
-          break;
+      break;
+      /* listing local files need no special preparation - do it now and quit */
+      case ACTION_LISTFILES:
+        listfilesofpkg(argv[i+2], dosdir);
+      break;
+      /* locally held at version package listings */
+      case ACTION_HOLDLIST:
+      {
+        char *filterstr = NULL;
+        if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
+        showheldedpkgs(filterstr, dosdir);
+      }
+      break;
+      /* hold a package and dont change it */
+      case ACTION_HOLD:
+      {
+        char *filterstr = NULL;
+        if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
+        holdpkg(filterstr, dosdir);
+      }
+      break;
+      /* unhold a package and do change it */
+      case ACTION_UNHOLD:
+      {
+        char *filterstr = NULL;
+        if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
+        unholdpkg(filterstr, dosdir);
+      }
+      break;
+      /* if we install from a local file, do it and quit */
+      case ACTION_INSTALL_LOCALFILE:
+      {
+        char pkgname[64];
+        char buffmem1k[1024];
+        int t, lastpathdelim = -1, u = 0;
+        for (t = 0; argv[i+2][t] != 0; t++) {
+          if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
         }
-      }
-
-      /* prepare the zip file and install it */
-      zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
-      if (zipfileidx != NULL) {
-        pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
-        fclose(zipfilefd);
-      }
-    }
-    break;
-    /* sparky4: Reinstall a local file! */
-    case ACTION_REINSTALL_LOCALFILE:
-    {
-      char pkgname[64];
-      char buffmem1k[1024];
-      int t, lastpathdelim = -1, u = 0;
-      for (t = 0; argv[i+2][t] != 0; t++) {
-        if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
-      }
-      /* copy the filename into pkgname (without path elements) */
-      for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
-      pkgname[u] = 0; /* terminate the string */
-      /* truncate the file's extension (.zip) */
-      for (t = u; t > 0; t--) {
-        if (pkgname[t] == '.') {
-          pkgname[t] = 0;
-          break;
+        /* copy the filename into pkgname (without path elements) */
+        for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
+        pkgname[u] = 0; /* terminate the string */
+        /* truncate the file's extension (.zip) */
+        for (t = u; t > 0; t--) {
+          if (pkgname[t] == '.') {
+            pkgname[t] = 0;
+            break;
+          }
         }
-      }
 
-      /* prepare the zip file */
-      zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
-      /* if the zip file is ok, remove the old package and install our zip file */
-      if (zipfileidx != NULL) {
-        if (pkgrem(pkgname, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
-          zip_freelist(&zipfileidx);
-        } else {
+        /* prepare the zip file and install it */
+        zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+        if (zipfileidx != NULL) {
           pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+          fclose(zipfilefd);
         }
-        fclose(zipfilefd);
       }
-    }
-    break;
-    /* clear cache? */
-    case ACTION_CLEARCACHE:
-    {
-      char tempfile[512];
-      sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
-      unlink(tempfile);
-      kitten_puts(2, 19, "Cache cleared.");
-      QUIT(0);
-    }
-    break;
-  } //sparky4: end of big switch function
-
-  /* if we want to play, check if any repo is configured */
-  if (repolistcount == 0) {
-    kitten_puts(2, 5, "No repository is configured. You need at least one.");
-    kitten_puts(2, 6, "You should place in your configuration file at least one entry of such form:");
-    puts("REPO http://www.freedos.org/repo");
-    puts("");
-    QUIT(0)
-  }
-
-  /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
-  if ((action_flags & FDNPKG16_NETINIT) == 0) {
-  if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
-    /* if there is at least one online repo, init the Watt32 stack */
-    for (x = 0; x < repolistcount; x++) {
-      if (detect_localpath(repolist[x]) == 0) {
-        #ifndef USE_INTERNAL_WATTCP
-        #ifdef DEBUG
-        printf("mTCP is used\n");
-        #endif /* #ifdef DEBUG */
-        #ifdef USE_MTCP
-        netinitres = system("dhcp");
-        #else
-        netinitres = 0; // use dhcp in httpget this is currently used
-        #endif
-        #else /* #ifndef USE_INTERNAL_WATTCP */
-        #ifdef DEBUG
-        printf("watt32 is used\n");
-        #endif /* #ifdef DEBUG */
-        netinitres = net_init();
-        #endif /* #ifndef USE_INTERNAL_WATTCP */
-        if (netinitres != 0) {
-          kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
-          QUIT(0)
+      break;
+      /* sparky4: Reinstall a local file! */
+      case ACTION_REINSTALL_LOCALFILE:
+      {
+        char pkgname[64];
+        char buffmem1k[1024];
+        int t, lastpathdelim = -1, u = 0;
+        for (t = 0; argv[i+2][t] != 0; t++) {
+          if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
         }
-#ifdef USE_INTERNAL_WATTCP
-        puts("");
-#endif
-        action_flags |= (FDNPKG16_NETINIT);
-        break;
-      }
-    }
-  }
-  } //sparky4: end of ((action_flags & FDNPKG16_NETINIT) == 0)
-
-  if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
-    short dci;
-    struct customdirs *dircursor;
-    dci = 4;
-
-    PRESS_KEY();
-    printf("maxcachetime: %ld seconds\n", maxcachetime);
-    printf("installsources: %d\n", (flags & PKGINST_NOSOURCE) != 0);
-    printf("mapdrives: %s\n", mapdrv);
-    puts("");
-
-    for (dircursor = dirlist; dircursor != NULL; dircursor = dircursor->next) {
-      switch (dci) {
-        case 24:
-          getch();
-          dci = 0;
-        break;
-        default:
-          printf("%s -> %s\n", dircursor->name, dircursor->location);
-          dci++;
-        break;
-      }
-    }
-    if (dirlist != NULL) puts("");
-    kitten_printf(2, 8, "The list of configured FDNPKG%s repositories follows:", EXECNAME); puts(""); dci++;
-    for (x = 0; x < repolistcount; x++) {
-      switch (dci) {
-        case 24:
-          getch();
-          dci = 0;
-        break;
-        default:
-          puts(repolist[x]);
-          dci++;
-        break;
-      }
-    }
-    puts("");
-  } else if ((action_flags & FDNPKG16_NOREPOA) == 0) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
-    pkgdb = createdb();
-    if (pkgdb != NULL) {
-      char tempfilegz[512];
-      char tempfile[512];
-      char repoindex[512];
-      int ungzres;
-      sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
-      if (loaddb_fromcache(pkgdb, tempfile, cfgfilecrc, maxcachetime) == 0) { /* load db from cache (if not older than 2h) */
-        // sparky4: I added this ==== line so the user know the loop is going on! :D and not have to be spammed with the kitten message below.
-        if (i == 0) kitten_puts(2, 13, "Package database loaded from local cache.");
-      } else {
-        freedb(&pkgdb);      /* recreate the db from scratch, because after */
-        pkgdb = createdb();  /* a cache attempt it might contain garbage */
-        /* download every repo index into %TEMP% and load them in RAM */
-        for (x = 0; x < repolistcount; x++) {
-          kitten_printf(2, 16, "Loading %s...", repolist[x]);
-          puts("");
-          sprintf(repoindex, "%sindex.gz", repolist[x]);
-          if (detect_localpath(repolist[x]) != 0) { /* if it's an ondisk repo, use the file as-is */
-            strcpy(tempfilegz, repoindex);
-            htgetres = 100; /* whatever > 0 would be fine, too */
-          } else { /* else it's a network resource, let's download it */
-            sprintf(tempfilegz, "%s\\fdnpkg_z.tmp", tempdir);
-            #ifdef DEBUG
-            puts("DEBUG: download start");
-            #endif
-            htgetres = -1;
-            #ifndef USE_INTERNAL_WATTCP
-            #ifdef USE_MTCP
-            sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
-            #else
-            sprintf(command, "httpget.exe %s %s /q", repoindex, tempfilegz);
-            #endif
-            #endif
-            for (y = 0; y < MAXINDEXRETRIES; y++) {
-              sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
-              #ifdef DEBUG
-              printf("\trepoindex: %s\n", repoindex);
-              #endif
-              #ifdef USE_INTERNAL_WATTCP
-              if (htgetres > 0) break;
-              _nheapgrow();
-              _fheapgrow();
-              htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL, 1);
-              _fheapshrink();
-              _nheapshrink();
-              #else
-//              if (htgetres == 21) break;
-              if (htgetres == 0) break;
-                _nheapmin();
-                //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
-                _fheapmin();
-                //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
-                htgetres = system(command);
-              #endif
-              #ifdef DEBUG
-              printf("htgetres returned: %d\n", htgetres);
-              #endif
-//              #ifdef USE_INTERNAL_WATTCP
-//              if (htgetres <= 0) putchar('.');
-//              #else
-//              if (htgetres != 21) putchar('.');
-//              #endif
-            }
-            #ifdef DEBUG
-            puts("DEBUG: download stop");
-            #endif
-          }
-//          #ifdef USE_INTERNAL_WATTCP
-//          if (htgetres <= 0) {
-//          #else
-//          if (htgetres != 21) {
-//              #endif
-            if (htgetres != 0) {
-              kitten_puts(2, 10, "Repository download failed!");
-              #ifndef ERRCACHE
-              maxcachetime = 0; /* disable cache writing this time */
-              #endif
-          } else {
-            char *dbmsg;
-            /* uncompress and load the index file */
-            sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
-            ungzres = ungz(tempfilegz, tempfile);
-            if ((ungzres != 0) || (loaddb(pkgdb, tempfile, x, &dbmsg) != 0)) {
-              kitten_puts(2, 11, "An error occured while trying to load repository from tmp file...");
-              printf("Error code: %d\n", ungzres);
-              maxcachetime = 0; /* disable cache writing this time */
-            }
-            /* if there's a message to display from the db provider, display it now */
-            if (dbmsg != NULL) {
-              puts("");
-              kitten_printf(6, 5, "Message from %s:", repolist[x]);
-              printf("\n%s\n", dbmsg);
-              free(dbmsg);
-            }
-            if (htgetres > 0) puts("ok");  // sparky4: just let the user know the file was downloaded and installed
+        /* copy the filename into pkgname (without path elements) */
+        for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
+        pkgname[u] = 0; /* terminate the string */
+        /* truncate the file's extension (.zip) */
+        for (t = u; t > 0; t--) {
+          if (pkgname[t] == '.') {
+            pkgname[t] = 0;
+            break;
           }
         }
-        /* save results into the (new) cache file db */
-        if (maxcachetime > 0) {
-          sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
-          dumpdb(pkgdb, tempfile, cfgfilecrc);
-        }
-      }
-      //sparky4: switches are faster
-      switch (action) {
-        case ACTION_SEARCH: /* for search: iterate through the sorted db, and print out all packages that match the pattern */
-        if (argc >= 3) { /* a search term has been provided */
-          pkgsearch(pkgdb, argv[i+2], verbosemode, repolist);
-        } else {
-          pkgsearch(pkgdb, NULL, verbosemode, repolist);
-        }
-        break;
-        case ACTION_INSTALL: /* install remote package */
-        if (validate_package_not_installed(argv[i+2], dosdir, mapdrv) == 0) { /* check that package is not already installed first */
-          char membuff1k[1024];
-          zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
-          if (zipfileidx != NULL) {
-            pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
-            fclose(zipfilefd);
-          }
-        }
-        break;
-        case ACTION_UPDATE: /* UPDATE, but only for a SINGLE package */
-        if (is_package_installed(argv[i+2], dosdir, mapdrv) == 0) { /* is this package installed at all? */
-          kitten_printf(10, 6, "Package %s is not installed.", argv[i+2]);
-          puts("");
-        } else if (checkupdates(dosdir, pkgdb, repolist, argv[i+2], tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
-          kitten_printf(10, 2, "No update found for the '%s' package.", argv[i+2]);
-          puts("");
-        } else { /* the package is locally installed, and an update have been found - let's proceed */
-          char membuff1k[1024];
-          /* prepare the zip file */
-          zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
-          /* if the zip file is ok, remove the old package and install our zip file */
-          if (zipfileidx != NULL) {
-            if (pkgrem(argv[i+2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
-              zip_freelist(&zipfileidx);
-            } else {
-              pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
-            }
-            fclose(zipfilefd);
-          }
-        }
-        break;
-        case ACTION_UPGRADE: /* recursive UPDATE for the whole system */
-        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags | PKGINST_UPDATE, dirlist, proxy, proxyport, downloadingstring, mapdrv);
-        break;
-        case ACTION_CHECKUPDATES: /* checkupdates */
-        checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv);
-        break;
-        case ACTION_REINSTALL: /* REINSTALL, but only for a SINGLE package */
-        {
-        char membuff1k[1024];
+
         /* prepare the zip file */
-        zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+        zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
         /* if the zip file is ok, remove the old package and install our zip file */
         if (zipfileidx != NULL) {
-          if (pkgrem(argv[i+2], dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
+          if (pkgrem(pkgname, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
             zip_freelist(&zipfileidx);
           } else {
-            pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+            pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
           }
           fclose(zipfilefd);
         }
-        break;
+      }
+      break;
+      /* clear cache? */
+      case ACTION_CLEARCACHE:
+      {
+        char tempfile[512];
+        sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
+        unlink(tempfile);
+        kitten_puts(2, 19, "Cache cleared.");
+        QUIT(0);
+      }
+      break;
+    } //sparky4: end of big switch function
+
+    /* if we want to play, check if any repo is configured */
+    if (repolistcount == 0) {
+      kitten_puts(2, 5, "No repository is configured. You need at least one.");
+      kitten_puts(2, 6, "You should place in your configuration file at least one entry of such form:");
+      puts("REPO http://www.freedos.org/repo");
+      puts("");
+      QUIT(0)
+    }
+
+    /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
+    if ((action_flags & FDNPKG16_NETINIT) == 0) {
+    if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+      /* if there is at least one online repo, init the Watt32 stack */
+      for (x = 0; x < repolistcount; x++) {
+        if (detect_localpath(repolist[x]) == 0) {
+          #ifndef USE_INTERNAL_WATTCP
+          #ifdef DEBUG
+          printf("mTCP is used\n");
+          #endif /* #ifdef DEBUG */
+          #ifdef USE_MTCP
+          netinitres = system("dhcp");
+          #else
+          netinitres = 0; // use dhcp in httpget this is currently used
+          #endif
+          #else /* #ifndef USE_INTERNAL_WATTCP */
+          #ifdef DEBUG
+          printf("watt32 is used\n");
+          #endif /* #ifdef DEBUG */
+          netinitres = net_init();
+          #endif /* #ifndef USE_INTERNAL_WATTCP */
+          if (netinitres != 0) {
+            kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
+            QUIT(0)
+          }
+#ifdef USE_INTERNAL_WATTCP
+          puts("");
+#endif
+          action_flags |= (FDNPKG16_NETINIT);
+          break;
         }
-      } //sparky4: end of action switch
-       /* free memory of the pkg database */
-      freedb(&pkgdb);
-    } /* pkgdb != NULL */
-  } /* action == ACTION_LISTREP */
-  if (i+1 < argci) puts("========================================");  // sparky4: for formatting and splitting the lines between packages!
+      }
+    }
+    } //sparky4: end of ((action_flags & FDNPKG16_NETINIT) == 0)
+
+    if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
+      short dci;
+      struct customdirs *dircursor;
+      dci = 4;
+
+      PRESS_KEY();
+      printf("maxcachetime: %ld seconds\n", maxcachetime);
+      printf("installsources: %d\n", (flags & PKGINST_NOSOURCE) != 0);
+      printf("mapdrives: %s\n", mapdrv);
+      puts("");
+
+      for (dircursor = dirlist; dircursor != NULL; dircursor = dircursor->next) {
+        switch (dci) {
+          case 24:
+            getch();
+            dci = 0;
+          break;
+          default:
+            printf("%s -> %s\n", dircursor->name, dircursor->location);
+            dci++;
+          break;
+        }
+      }
+      if (dirlist != NULL) puts("");
+      kitten_printf(2, 8, "The list of configured FDNPKG%s repositories follows:", EXECNAME); puts(""); dci++;
+      for (x = 0; x < repolistcount; x++) {
+        switch (dci) {
+          case 24:
+            getch();
+            dci = 0;
+          break;
+          default:
+            puts(repolist[x]);
+            dci++;
+          break;
+        }
+      }
+      puts("");
+    } else if ((action_flags & FDNPKG16_NOREPOA) == 0) { /* other actions: search, install, checkupdates, update - all that require to load content of repositories */
+      pkgdb = createdb();
+      if (pkgdb != NULL) {
+        char tempfilegz[512];
+        char tempfile[512];
+        char repoindex[512];
+        int ungzres;
+        sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
+        if (loaddb_fromcache(pkgdb, tempfile, cfgfilecrc, maxcachetime) == 0) { /* load db from cache (if not older than 2h) */
+          // sparky4: I added this ==== line so the user know the loop is going on! :D and not have to be spammed with the kitten message below.
+          if (i == 0) kitten_puts(2, 13, "Package database loaded from local cache.");
+        } else {
+          freedb(&pkgdb);      /* recreate the db from scratch, because after */
+          pkgdb = createdb();  /* a cache attempt it might contain garbage */
+          /* download every repo index into %TEMP% and load them in RAM */
+          for (x = 0; x < repolistcount; x++) {
+            kitten_printf(2, 16, "Loading %s...", repolist[x]);
+            puts("");
+            sprintf(repoindex, "%sindex.gz", repolist[x]);
+            if (detect_localpath(repolist[x]) != 0) { /* if it's an ondisk repo, use the file as-is */
+              strcpy(tempfilegz, repoindex);
+              htgetres = 100; /* whatever > 0 would be fine, too */
+            } else { /* else it's a network resource, let's download it */
+              sprintf(tempfilegz, "%s\\fdnpkg_z.tmp", tempdir);
+              #ifdef DEBUG
+              puts("DEBUG: download start");
+              #endif
+              htgetres = -1;
+              #ifndef USE_INTERNAL_WATTCP
+              #ifdef USE_MTCP
+              sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
+              #else
+              sprintf(command, "httpget.exe %s %s /q", repoindex, tempfilegz);
+              #endif
+              #endif
+              for (y = 0; y < MAXINDEXRETRIES; y++) {
+                sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
+                #ifdef DEBUG
+                printf("\trepoindex: %s\n", repoindex);
+                #endif
+                #ifdef USE_INTERNAL_WATTCP
+                if (htgetres > 0) break;
+                _nheapgrow();
+                _fheapgrow();
+                htgetres = http_get(repoindex, tempfilegz, proxy, proxyport, NULL, 1);
+                _fheapshrink();
+                _nheapshrink();
+                #else
+  //              if (htgetres == 21) break;
+                if (htgetres == 0) break;
+                  _nheapmin();
+                  //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+                  _fheapmin();
+                  //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
+                  htgetres = system(command);
+                #endif
+                #ifdef DEBUG
+                printf("htgetres returned: %d\n", htgetres);
+                #endif
+  //              #ifdef USE_INTERNAL_WATTCP
+  //              if (htgetres <= 0) putchar('.');
+  //              #else
+  //              if (htgetres != 21) putchar('.');
+  //              #endif
+              }
+              #ifdef DEBUG
+              puts("DEBUG: download stop");
+              #endif
+            }
+  //          #ifdef USE_INTERNAL_WATTCP
+  //          if (htgetres <= 0) {
+  //          #else
+  //          if (htgetres != 21) {
+  //              #endif
+              if (htgetres != 0) {
+                kitten_puts(2, 10, "Repository download failed!");
+                #ifndef ERRCACHE
+                maxcachetime = 0; /* disable cache writing this time */
+                #endif
+            } else {
+              char *dbmsg;
+              /* uncompress and load the index file */
+              sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
+              ungzres = ungz(tempfilegz, tempfile);
+              if ((ungzres != 0) || (loaddb(pkgdb, tempfile, x, &dbmsg) != 0)) {
+                kitten_puts(2, 11, "An error occured while trying to load repository from tmp file...");
+                printf("Error code: %d\n", ungzres);
+                maxcachetime = 0; /* disable cache writing this time */
+              }
+              /* if there's a message to display from the db provider, display it now */
+              if (dbmsg != NULL) {
+                puts("");
+                kitten_printf(6, 5, "Message from %s:", repolist[x]);
+                printf("\n%s\n", dbmsg);
+                free(dbmsg);
+              }
+              if (htgetres > 0) puts("ok");  // sparky4: just let the user know the file was downloaded and installed
+            }
+          }
+          /* save results into the (new) cache file db */
+          if (maxcachetime > 0) {
+            sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
+            dumpdb(pkgdb, tempfile, cfgfilecrc);
+          }
+        }
+        //sparky4: switches are faster
+        switch (action) {
+          case ACTION_SEARCH: /* for search: iterate through the sorted db, and print out all packages that match the pattern */
+            if (argc >= 3) { /* a search term has been provided */
+              pkgsearch(pkgdb, argv[i+2], verbosemode, repolist);
+            } else {
+              pkgsearch(pkgdb, NULL, verbosemode, repolist);
+            }
+          break;
+          case ACTION_INSTALL: /* install remote package */
+            if (validate_package_not_installed(argv[i+2], dosdir, mapdrv) == 0) { /* check that package is not already installed first */
+              char membuff1k[1024];
+              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+              if (zipfileidx != NULL) {
+                pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+                fclose(zipfilefd);
+              }
+            }
+          break;
+          case ACTION_UPDATE: /* UPDATE, but only for a SINGLE package */
+            if (is_package_installed(argv[i+2], dosdir, mapdrv) == 0) { /* is this package installed at all? */
+              kitten_printf(10, 6, "Package %s is not installed.", argv[i+2]);
+              puts("");
+            } else if (checkupdates(dosdir, pkgdb, repolist, argv[i+2], tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
+              kitten_printf(10, 2, "No update found for the '%s' package.", argv[i+2]);
+              puts("");
+            } else { /* the package is locally installed, and an update have been found - let's proceed */
+              char membuff1k[1024];
+              /* prepare the zip file */
+              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+              /* if the zip file is ok, remove the old package and install our zip file */
+              if (zipfileidx != NULL) {
+                if (pkgrem(argv[i+2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+                  zip_freelist(&zipfileidx);
+                } else {
+                  pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+                }
+                fclose(zipfilefd);
+              }
+            }
+          break;
+          case ACTION_UPGRADE: /* recursive UPDATE for the whole system */
+            checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags | PKGINST_UPDATE, dirlist, proxy, proxyport, downloadingstring, mapdrv);
+          break;
+          case ACTION_CHECKUPDATES: /* checkupdates */
+            checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv);
+          break;
+          case ACTION_REINSTALL: /* REINSTALL, but only for a SINGLE package */
+            {
+              char membuff1k[1024];
+              /* prepare the zip file */
+              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+              /* if the zip file is ok, remove the old package and install our zip file */
+              if (zipfileidx != NULL) {
+                if (pkgrem(argv[i+2], dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
+                  zip_freelist(&zipfileidx);
+                } else {
+                  pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+                }
+                fclose(zipfilefd);
+              }
+              break;
+            }
+          break;
+        } //sparky4: end of action switch
+        /* free memory of the pkg database */
+        freedb(&pkgdb);
+      } /* pkgdb != NULL */
+    } /* action == ACTION_LISTREP */
+    if (i+1 < argci) puts("========================================");  // sparky4: for formatting and splitting the lines between packages!
   } /* sparky4: end of that huge for loop. This loop manages the packages in the argument list! :D */
   freeconf(repolist, repolistcount, &dirlist);
   QUIT(0);
