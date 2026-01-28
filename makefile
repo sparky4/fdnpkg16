@@ -23,10 +23,6 @@ DUMP=type
 
 # --- MACROS ---
 
-# Compiler: use wcc for 16-bit, wcc386 for 32-bit (common for Linux and extended DOS)
-# The specific compiler will depend on the chosen System target
-COMPILER_16 = wcc
-
 # Compiler Options: Add desired options (e.g., debugging -g, optimization -O)
 # -bt=<system> is often passed via command line or inferred by wcl/wcl386
 COMPILER_OPTIONS = -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -fo=.$(OBJ) -i=src -i=src/zlib -i=src/watt32/inc
@@ -41,7 +37,6 @@ LINKER_OPTIONS_FDINST = src/zlib/zlib_l.lib
 C_SOURCE = src/fdnpkg16.c src/crc32.c src/fileexst.c src/kprintf.c src/loadconf.c src/parsecmd.c src/pkginst.c src/readenv.c src/getdelim.c src/inf.c src/libgz.c src/lsm.c src/parseurl.c src/pkgrem.c src/rtrim.c src/helpers.c src/kitten.c src/libunzip.c src/pkgdb.c src/pkgsrch.c src/memcore.c src/showinst.c src/lzmadec.c
 C_SOURCE_HTTPGET = src/exec/httpget.c src/net.c src/http.c src/parseurl.c src/helpers.c
 C_SOURCE_FDINST = src/exec/fdinst16.c src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/exec/kprintf0.c
-#-DNOREPOS -DNOLZMA
 
 # Object files (derived from source files, adjust extension as needed for your setup)
 OBJECTS = $(C_SOURCE:../.c=.$(OBJ))
@@ -89,20 +84,20 @@ fdinst16.exe: $(OBJECTS)
 .c.$(OBJ) :
     *wcl $(COMPILER_OPTIONS) -c $[@
 
-#CFLAGS is neccessary here
 .$(OBJ).exe :
     *wcl $(COMPILER_OPTIONS) $(LINKER_OPTIONS) $< -fe=$@
 
 .c : src$(DIRSEP);src$(DIRSEP)exec$(DIRSEP)
 
 .$(OBJ) : .
-.exe : .
 
+.exe : .
 
 # Clean target to remove built files
 clean:
     @echo Cleaning up...
     @$(REMOVECOMMAND) *.$(OBJ) *.exe
+
 
 pkg: fdnpkg16.exe httpget.exe fdinst16.exe
 	mkdir appinfo
