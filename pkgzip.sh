@@ -16,14 +16,16 @@
 
 echo "zip"
 if [ -d "fdnpkg16" ]; then
-rm fdnpkg16/BIN/*.exe
+#rm fdnpkg16/BIN/*.exe
+wmake clean
 cp -rp fdpget.bat fdnpkg16/BIN/
 cp -rp fdnpkg16.cfg fdnpkg16/BIN/
 cp -rp fdnpkg16.oem fdnpkg16/BIN/
 cp -rp fdnpkg16.4 fdnpkg16/BIN/
 cp -rp fdnpkg16.ico fdnpkg16/BIN/
-. ./build.sh
-rm *.o
+#. ./build.sh
+wmake
+rm *.obj
 mv fdnpkg16.exe fdnpkg16/BIN/
 mv httpget.exe fdnpkg16/BIN/
 mv fdinst16.exe fdnpkg16/BIN/
@@ -66,5 +68,6 @@ mv .temp/* .
 rmdir .temp
 rm -r fdnpkg16/
 fi
-./build.sh
-rm *.o
+#./build.sh
+wmake
+rm *.obj

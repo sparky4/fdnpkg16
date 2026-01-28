@@ -25,13 +25,13 @@ DUMP=type
 
 # Compiler Options: Add desired options (e.g., debugging -g, optimization -O)
 # -bt=<system> is often passed via command line or inferred by wcl/wcl386
-COMPILER_OPTIONS = -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -fo=.$(OBJ) -i=src -i=src/zlib -i=src/watt32/inc
+COMPILER_OPTIONS = -q -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -fo=.$(OBJ) -i=src
 COMPILER_OPTIONS2 = -DNOREPOS -DNOLZMA
 
 # Linker Options
-LINKER_OPTIONS = src/zlib/zlib_l.lib
-LINKER_OPTIONS_HTTPGET = src/watt32/lib/wattcpwl.lib
-LINKER_OPTIONS_FDINST = src/zlib/zlib_l.lib
+LINKER_OPTIONS = src/zlib/zlib_l.lib -i=src/zlib
+LINKER_OPTIONS_HTTPGET = src/watt32/lib/wattcpwl.lib -i=src/watt32/inc
+LINKER_OPTIONS_FDINST = src/zlib/zlib_l.lib -i=src/zlib
 
 # Source files
 C_SOURCE = src/fdnpkg16.c src/crc32.c src/fileexst.c src/kprintf.c src/loadconf.c src/parsecmd.c src/pkginst.c src/readenv.c src/getdelim.c src/inf.c src/libgz.c src/lsm.c src/parseurl.c src/pkgrem.c src/rtrim.c src/helpers.c src/kitten.c src/libunzip.c src/pkgdb.c src/pkgsrch.c src/memcore.c src/showinst.c src/lzmadec.c
@@ -47,38 +47,28 @@ EXEC = &
      httpget.exe &
      fdinst16.exe
 
-#.PHONY: all clean dos
-
 # --- TARGETS ---
 
 all: $(EXEC)
-
-# Generic rule to build the executable
 fdnpkg16.exe: $(OBJECTS)
-    # Use wcl or wcl386 utility to compile and link in one step
-    # wcl automatically calls wcc/wlink and sets system-specific options
-    # Use wcl386 for 32-bit targets, wcl for 16-bit targets
-    #@echo Building for $(System)
+    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJECTS) $(LINKER_OPTIONS)
-    #@echo Finished building $(Exe_file)
+    @wmake -h vomitchan
+    @echo Finished building fdnpkg16.exe
 
 httpget.exe: $(OBJ_HTTPGET)
-    # Use wcl or wcl386 utility to compile and link in one step
-    # wcl automatically calls wcc/wlink and sets system-specific options
-    # Use wcl386 for 32-bit targets, wcl for 16-bit targets
-    #@echo Building for $(System)
+    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJ_HTTPGET) $(LINKER_OPTIONS_HTTPGET)
-    #@echo Finished building httpget.exe
+    @wmake -h vomitchan
+    @echo Finished building httpget.exe
 
 fdinst16.exe: $(OBJECTS)
-    # Use wcl or wcl386 utility to compile and link in one step
-    # wcl automatically calls wcc/wlink and sets system-specific options
-    # Use wcl386 for 32-bit targets, wcl for 16-bit targets
-    #@echo Building for $(System)
+    @echo Building for dos
     $(REMOVECOMMAND) *.$(OBJ)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINST) $(LINKER_OPTIONS_FDINST)
     $(REMOVECOMMAND) *.$(OBJ)
-    #@echo Finished building $(Exe_file_fdinst)
+    @wmake -h vomitchan
+    @echo Finished building fdinst16.exe
 
 # Generic rule to compile .c files into .$(OBJ) files
 .c.$(OBJ) :
@@ -94,9 +84,12 @@ fdinst16.exe: $(OBJECTS)
 .exe : .
 
 # Clean target to remove built files
-clean:
+clean: .symbolic
     @echo Cleaning up...
     @$(REMOVECOMMAND) *.$(OBJ) *.exe
+
+vomitchan: .symbolic
+    @if exist *.err $(DUMP) *.err
 
 
 pkg: fdnpkg16.exe httpget.exe fdinst16.exe
