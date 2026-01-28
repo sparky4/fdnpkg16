@@ -95,6 +95,7 @@ vomitchan: .symbolic
     @if exist *.err $(DUMP) *.err
 
 
+#DO NOT USE YET!! I AM WORKING ON THIS --sparky4
 pkgfkjdsljflkdsajflkdsajflkdsa: fdnpkg16.exe httpget.exe fdinst16.exe
 	mkdir fdnpkg16
 	mkdir fdnpkg16/appinfo
