@@ -36,7 +36,7 @@ to compile the main program in GNU/Linux, BSD, or DOS families.
 
 The target os is 16-bit FreeDOS!
 
-###For libraries:
+### For libraries:
 
 watt32 is compiles with Open Watcom 1.9
 
