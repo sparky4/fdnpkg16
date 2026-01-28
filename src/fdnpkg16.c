@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
       /* sparky4: Dual help! this runs both helps! :D */
       case ACTION_HELP:
         printhelp();
-        PRESS_KEY();
+        PRESS_KEY()
         printhelpshort();
         puts("");
         QUIT(0)
@@ -634,7 +634,7 @@ int main(int argc, char **argv) {
       struct customdirs *dircursor;
       dci = 4;
 
-      PRESS_KEY();
+      PRESS_KEY()
       printf("maxcachetime: %ld seconds\n", maxcachetime);
       printf("installsources: %d\n", (flags & PKGINST_NOSOURCE) != 0);
       printf("mapdrives: %s\n", mapdrv);
