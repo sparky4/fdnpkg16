@@ -596,37 +596,37 @@ int main(int argc, char **argv) {
 
     /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
     if ((action_flags & FDNPKG16_NETINIT) == 0) {
-    if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
-      /* if there is at least one online repo, init the Watt32 stack */
-      for (x = 0; x < repolistcount; x++) {
-        if (detect_localpath(repolist[x]) == 0) {
-          #ifndef USE_INTERNAL_WATTCP
-          #ifdef DEBUG
-          printf("mTCP is used\n");
-          #endif /* #ifdef DEBUG */
-          #ifdef USE_MTCP
-          netinitres = system("dhcp");
-          #else
-          netinitres = 0; // use dhcp in httpget this is currently used
-          #endif
-          #else /* #ifndef USE_INTERNAL_WATTCP */
-          #ifdef DEBUG
-          printf("watt32 is used\n");
-          #endif /* #ifdef DEBUG */
-          netinitres = net_init();
-          #endif /* #ifndef USE_INTERNAL_WATTCP */
-          if (netinitres != 0) {
-            kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
-            QUIT(0)
+      if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+        /* if there is at least one online repo, init the Watt32 stack */
+        for (x = 0; x < repolistcount; x++) {
+          if (detect_localpath(repolist[x]) == 0) {
+            #ifndef USE_INTERNAL_WATTCP
+            #ifdef DEBUG
+            printf("mTCP is used\n");
+            #endif /* #ifdef DEBUG */
+            #ifdef USE_MTCP
+            netinitres = system("dhcp");
+            #else
+            netinitres = 0; // use dhcp in httpget this is currently used
+            #endif
+            #else /* #ifndef USE_INTERNAL_WATTCP */
+            #ifdef DEBUG
+            printf("watt32 is used\n");
+            #endif /* #ifdef DEBUG */
+            netinitres = net_init();
+            #endif /* #ifndef USE_INTERNAL_WATTCP */
+            if (netinitres != 0) {
+              kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
+              QUIT(0)
+            }
+  #ifdef USE_INTERNAL_WATTCP
+            puts("");
+  #endif
+            action_flags |= (FDNPKG16_NETINIT);
+            break;
           }
-#ifdef USE_INTERNAL_WATTCP
-          puts("");
-#endif
-          action_flags |= (FDNPKG16_NETINIT);
-          break;
         }
       }
-    }
     } //sparky4: end of ((action_flags & FDNPKG16_NETINIT) == 0)
 
     if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
