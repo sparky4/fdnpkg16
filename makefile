@@ -53,14 +53,14 @@ all: $(EXEC)
 fdnpkg16.exe: $(OBJECTS)
     @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJECTS) $(LINKER_OPTIONS)
-    upx --8086 -9 fdnpkg16.exe
+    @upx --8086 -9 fdnpkg16.exe
     @wmake -h vomitchan
     @echo Finished building fdnpkg16.exe
 
 httpget.exe: $(OBJ_HTTPGET)
     @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJ_HTTPGET) $(LINKER_OPTIONS_HTTPGET)
-    upx --8086 -9 httpget.exe
+    @upx --8086 -9 httpget.exe
     @wmake -h vomitchan
     @echo Finished building httpget.exe
 
@@ -69,7 +69,7 @@ fdinst16.exe: $(OBJECTS)
     $(REMOVECOMMAND) *.$(OBJ)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINST) $(LINKER_OPTIONS_FDINST)
     $(REMOVECOMMAND) *.$(OBJ)
-    upx --8086 -9 fdinst16.exe
+    @upx --8086 -9 fdinst16.exe
     @wmake -h vomitchan
     @echo Finished building fdinst16.exe
 
