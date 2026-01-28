@@ -106,6 +106,7 @@ pkgfkjdsljflkdsajflkdsajflkdsa: fdnpkg16.exe httpget.exe fdinst16.exe
 	mkdir fdnpkg16/source/fdnpkg16
 	mkdir fdnpkg16/source/fdnpkg16/fdinst
 	mkdir fdnpkg16/source/fdnpkg16/zlib
+	# i need to work on this part
 	copy fdnpkg16.lsm appinfo
 	copy fdnpkg16.exe bin
 	copy fdinst16/fdinst16.exe bin
