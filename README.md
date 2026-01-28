@@ -34,18 +34,6 @@ wmake
 ```
 to compile the main program in GNU/Linux, BSD, or DOS families.
 
-## INFO ON POPULAR OS HOST COMPILING
-(Microsoft Windows & Apple macos is unsupported for compiling)
-
-[reason?: I do not have Windows anymore since 2010.]
-
-[I also don't own a mac... If u got one contact me if you want to compile it there]
-
-[I dont have the system, I dont support it. Sorry!]
-
-[You can try to compile though with wmake.]
-
-
 The target os is 16-bit FreeDOS!
 
 For libraries:
@@ -53,6 +41,18 @@ watt32 is compiles with Open Watcom 1.9
 zlib can be compiled with either (ow1.9 or ow2.0)! :D
 
 they have their own compiling style
+
+## INFO ON POPULAR OS HOST COMPILING
+#### Microsoft Windows & Apple macos is unsupported for compiling
+
+reason?: I do not have Windows anymore since 2010.
+
+I also don't own a mac... If u got one contact me if you want to compile it there.
+
+I do not have the systems, I do not support it. Sorry!
+
+You can try to compile though with wmake.
+
 
 
 # Stability report so far
