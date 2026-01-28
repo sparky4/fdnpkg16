@@ -36,9 +36,12 @@ to compile the main program in GNU/Linux, BSD, or DOS families.
 
 The target os is 16-bit FreeDOS!
 
-For libraries:
+###For libraries:
+
 watt32 is compiles with Open Watcom 1.9
+
 zlib can be compiled with either (ow1.9 or ow2.0)! :D
+
 
 they have their own compiling style
 
