@@ -262,9 +262,6 @@ int main(int argc, char **argv) {
 
   //sparky4: new variables from me! <3
   int netinitres;   // sparky4: for netowrking initialization for internal networking (external for now)
-#ifndef USE_INTERNAL_WATTCP
-  char command[512];// sparky4: for the download command for external programs
-#endif
   int arglen;       // sparky4: pkgname length
   int argci;        // sparky4: argument variable for number of variables. for multi packages
   char actionarg[18];  // sparky4: this gotta be long enough for the commands
@@ -287,7 +284,7 @@ int main(int argc, char **argv) {
 
   /* read all required environment variables */
   if (readenv(&dosdir, &tempdir, cfgfile, sizeof(cfgfile), argv) != 0) {
-    QUIT(0);
+    QUIT(0)
   }
 
   /* check the available memory and display a warning if too low */
@@ -359,6 +356,7 @@ int main(int argc, char **argv) {
       } else if ((strcasecmp(actionarg, "remove") && strcasecmp(actionarg, "rm")) == 0) {
         if (argc < 3) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
         } else {
           action = ACTION_REMOVE;
           pkgrem(argv[i+2], dosdir, mapdrv);
@@ -372,7 +370,7 @@ int main(int argc, char **argv) {
           action = ACTION_UPGRADE;
         } else {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-          QUIT(0);
+          QUIT(0)
         }
       } else if (((strcasecmp(actionarg, "listlocal") && strcasecmp(actionarg, "ll")) == 0) || ((strcasecmp(actionarg, "showinstalled") && strcasecmp(actionarg, "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
           action = ACTION_LISTLOCAL;
@@ -380,7 +378,7 @@ int main(int argc, char **argv) {
       } else if ((strcasecmp(actionarg, "listfiles") && strcasecmp(actionarg, "lf")) == 0) {
         if (argc < 3) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-          QUIT(0);
+          QUIT(0)
         } else {
           action = ACTION_LISTFILES;
           /*action_*/flags |= (FDNPKG16_NOREPOA);
@@ -435,7 +433,7 @@ int main(int argc, char **argv) {
       } else if ((strcasecmp(actionarg, "hold") && strcasecmp(actionarg, "ho")) == 0) {
         if (argc < 3) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-          QUIT(0);
+          QUIT(0)
         } else {
           action = ACTION_HOLD;
           /*action_*/flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
@@ -443,7 +441,7 @@ int main(int argc, char **argv) {
       } else if ((strcasecmp(actionarg, "unhold") && strcasecmp(actionarg, "uh")) == 0) {
         if (argc < 3) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
-          QUIT(0);
+          QUIT(0)
         } else {
           action = ACTION_UNHOLD;
           /*action_*/flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
@@ -587,7 +585,7 @@ int main(int argc, char **argv) {
         sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
         unlink(tempfile);
         kitten_puts(2, 19, "Cache cleared.");
-        QUIT(0);
+        QUIT(0)
       }
       break;
     } //sparky4: end of big switch function
@@ -680,6 +678,9 @@ int main(int argc, char **argv) {
         char tempfilegz[512];
         char tempfile[512];
         char repoindex[512];
+#ifndef USE_INTERNAL_WATTCP
+        char command[512];// sparky4: for the download command for external programs
+#endif
         int ungzres;
         sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
         if (loaddb_fromcache(pkgdb, tempfile, cfgfilecrc, maxcachetime) == 0) { /* load db from cache (if not older than 2h) */
@@ -851,5 +852,5 @@ int main(int argc, char **argv) {
     if (i+1 < argci) puts("========================================");  // sparky4: for formatting and splitting the lines between packages!
   } /* sparky4: end of that huge for loop. This loop manages the packages in the argument list! :D */
   freeconf(repolist, repolistcount, &dirlist);
-  QUIT(0);
+  QUIT(0)
 }
