@@ -12,8 +12,8 @@
 #define PKGINST_SKIPLINKS 2
 #define PKGINST_UPDATE    4
 
-#define FDNPKG16_NETINIT  1 // sparky4: no network action
-#define FDNPKG16_NOREPOA  2 // sparky4: no repository action
+#define FDNPKG16_NETINIT  8  // sparky4: no network action
+#define FDNPKG16_NOREPOA  16 // sparky4: no repository action
 
 #define MAXINDEXRETRIES   10  // maximum number of retries for downloading a repository index
 //#define DEBUG                 // uncomment this to enable debug mode

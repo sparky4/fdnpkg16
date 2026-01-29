@@ -8,6 +8,7 @@ to_os_path=\=/
 REMOVECOMMAND=rm -f
 COPYCOMMAND=cp -f
 MOVECOMMAND=mv
+LISTCOMMAND=ls
 DIRSEP=/
 OBJ=obj
 DUMP=cat
@@ -16,6 +17,7 @@ to_os_path=/=\
 REMOVECOMMAND=del
 COPYCOMMAND=copy /y
 MOVECOMMAND=move /y
+LISTCOMMAND=dir
 DIRSEP=\
 OBJ=obj
 DUMP=type
@@ -93,6 +95,7 @@ clean: .symbolic
 
 vomitchan: .symbolic
     @if exist *.err $(DUMP) *.err
+    @if exist *.exe $(LISTCOMMAND) *.exe
 
 
 #DO NOT USE YET!! I AM WORKING ON THIS --sparky4
