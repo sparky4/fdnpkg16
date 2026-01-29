@@ -394,6 +394,7 @@ int main(int argc, char **argv) {
       } else if ((strcasecmp(actionarg, "license") && strcasecmp(actionarg, "li")) == 0) {
         if (argc != 2) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
         } else {
           printlic();
         }
