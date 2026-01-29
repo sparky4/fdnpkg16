@@ -71,4 +71,4 @@ rm -r fdnpkg16/
 fi
 #./build.sh
 wmake
-rm *.obj
+#rm *.obj

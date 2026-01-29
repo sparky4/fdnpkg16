@@ -336,12 +336,12 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         printf("coreleft() == %u\n", coreleft());
 #endif
         //      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
-        #else
-        #ifdef USE_MTCP
+        #else /* #ifdef USE_INTERNAL_WATTCP */
+#ifdef USE_MTCP
         sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
-        #else
+#else
         sprintf(command, "httpget.exe %s %s", fname, zipfile);
-        #endif
+#endif
 
         proxy = downloadingstring = NULL;
         proxyport = 8080;
@@ -365,20 +365,20 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //      #else
 //      if (htgetres != 21) {
 //      #endif
-      if (htgetres != 0) {
-        kitten_puts(3, 7, "Error downloading package. Aborted.");
-        return(NULL);
-      }
+        if (htgetres != 0) {
+          kitten_puts(3, 7, "Error downloading package. Aborted.");
+          return(NULL);
+        }
         puts("ok"); // just let the user know the file was downloaded and installed
-      } else { /* else it's an on-disk repo, so we can use the package right from there */
-        sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
-      }
-      /* check the CRC of the downloaded file */
-      buff = malloc(4096);  /* use a 4K buffer to compute file's CRC */
-      if (buff == NULL) {
-        kitten_puts(3, 15, "Error: Out of memory while computing the CRC of the package!");
-        return(NULL);
-      }
+    } else { /* else it's an on-disk repo, so we can use the package right from there */
+      sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
+    }
+    /* check the CRC of the downloaded file */
+    buff = malloc(4096);  /* use a 4K buffer to compute file's CRC */
+    if (buff == NULL) {
+      kitten_puts(3, 15, "Error: Out of memory while computing the CRC of the package!");
+      return(NULL);
+    }
     *zipfd = fopen(zipfile, "rb");
     if (*zipfd == NULL) {
       kitten_puts(3, 14, "Error: Failed to open the downloaded package. Installation aborted.");
