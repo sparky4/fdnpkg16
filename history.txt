@@ -1,6 +1,11 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8252c [29 Jan 2026]
+ - [new] katheryn's name added as a collaborator!
+ - [fix] fixed 2 bugs with a QUIT(0) and a break;
+ - [new] merged 2 flag variables into 1
+
 FDNPKG16 v0.99.8252b [25 Jan 2026]
  - [nfo] optimized the code a bit more
  - [new] makefile for compiling in DOS avalible! <3
