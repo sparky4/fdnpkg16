@@ -227,6 +227,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     char *pkgext; /* zip or zib */
 #ifndef USE_INTERNAL_WATTCP
     char command[512];
+    FILE *batch_file;
+    char commandforbatch[512];
 #endif
     long htgetres;
     int y;
@@ -312,7 +314,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       htgetres = -1;
       for (y = 0; y < MAXINDEXRETRIES; y++) {
         sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
-        if (htgetres == 0) break;
+        if (htgetres >= 0) break;
         #ifdef USE_INTERNAL_WATTCP
 #ifdef DEBUG_MEM
         printf("farcoreleft() == %ld\n", farcoreleft());
@@ -342,14 +344,23 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 #else
         sprintf(command, "httpget.exe %s %s", fname, zipfile);
 #endif
-
         proxy = downloadingstring = NULL;
         proxyport = 8080;
-        _nheapmin();
-        //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
-        _fheapmin();
-        //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
-        htgetres = system(command);
+        // lets try this
+        sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
+        batch_file = fopen(commandforbatch, "w");
+        if (batch_file == NULL) {
+          kitten_printf(3, 10, "Error: Could not create %s!");
+          htgetres = -1;
+        } else {
+          fprintf(batch_file, "%s", command);
+          fclose(batch_file);
+          _nheapmin();
+          //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
+          _fheapmin();
+          //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
+          htgetres = system(commandforbatch);
+        }
         #endif /* #ifdef USE_INTERNAL_WATTCP */
         #ifdef DEBUG
         printf("htgetres returned: %ld\n", htgetres);
@@ -365,7 +376,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //      #else
 //      if (htgetres != 21) {
 //      #endif
-        if (htgetres != 0) {
+        //if (htgetres != 0) {
+        if (htgetres < 0) {
           kitten_puts(3, 7, "Error downloading package. Aborted.");
           return(NULL);
         }

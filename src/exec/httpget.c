@@ -74,7 +74,7 @@ long farcoreleft() {
 #endif  // #ifdef DEBUG_HTTPGET
 
 // main
-int main(int argc, char **argv) {
+long main(int argc, char **argv) {
   long res;
 #ifdef DEBUG_HTTPGET
   long memoryeaten;
@@ -115,5 +115,5 @@ int main(int argc, char **argv) {
 #ifdef DEBUG_HTTPGET
   printf("memory eaten == %ld\n", memoryeaten);
 #endif
-  return(0);
+  return(res);
 }
