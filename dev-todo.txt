@@ -3,7 +3,6 @@ experimental dev cleanup todo for dev branch
   this is ok it works fine i just need to fix things
 
 clean up old network code not used          --eventually
-fix local actions and merge the 2 variables --eventually
 optimize things for 8088/8086
   database operations
   just over all reduce disk access where unessessary!
