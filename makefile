@@ -7,6 +7,7 @@
 to_os_path=\=/
 REMOVECOMMAND=rm -f
 COPYCOMMAND=cp -f
+XCOPYCOMMAND=cp -r
 MOVECOMMAND=mv
 LISTCOMMAND=ls
 DIRSEP=/
@@ -16,6 +17,7 @@ DUMP=cat
 to_os_path=/=\
 REMOVECOMMAND=del
 COPYCOMMAND=copy /y
+XCOPYCOMMAND=xcopy /s /y
 MOVECOMMAND=move /y
 LISTCOMMAND=dir
 DIRSEP=\
@@ -107,8 +109,6 @@ pkgfkjdsljflkdsajflkdsajflkdsa: fdnpkg16.exe httpget.exe fdinst16.exe
 	mkdir fdnpkg16/doc/fdnpkg16
 	mkdir fdnpkg16/source
 	mkdir fdnpkg16/source/fdnpkg16
-	mkdir fdnpkg16/source/fdnpkg16/fdinst
-	mkdir fdnpkg16/source/fdnpkg16/zlib
 	# i need to work on this part
 	copy fdnpkg16.lsm appinfo
 	copy fdnpkg16.exe bin
