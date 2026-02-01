@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
     case ACTION_FCL:
       printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
       printf("coreleft() == %ld Byte(s) Free\n", coreleft());
-      res = 1;
+      res = 0;
     break;
     default:
       res = showhelp();

@@ -262,9 +262,9 @@ int main(int argc, char **argv) {
   struct ziplist *zipfileidx;
 
   //sparky4: new variables from me! <3
-  int netinitres;   // sparky4: for netowrking initialization for internal networking (external for now)
-  int arglen;       // sparky4: pkgname length
-  int argci;        // sparky4: argument variable for number of variables. for multi packages
+  int netinitres;      // sparky4: for netowrking initialization for internal networking (external for now)
+  int arglen;          // sparky4: pkgname length
+  int argci;           // sparky4: argument variable for number of variables. for multi packages
   char actionarg[18];  // sparky4: this gotta be long enough for the commands
 
   // sparky4: this is for various action flags to prevent networking on local files or no repository action for local files
