@@ -78,3 +78,20 @@ if there is a typo it dose this on purpose.. to mention to user the help.
 > 5. a simple pause after each side would be enough.
 i think i can implement this too
 
+
+
+
+
+
+
+known bugs:
+cant seem to update when there is an update...
+    fdnpkg16 inherited a version determination bug from fdnpkg32
+        try the reinstall command
+    actual solution: we will use modification date to determine this! :D but
+            this requires collab help! <3
+
+cant seem to get fdnpkg16 to work on a system with lower ram
+    cant run fdnpkg16 on a system with less ram than 480kb avalible
+        try fdnpkg16 version 0.99.8249 and if that dont work try to maximize your ram for fdnpkg16 to work
+    actual solution: i need to make the program smaller there is alot of unused stuff
