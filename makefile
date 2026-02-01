@@ -40,7 +40,7 @@ LINKER_OPTIONS_FDINST = src/zlib/zlib_l.lib -i=src/zlib
 # Source files
 C_SOURCE = src/fdnpkg16.c src/crc32.c src/fileexst.c src/kprintf.c src/loadconf.c src/parsecmd.c src/pkginst.c src/readenv.c src/getdelim.c src/inf.c src/libgz.c src/lsm.c src/parseurl.c src/pkgrem.c src/rtrim.c src/helpers.c src/kitten.c src/libunzip.c src/pkgdb.c src/pkgsrch.c src/memcore.c src/showinst.c src/lzmadec.c
 C_SOURCE_HTTPGET = src/exec/httpget.c src/net.c src/http.c src/parseurl.c src/helpers.c
-C_SOURCE_FDINST = src/exec/fdinst16.c src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/exec/kprintf0.c
+C_SOURCE_FDINST = src/exec/fdinst16.c src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/exec/kprintf0.c src/memcore.c
 
 # Object files (derived from source files, adjust extension as needed for your setup)
 OBJECTS = $(C_SOURCE:../.c=.$(OBJ))

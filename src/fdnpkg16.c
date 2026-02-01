@@ -51,8 +51,9 @@
 #include "pkgrem.h"   /* pkgrem() */
 #include "readenv.h"  /* readenv() */
 #include "showinst.h" /* showinstalledpkgs() */
+#include "memcore.h"  /* farcoreleft() & coreleft() */
 #include "version.h"
-#include "memcore.h"
+
 
 //#define DEBUG  /* uncomment this to enable debug mode */
 

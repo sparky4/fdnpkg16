@@ -31,12 +31,14 @@
 #include "pkginst.h"
 #include "pkgrem.h"
 #include "readenv.h"
+#include "memcore.h"
 #include "version.h"
 
 
 enum ACTIONTYPES {
   ACTION_INSTALL,
   ACTION_REMOVE,
+  ACTION_FCL,
   ACTION_HELP
 };
 
@@ -50,6 +52,9 @@ static int showhelp(void) {
          "\n"
          "Usage: FDINST16 install package.zip\n"
          "       FDINST16 remove package\n"
+         "or\n"
+         "       FDINST16 in package.zip\n"
+         "       FDINST16 rm package\n"
          "\n"
          "FDINST16 is published under the MIT license, and shares most of its source code\n"
          "with FDNPKG16 to guarantee consistent behaviour of both tools. It also uses\n"
@@ -65,10 +70,12 @@ static enum ACTIONTYPES parsearg(int argc, char **argv) {
   /* I expect exactly 2 arguments (ie argc == 3) */
   if (argc != 3) return(ACTION_HELP);
   /* look for valid actions */
-  if (strcasecmp(argv[1], "install") == 0) {
+  if ((strcasecmp(argv[1], "install") && strcasecmp(argv[1], "in")) == 0) {
     res = ACTION_INSTALL;
-  } else if (strcasecmp(argv[1], "remove") == 0) {
+  } else if ((strcasecmp(argv[1], "remove") && strcasecmp(argv[1], "rm")) == 0) {
     res = ACTION_REMOVE;
+  } else if (strcasecmp(argv[1], "fcl") == 0) {
+    res = ACTION_FCL;
   }
   /* the argument should never be empty */
   if (argv[2][0] == 0) return(ACTION_INSTALL);
@@ -161,13 +168,18 @@ int main(int argc, char **argv) {
   switch (action) {
     case ACTION_INSTALL:
       res = pkginst(argv[2], flags, dosdir, tempdir, dirlist, mapdrv);
-      break;
+    break;
     case ACTION_REMOVE:
       res = pkgrem(argv[2], dosdir, mapdrv);
-      break;
+    break;
+    case ACTION_FCL:
+      printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
+      printf("coreleft() == %ld Byte(s) Free\n", coreleft());
+      res = 1;
+    break;
     default:
       res = showhelp();
-      break;
+    break;
   }
 
   if (res != 0) return(1);
