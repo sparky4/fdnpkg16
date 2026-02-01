@@ -25,7 +25,7 @@
 
 #include <stdio.h>    /* printf() */
 #include <stdlib.h>   /* malloc() and friends */
-#include <strings.h>   /* strcasecmp() */
+#include <strings.h>  /* strcasecmp() */
 
 #include "libunzip.h"
 #include "pkginst.h"
@@ -67,8 +67,7 @@ static int showhelp(void) {
 static enum ACTIONTYPES parsearg(int argc, char **argv) {
   int extpos, i;
   enum ACTIONTYPES res = ACTION_HELP;
-  /* I expect exactly 2 arguments (ie argc == 3) */
-  //if (argc != 3) return(ACTION_HELP);
+  /* I expect exactly 2 to 3 arguments (ie argc < 2) */
   if (argc < 2) return(ACTION_HELP);
   /* look for valid actions */
   if ((strcasecmp(argv[1], "install") && strcasecmp(argv[1], "in")) == 0) {
