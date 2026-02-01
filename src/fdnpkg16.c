@@ -163,7 +163,7 @@ static void printhelpshort(void) {
 #endif
 }
 static void printlic(void) {
-  puts("FDNPKG" EXECNAME " v" PVER " - FreeDOS Network Package manager\r\n"
+  puts("FDNPKG" EXECNAME " v" PVER " - FreeDOS Network Package manager 16-bit\r\n"
        "Copyright (C)" POLDDATE " Mateusz Viste\r\n"
        "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood\r\n");
 
