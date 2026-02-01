@@ -68,7 +68,8 @@ static enum ACTIONTYPES parsearg(int argc, char **argv) {
   int extpos, i;
   enum ACTIONTYPES res = ACTION_HELP;
   /* I expect exactly 2 arguments (ie argc == 3) */
-  if (argc != 3) return(ACTION_HELP);
+  //if (argc != 3) return(ACTION_HELP);
+  if (argc < 2) return(ACTION_HELP);
   /* look for valid actions */
   if ((strcasecmp(argv[1], "install") && strcasecmp(argv[1], "in")) == 0) {
     res = ACTION_INSTALL;
