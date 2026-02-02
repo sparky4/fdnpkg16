@@ -71,7 +71,7 @@ extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 // sparky4: for possible short and long help header and such
 static void printhelpheader(void) {
  puts("FDNPKG" EXECNAME " v" PVER " Copyright (C) " POLDDATE " Mateusz Viste &\r\n"
- "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood");
+ "Copyright (C) " PNEWDATE " Victoria Crenshaw & Katheryn Northwood");
  kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
 }
 
@@ -165,8 +165,8 @@ static void printhelpshort(void) {
 }
 static void printlic(void) {
   puts("FDNPKG" EXECNAME " v" PVER " - FreeDOS Network Package manager 16-bit\r\n"
-       "Copyright (C)" POLDDATE " Mateusz Viste\r\n"
-       "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood\r\n");
+       "Copyright (C) " POLDDATE " Mateusz Viste\r\n"
+       "Copyright (C) " PNEWDATE " Victoria Crenshaw & Katheryn Northwood\r\n");
 
   puts("Permission is hereby granted, free of charge, to any person obtaining a copy\r\n"
        "of this software and associated documentation files (the \"Software\"), to deal\r\n"
