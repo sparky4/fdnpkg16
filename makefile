@@ -41,11 +41,13 @@ LINKER_OPTIONS_FDINST = src/zlib/zlib_l.lib -i=src/zlib
 C_SOURCE = src/fdnpkg16.c src/crc32.c src/fileexst.c src/kprintf.c src/loadconf.c src/parsecmd.c src/pkginst.c src/readenv.c src/getdelim.c src/inf.c src/libgz.c src/lsm.c src/parseurl.c src/pkgrem.c src/rtrim.c src/helpers.c src/kitten.c src/libunzip.c src/pkgdb.c src/pkgsrch.c src/memcore.c src/showinst.c src/lzmadec.c
 C_SOURCE_HTTPGET = src/exec/httpget.c src/net.c src/http.c src/parseurl.c src/helpers.c
 C_SOURCE_FDINST = src/exec/fdinst16.c src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/exec/kprintf0.c src/memcore.c
+C_SOURCE_FDINK = src/exec/fdink16.c src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/exec/kprintf0.c src/memcore.c
 
 # Object files (derived from source files, adjust extension as needed for your setup)
 OBJECTS = $(C_SOURCE:../.c=.$(OBJ))
 OBJ_HTTPGET = $(C_SOURCE_HTTPGET:../.c=.$(OBJ))
 OBJ_FDINST = $(C_SOURCE_FDINST:../.c=.$(OBJ))
+OBJ_FDINK = $(C_SOURCE_FDINK:../.c=.$(OBJ))
 EXEC = &
      fdnpkg16.exe &
      httpget.exe &
@@ -54,6 +56,7 @@ EXEC = &
 # --- TARGETS ---
 
 all: $(EXEC)
+
 fdnpkg16.exe: $(OBJECTS)
     @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJECTS) $(LINKER_OPTIONS)
@@ -68,7 +71,7 @@ httpget.exe: $(OBJ_HTTPGET)
     @wmake -h vomitchan
     @echo Finished building httpget.exe
 
-fdinst16.exe: $(OBJECTS)
+fdinst16.exe: $(OBJ_FDINST)
     @echo Building for dos
     $(REMOVECOMMAND) *.$(OBJ)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINST) $(LINKER_OPTIONS_FDINST)
@@ -76,6 +79,15 @@ fdinst16.exe: $(OBJECTS)
     @upx --8086 -9 fdinst16.exe
     @wmake -h vomitchan
     @echo Finished building fdinst16.exe
+
+fdink16.exe: $(OBJ_FDINK)
+    @echo Building for dos
+    $(REMOVECOMMAND) *.$(OBJ)
+    *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINK) $(LINKER_OPTIONS_FDINST)
+    $(REMOVECOMMAND) *.$(OBJ)
+    @upx --8086 -9 fdink16.exe
+    @wmake -h vomitchan
+    @echo Finished building fdink16.exe
 
 # Generic rule to compile .c files into .$(OBJ) files
 .c.$(OBJ) :
