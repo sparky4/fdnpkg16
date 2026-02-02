@@ -500,9 +500,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         printf(" %s\n", fname);
       }
       if (forceflag == 0) {
-        kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
-        puts("");
         for (;;) {
+          kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
+          puts("");
           kitten_printf(3, 4, "Your choice:");
           printf(" ");
           fgets(userchoicestr, 6, stdin);
