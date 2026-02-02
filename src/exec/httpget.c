@@ -78,6 +78,7 @@ long farcoreleft() {
 // main
 long main(int argc, char **argv) {
   long res;
+  char downloadingstring[64];
 #ifdef DEBUG_HTTPGET
   long memoryeaten;
 #endif
@@ -95,6 +96,11 @@ long main(int argc, char **argv) {
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
 #endif
+  if ((argv[3] == NULL)) {
+    sprintf(downloadingstring, "%s", "Downloading %s... %ld bytes");
+  } else if (argv[4] != NULL) {
+    sprintf(downloadingstring, "%s", argv[4]);
+  }
   if (strcasecmp(argv[1], "fcl") == 0) {
     printf("farcoreleft() == %ld\n", farcoreleft());
     printf("coreleft() == %u\n", coreleft());
@@ -102,7 +108,7 @@ long main(int argc, char **argv) {
   } else if (strcasecmp(argv[3], "/q") == 0) {
     res = http_get(argv[1], argv[2], NULL, 8080, '\0', 0);
   } else {
-    res = http_get(argv[1], argv[2], NULL, 8080, "Downloading %s... %ld bytes", 1);
+    res = http_get(argv[1], argv[2], NULL, 8080, downloadingstring, 1);
   }
 #ifdef DEBUG_HTTPGET
   memoryeaten -= farcoreleft();

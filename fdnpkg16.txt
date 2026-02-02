@@ -23,6 +23,7 @@ a lightweight tool called FDINST16 that is suitable for low-memory systems
 and does not provide network support, only supporting local packages.
 FDNPKG16 stands for "FreeDOS Network Package manager 16-bit".
 
+
 *** FDNPKG16 vs FDNPKG ***
 
 As mentioned earlier, FDNPKG16 is based on the code of FDNPKG. However, keep
@@ -32,7 +33,10 @@ Several features have been added, and less commonly-used features such as
 LZMA compression have been removed. FDNPKG originally required an 80386 class
 processor so it only worked on 32-bit x86 computers. Also mentioned earlier,
 FDNPKG16 fixes numerous bugs that were in FDNPKG which has since been left
-abandoned in 2021.
+abandoned in 2021. FDNPKG16 supports more than one package installation at
+the same time. As in you can install more than a single package in one
+command.
+  ex. fdnpkg16 in pkg1 pkg2 pkg3
 
 
 *** Configuration ***

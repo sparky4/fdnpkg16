@@ -1,9 +1,14 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8252e [02 Feb 2026]
+ - [new] FDINST16.EXE has short commands now! "in" and "rm"!
+ - [mnt] Updated Documents now reflect the program fdnpkg16 and fdinst16 better now! :D
+ - [nfo] Cleaned up comment and code formatting and intention everywhere a bit
+ - [fix] Also HTTPGET.EXE got updated!! Some bug fixes where made and downloadstring works now for it so the string downloading the file will return international formatted strings from FDNPKG16.EXE
+
 FDNPKG16 v0.99.8252d [31 Jan 2026]
- - [fix] Restored temp batch script creation and usage.
-         The problem was ibiblio url is so long that system() cannot understand the very long command and throws a -1.
+ - [fix] Restored temp batch script creation and usage. The problem was ibiblio url is so long that system() cannot understand the very long command and throws a -1.
  - [fix] Also HTTPGET.EXE got updated!! It now returns the res variable amount on sucess and error!
 
 FDNPKG16 v0.99.8252c [29 Jan 2026]

@@ -21,5 +21,5 @@ char *computelocalpath(char *longfilename, char *respath, char *dosdir, struct c
 void removeDoubleBackslashes(char *str);
 int detect_localpath(char *url);
 char *getfext(char *fname);
-char *get_filename(char *path);
+char *percent_adding(char *downloadingstring);
 #endif
