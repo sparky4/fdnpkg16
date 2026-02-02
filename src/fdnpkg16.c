@@ -743,9 +743,9 @@ int main(int argc, char **argv) {
                   htgetres = system(commandforbatch);
                 }
                 #endif
-//                #ifdef DEBUG
+                #ifdef DEBUG
                 printf("htgetres returned: %d\n", htgetres);
-//                #endif
+                #endif
   //              #ifdef USE_INTERNAL_WATTCP
   //              if (htgetres <= 0) putchar('.');
   //              #else
