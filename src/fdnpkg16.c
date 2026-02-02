@@ -297,8 +297,9 @@ int main(int argc, char **argv) {
   printf("coreleft() == %u\n", coreleft());
   //getch();
 #endif
-  if (farcoreleft() < 196608L) {
+  if (farcoreleft() < /*196608*/262144L) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
+    getch();
   } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
 
   /* Load the list of package repositories */

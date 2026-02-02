@@ -18,13 +18,14 @@
 
 #include "http.h"
 #include "net.h"
-//#include "memcore.h"
+#include "memcore.h"
 
 #ifdef DEBUG_HTTPGET
 #define DEBUG
 #include <malloc.h>
 //#include "dbg/dbg.h"
 
+#if 0
 // sparky4: This function I did make. It works well. Returns near memory avalible!
 long coreleft() {
   _nheapgrow();
@@ -72,6 +73,7 @@ long farcoreleft() {
   return memoryAvailable;
 }
 #endif  // #ifdef DEBUG_HTTPGET
+#endif
 
 // main
 long main(int argc, char **argv) {
@@ -79,7 +81,7 @@ long main(int argc, char **argv) {
 #ifdef DEBUG_HTTPGET
   long memoryeaten;
 #endif
-  if (argc < 3) {
+  if (argc < 2) {
     printf("%s url outfile arguments... [/q]", argv[0]);
     return(1);
   }
@@ -93,10 +95,14 @@ long main(int argc, char **argv) {
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
 #endif
-  if (strcasecmp(argv[3], "/q")) {
-    res = http_get(argv[1], argv[2], NULL, 8080, "Downloading %s... %ld bytes", 1);
-  } else {
+  if (strcasecmp(argv[1], "fcl") == 0) {
+    printf("farcoreleft() == %ld\n", farcoreleft());
+    printf("coreleft() == %u\n", coreleft());
+    return(0);
+  } else if (strcasecmp(argv[3], "/q") == 0) {
     res = http_get(argv[1], argv[2], NULL, 8080, '\0', 0);
+  } else {
+    res = http_get(argv[1], argv[2], NULL, 8080, "Downloading %s... %ld bytes", 1);
   }
 #ifdef DEBUG_HTTPGET
   memoryeaten -= farcoreleft();
@@ -105,7 +111,7 @@ long main(int argc, char **argv) {
 #endif
   if (res >= 0) {
 #ifdef VERBOSE_HTTPGET
-    if ((strcasecmp(argv[3], "/q"))) {
+    if (strcasecmp(argv[3], "/q") != 0) {
       printf("Saved %ld bytes into %s.\n", res, argv[2]);
     }
 #endif
