@@ -376,12 +376,11 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //      #else
 //      if (htgetres != 21) {
 //      #endif
-        //if (htgetres != 0) {
-        if (htgetres < 0) {
-          kitten_puts(3, 7, "Error downloading package. Aborted.");
-          return(NULL);
-        }
-        puts("ok"); // just let the user know the file was downloaded and installed
+      if (htgetres < 0) {
+        kitten_puts(3, 7, "Error downloading package. Aborted.");
+        return(NULL);
+      }
+      puts("ok"); // just let the user know the file was downloaded and installed
     } else { /* else it's an on-disk repo, so we can use the package right from there */
       sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
     }

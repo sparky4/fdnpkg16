@@ -743,9 +743,9 @@ int main(int argc, char **argv) {
                   htgetres = system(commandforbatch);
                 }
                 #endif
-                #ifdef DEBUG
+//                #ifdef DEBUG
                 printf("htgetres returned: %d\n", htgetres);
-                #endif
+//                #endif
   //              #ifdef USE_INTERNAL_WATTCP
   //              if (htgetres <= 0) putchar('.');
   //              #else
@@ -761,12 +761,11 @@ int main(int argc, char **argv) {
   //          #else
   //          if (htgetres != 21) {
   //              #endif
-              //if (htgetres != 0) {
-              if (htgetres < 0) {
-                kitten_puts(2, 10, "Repository download failed!");
-                #ifndef ERRCACHE
-                maxcachetime = 0; /* disable cache writing this time */
-                #endif
+            if (htgetres < 0) {
+              kitten_puts(2, 10, "Repository download failed!");
+              #ifndef ERRCACHE
+              maxcachetime = 0; /* disable cache writing this time */
+              #endif
             } else {
               char *dbmsg;
               /* uncompress and load the index file */
