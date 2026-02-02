@@ -54,7 +54,8 @@
 #include "memcore.h"  /* farcoreleft() & coreleft() */
 #include "version.h"
 
-//#define DEBUG  /* uncomment this to enable debug mode */
+/* #define DEBUG */ /* uncomment this to enable debug mode */
+
 
 //unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
@@ -184,6 +185,7 @@ static void printlic(void) {
        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\r\n"
        "FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS\r\n"
        "IN THE SOFTWARE.");
+
   puts("If you want to contribute, let me know! https://discord.com/invite/qBH9W7fXHJ\n"
        "or join my irc and ping me irc://4ch.mooo.com/#fdnpkg16");
 }
