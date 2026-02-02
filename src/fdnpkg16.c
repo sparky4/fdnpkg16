@@ -323,12 +323,12 @@ int main(int argc, char **argv) {
   for (i = 0; i < argci; i++) {
 
     /*action_flags = 0;*/
-    //printf("Starting  value(hex): 0x%X\n", flags);
+//0000    printf("Starting  value(hex): 0x%X\n", flags);
     // sparky4 flag resetter for 2 bits
     flags &= (~((1 << 3) | (1 << 4)));  // sparky4: disable 3rd and 4th bit position in the flags for the 2 new bits to be reseted
     // 2 bits are for FDNPKG16_NETINIT && FDNPKG16_NOREPOA
+//0000    printf("Resulting value(hex): 0x%X\n", flags);
 
-    //printf("Resulting value(hex): 0x%X\n", flags);
     /* parse cli parameters */
     if (argc > 1) { /* fdnpkg16 action [param] */
       if ((argc > 2) && (argv[2] != NULL)) {  /* fdnpkg16 action package(s) */
