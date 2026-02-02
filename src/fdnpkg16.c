@@ -322,7 +322,7 @@ int main(int argc, char **argv) {
   // sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D
   for (i = 0; i < argci; i++) {
 
-    /*action_flags = 0;*/
+    /*action_flags = 0;*/ // sparky4: old may remove
 //0000    printf("Starting  value(hex): 0x%X\n", flags);
     // sparky4 flag resetter for 2 bits
     flags &= (~((1 << 3) | (1 << 4)));  // sparky4: disable 3rd and 4th bit position in the flags for the 2 new bits to be reseted
@@ -335,10 +335,10 @@ int main(int argc, char **argv) {
         argci = argc - 2; // sparky4: get the for loop condition number ready for more than 1 argument in package area! :D
       } else argci--;     // sparky4: this prevent looping twice for these functions (this only happens if argc == 2)
       if ((strcasecmp(actionarg, "search") && strcasecmp(actionarg, "se")) == 0) {
-          action = ACTION_SEARCH;
+        action = ACTION_SEARCH;
       } else if ((strcasecmp(actionarg, "vsearch") && strcasecmp(actionarg, "vs")) == 0) {
-          action = ACTION_SEARCH;
-          verbosemode = 1;
+        action = ACTION_SEARCH;
+        verbosemode = 1;
       } else if (((strcasecmp(actionarg, "install") && strcasecmp(actionarg, "in")) == 0) || ((strcasecmp(actionarg, "install-nosrc") && strcasecmp(actionarg, "in-nosrc")) == 0) || ((strcasecmp(actionarg, "install-wsrc") && strcasecmp(actionarg, "in-wsrc")) == 0)) {
         if ((strcasecmp(actionarg, "install-nosrc") && strcasecmp(actionarg, "in-nosrc")) == 0) flags |= PKGINST_NOSOURCE;
         if ((strcasecmp(actionarg, "install-wsrc") && strcasecmp(actionarg, "in-wsrc")) == 0) flags &= ~(PKGINST_NOSOURCE);
