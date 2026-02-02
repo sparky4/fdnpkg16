@@ -44,8 +44,8 @@ enum ACTIONTYPES {
 
 
 static int showhelp(void) {
-  printf("FDINST16 v" PVER " Copyright (C)" POLDDATE " Mateusz Viste\n"
-         "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood\n\n"
+  printf("FDINST16 v" PVER " Copyright (C) " POLDDATE " Mateusz Viste\n"
+         "Copyright (C) " PNEWDATE " Victoria Crenshaw & Katheryn Northwood\n\n"
          "FDINST16 is a lightweigth package installer for FreeDOS. It is an alternative\n"
          "to FDNPKG16, when only basic, local install/remove actions are necessary.\n"
          "FDINST16 is a 16-bit, 8086-compatible application running in real mode.\n"

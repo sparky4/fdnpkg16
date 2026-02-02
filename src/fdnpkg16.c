@@ -70,13 +70,13 @@ extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 
 // sparky4: for possible short and long help header and such
 static void printhelpheader(void) {
- puts("FDNPKG" EXECNAME " v" PVER " Copyright (C)" POLDDATE " Mateusz Viste &\r\n"
+ puts("FDNPKG" EXECNAME " v" PVER " Copyright (C) " POLDDATE " Mateusz Viste &\r\n"
  "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood");
  kitten_puts(1, 0, "This is a network package manager for FreeDOS.");
 }
 
 static void printhelp(void) {
-  //puts("FDNPKG" EXECNAME " v" PVER " (C)" PDATE " Mateusz Viste & Victoria Crenshaw");
+  //puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   //kitten_puts(1, 0, "This is a network package manager for FreeDOS."); puts("");
   printhelpheader();
   kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
@@ -120,7 +120,7 @@ static void printhelp(void) {
 #endif
 }
 static void printhelpshort(void) {
-  //puts("FDNPKG" EXECNAME " v" PVER " (C)" PDATE " Mateusz Viste & Victoria Crenshaw");
+  //puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
   //kitten_puts(1, 0, "This is a network package manager for FreeDOS."); puts("");
   printhelpheader();
   kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
