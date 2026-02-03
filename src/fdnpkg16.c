@@ -60,7 +60,7 @@
 //unsigned _stklen = /*512*/24 * 1024; /* I need 512K of stack space */ //not doable in 16 bit lets give it 24k
 
 // sparky4: may not be used
-// sparky4: just some program naming her for fdnpkg16 and fdnpkg86
+// sparky4: just some program naming here for fdnpkg16 and fdnpkg86
 #ifdef USE_INTERNAL_WATTCP
 #define EXECNAME "86"
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */

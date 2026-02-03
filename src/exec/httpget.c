@@ -102,8 +102,8 @@ long main(int argc, char **argv) {
     sprintf(downloadingstring, "%s", argv[4]);
   }
   if (strcasecmp(argv[1], "fcl") == 0) {
-    printf("farcoreleft() == %ld\n", farcoreleft());
-    printf("coreleft() == %u\n", coreleft());
+    printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
+    printf("coreleft() == %ld Byte(s) Free\n", coreleft());
     return(0);
   } else if (strcasecmp(argv[3], "/q") == 0) {
     res = http_get(argv[1], argv[2], NULL, 8080, '\0', 0);
