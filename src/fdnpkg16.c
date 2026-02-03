@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
   char *proxy = NULL;
   char downloadingstring[64];
   int proxyport = 8080;
-  int i,x,y;
+  int i, x, y;
   char *mapdrv = "";
   unsigned long cfgfilecrc;
   struct pkgdb *pkgdb = NULL;

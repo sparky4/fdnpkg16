@@ -295,8 +295,7 @@ char *percent_adding(char *downloadingstring)
   int i, j;
   char *downloadingstringformat = "";
   int str_len = strlen(downloadingstring);
-  j = 0;
-  for (i = 0; i < str_len; i++) {
+  for (i = j = 0; (i < str_len) && (downloadingstring[i] != '\0'); i++) {
     if (downloadingstring[i] == '%') {
       // When a '%' is found, add two '%' characters to the destination
       downloadingstringformat[j++] = '%';
