@@ -324,8 +324,8 @@ int main(int argc, char **argv) {
 
   // sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D
   for (i = 0; i < argci; i++) {
-
     /*action_flags = 0;*/ // sparky4: old may remove
+
 //0000    printf("Starting  value(hex): 0x%X\n", flags);
     // sparky4 flag resetter for 2 bits
     flags &= (~((1 << 3) | (1 << 4)));  // sparky4: disable 3rd and 4th bit position in the flags for the 2 new bits to be reseted
