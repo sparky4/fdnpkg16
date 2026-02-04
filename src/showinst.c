@@ -165,8 +165,10 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
   for (curpkg = pkgdb->nextpkg; curpkg != NULL; curpkg = curpkg->nextpkg) {
     numofpkginrepo++;
   }
+  // sparky4: if there is mor epackages on the system (old install) than on the repo do this.
   if (numofpkginrepo < packagelist_len) numofpkginrepo = packagelist_len;
-  // sparky4: the loop to check
+
+  // sparky4: the loop to check for not installed packages!
   for (curpkg = pkgdb->nextpkg; curpkg != NULL; curpkg = curpkg->nextpkg) {
     // sparky4: initiate variable
     searchflag = 0; matchflag = 0;
