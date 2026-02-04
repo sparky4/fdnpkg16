@@ -30,6 +30,7 @@
 #include "pkgrem.h"
 #include "rtrim.h"
 #include "showinst.h"  /* include self for control */
+#include "pkgsrch.h"
 #include "version.h"
 
 
@@ -60,9 +61,9 @@ static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packa
       if (ep->d_name[0] != '.') { /* ignore '.', '..', and hidden directories */
         if (strlen(ep->d_name) > 4) {
           int tlen = strlen(ep->d_name);
-          if (lsxflag == 0) {     // sparky4: this variable is for enabling the listing of held files and will eventually list them
+          if (lsxflag & 0) {     // sparky4: this variable is for enabling the listing of held files and will eventually list them
             if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 't')) continue;  /* if it's not an .lst file, skip it silently */
-          } else {
+          } else if (lsxflag & 1) {
             if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 'x')) continue;  /* if it's not an .lsx file, skip it silently */
           }
 
@@ -135,6 +136,80 @@ void showheldedpkgs(char *filterstr, char *dosdir) {
     /* print the package/version couple on screen */
     printf("%s %s\n", packagelist[x], packagelist_ver[x]);
   }
+}
+
+void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, int verbosemode, char **repolist) {
+  char *packagelist[packagelist_maxlen];
+  char *packagelist_ver[packagelist_maxlen];
+  int packagelist_len, x, xsnp, numofpkginrepo, nomatch;
+  int matchflag, searchflag, matchtimes = 0;
+  struct pkgdb *curpkg;
+  struct pkgrepo *currep;
+  char *linebuf;
+  puts("");
+  linebuf = malloc(80);
+  if (linebuf == NULL) {
+    kitten_puts(5, 1, "Out of memory while processing package descriptions!");
+    return;
+  }
+  /* load the list of packages */
+  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, NULL, dosdir, 0);   /* Populate the packages list */
+  if (packagelist_len < 0) return;
+  if (packagelist_len == 0) {
+    kitten_puts(5, 0, "No package matched the search.");
+    return;
+  }
+  // sparky4: get database number of packages avalible
+  numofpkginrepo = 1;
+  for (curpkg = pkgdb->nextpkg; curpkg != NULL; curpkg = curpkg->nextpkg) {
+    numofpkginrepo++;
+  }
+  if (numofpkginrepo < packagelist_len) numofpkginrepo = packagelist_len;
+  // sparky4: the loop to check
+  for (curpkg = pkgdb->nextpkg; curpkg != NULL; curpkg = curpkg->nextpkg) {
+    // sparky4: initiate variable
+    searchflag = 0; matchflag = 0;
+    for (x = nomatch = xsnp = 0; x <= numofpkginrepo; x++) {
+      if (searchflag == 0) {
+        if (filterstr == NULL) {
+          searchflag = 1;
+        } else {
+          searchflag = 0;
+          if (fdnpkg_strcasestr(curpkg->name, filterstr) != NULL) searchflag = 1; /* look into pkg name */
+          if (fdnpkg_strcasestr(curpkg->desc, filterstr) != NULL) searchflag = 1; /* look into pkg desc */
+        }
+      }
+
+      // sparky4: check if package is NOT installed
+      if (strcasecmp(curpkg->name, packagelist[x]) != 0) {
+        nomatch++;        // sparky4: package NOT found
+      } else nomatch = 0; // sparky4: package found
+
+      if ((nomatch == numofpkginrepo)) {
+        matchflag = 1;  // sparky4: PACKAGE NOT INSTALLED
+      }
+    }
+    //printf("\tx == %d\tnomatch == %d\tmatchflag == %d\tsearchflag == %d\t%d\n", x, nomatch, matchflag, searchflag, numofpkginrepo);
+    if ((searchflag != 0) && (matchflag != 0)) {
+      if (snprintf(linebuf, 80, "%s - %s", curpkg->name, curpkg->desc) > 79) { /* truncated */
+        linebuf[76] = '.';
+        linebuf[77] = '.';
+        linebuf[78] = '.';
+        linebuf[79] = 0; /* finish the string - snprintf() is supposed to do it, but it appears the DJGPP version doesn't */
+      }
+      puts(linebuf);
+
+      if (verbosemode != 0) {
+        for (currep = curpkg->repolist; currep != NULL; currep = currep->nextrepo) {
+          printf(" -> ver %s at %s [%08lX]\n", currep->version, repolist[currep->repo], currep->crc32zip);
+        }
+        puts("");
+      }
+      matchtimes++;
+    }
+  }
+  free(linebuf);
+  if (matchtimes == 0) kitten_puts(5, 0, "No package matched the search.");
 }
 
 

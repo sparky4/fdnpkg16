@@ -209,7 +209,8 @@ enum actions {
   ACTION_REINSTALL_LOCALFILE,
   ACTION_HOLDLIST,
   ACTION_HOLD,
-  ACTION_UNHOLD
+  ACTION_UNHOLD,
+  ACTION_NOTSEARCH
 };
 
 
@@ -451,6 +452,11 @@ int main(int argc, char **argv) {
           action = ACTION_UNHOLD;
           /*action_*/flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
         }
+      } else if ((strcasecmp(actionarg, "notinstalled") && strcasecmp(actionarg, "ni")) == 0) {
+        action = ACTION_NOTSEARCH;
+      } else if ((strcasecmp(actionarg, "vnotinstalled") && strcasecmp(actionarg, "vn")) == 0) {
+        action = ACTION_NOTSEARCH;
+        verbosemode = 1;
         // sparky4: <3
       } else if ((strcasecmp(actionarg, "bibabo")) == 0) {
         printf("ビバボ！ｗ");
@@ -804,6 +810,13 @@ int main(int argc, char **argv) {
               pkgsearch(pkgdb, argv[i+2], verbosemode, repolist);
             } else {
               pkgsearch(pkgdb, NULL, verbosemode, repolist);
+            }
+          break;
+          case ACTION_NOTSEARCH:
+            {
+              char *filterstr = NULL;
+              if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
+              shownotinstalledpkgs(filterstr, dosdir, pkgdb, verbosemode, repolist);//000000
             }
           break;
           case ACTION_INSTALL: /* install remote package */

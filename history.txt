@@ -1,6 +1,9 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8253 [04 Feb 2026]
+ - [new] FDNPKG16 has NOT INSTALLED features! The document fdnpkg16.txt should explain how it works! New actions are "vnotinstalled", "notinstalled", "vn", and "ni"
+
 FDNPKG16 v0.99.8252e [02 Feb 2026]
  - [new] FDINST16.EXE has short commands now! "in" and "rm"!
  - [mnt] Updated Documents now reflect the program fdnpkg16 and fdinst16 better now! :D

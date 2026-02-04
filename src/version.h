@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-#define PVER "0.99.8252e"
+#define PVER "0.99.8253"
 #define POLDDATE "2012-2021"
 #define PNEWDATE "2025-2026"
 #define PDATE POLDDATE " & " PNEWDATE
