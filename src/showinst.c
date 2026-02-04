@@ -139,6 +139,7 @@ void showheldedpkgs(char *filterstr, char *dosdir) {
 }
 
 // sparky4: SLOW BUT IT WORKS! :D
+//TODO MAKE THIS FASTER (An idea is to use only matching 1st letters of the package to match packages in repo..)
 void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, int verbosemode, char **repolist) {
   char *packagelist[packagelist_maxlen];
   char *packagelist_ver[packagelist_maxlen];
