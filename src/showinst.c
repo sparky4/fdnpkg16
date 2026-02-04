@@ -138,13 +138,16 @@ void showheldedpkgs(char *filterstr, char *dosdir) {
   }
 }
 
+#define NOTINST_SEARCHFLAG 1
+#define NOTINST_MATCHFLAG  2
+
 // sparky4: SLOW BUT IT WORKS! :D
 //TODO MAKE THIS FASTER (An idea is to use only matching 1st letters of the package to match packages in repo..)
 void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, int verbosemode, char **repolist) {
   char *packagelist[packagelist_maxlen];
   char *packagelist_ver[packagelist_maxlen];
   int packagelist_len, x, numofpkginrepo, nomatch;
-  int matchflag, searchflag, matchtimes = 0;
+  int /*match*/flag = 0/*, searchflag*/, matchtimes = 0;
   struct pkgdb *curpkg;
   struct pkgrepo *currep;
   char *linebuf;
@@ -165,25 +168,26 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
   numofpkginrepo = 1;
   for (curpkg = pkgdb->nextpkg; curpkg != NULL; curpkg = curpkg->nextpkg) {
     numofpkginrepo++;
+//    if ((numofpkginrepo % 10) == 0) printf(".");
   }
+//  puts("");
   // sparky4: if there is mor epackages on the system (old install) than on the repo do this.
   if (numofpkginrepo < packagelist_len) numofpkginrepo = packagelist_len;
 
   // sparky4: the loop to check for not installed packages!
   for (curpkg = pkgdb->nextpkg; curpkg != NULL; curpkg = curpkg->nextpkg) {
     // sparky4: initiate variable
-    searchflag = 0; matchflag = 0;
+    /*search*/flag &= 0;/* matchflag = 0;*/
     for (x = nomatch = 0; x <= numofpkginrepo; x++) {
-      if (searchflag == 0) {
+      if (/*searchflag == 0*/flag & ~NOTINST_SEARCHFLAG) {
         if (filterstr == NULL) {
-          searchflag = 1;
+          /*search*/flag |= NOTINST_SEARCHFLAG;
         } else {
-          searchflag = 0;
-          if (fdnpkg_strcasestr(curpkg->name, filterstr) != NULL) searchflag = 1; /* look into pkg name */
-          if (fdnpkg_strcasestr(curpkg->desc, filterstr) != NULL) searchflag = 1; /* look into pkg desc */
+          /*search*/flag &= 0;
+          if (fdnpkg_strcasestr(curpkg->name, filterstr) != NULL) /*search*/flag |= NOTINST_SEARCHFLAG; /* look into pkg name */
+          if (fdnpkg_strcasestr(curpkg->desc, filterstr) != NULL) /*search*/flag |= NOTINST_SEARCHFLAG; /* look into pkg desc */
         }
       }
-
       // sparky4: check if package is NOT installed
       if (strcasecmp(curpkg->name, packagelist[x]) != 0) {
         nomatch++;     // sparky4: package NOT found
@@ -193,11 +197,11 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
       }
 
       if ((nomatch == numofpkginrepo)) {
-        matchflag = 1; // sparky4: PACKAGE NOT INSTALLED
+        /*match*/flag |= NOTINST_MATCHFLAG; // sparky4: PACKAGE NOT INSTALLED
       }
     }
     //printf("\tx == %d\tnomatch == %d\tmatchflag == %d\tsearchflag == %d\t%d\n", x, nomatch, matchflag, searchflag, numofpkginrepo);
-    if ((searchflag != 0) && (matchflag != 0)) {
+    if (/*(searchflag != 0) && (matchflag != 0)*/flag & (NOTINST_MATCHFLAG + NOTINST_SEARCHFLAG)) {
       if (snprintf(linebuf, 80, "%s - %s", curpkg->name, curpkg->desc) > 79) { /* truncated */
         linebuf[76] = '.';
         linebuf[77] = '.';
