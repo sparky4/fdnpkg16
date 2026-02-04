@@ -82,7 +82,7 @@ Where action is one of the following:
  holdlist [str]    - list held all packages or packages containing 'str'
  hold pkg          - hold 'pkg' at current version
  unhold pkg        - unhold 'pkg' for updates
- notinstalled      - show avalible packages from repository
+ notinstalled      - show avalible packages from repositories
  vnotinstalled     - same as 'notinstalled', but prints also source repositories
  dumpcfg           - print out the configuration loaded from the cfg file
  clearcache        - clear FDNPKG16's local cache
@@ -109,7 +109,7 @@ Where action is one of the following:
  hl [str]          - list held all packages or packages containing 'str'
  ho pkg            - hold 'pkg' at current version
  uh pkg            - unhold 'pkg' for updates
- ni                - show avalible packages from repository
+ ni                - show avalible packages from repositories
  vn                - same as 'notinstalled', but prints also source repositories
  dc                - print out the configuration loaded from the cfg file
  cc                - clear FDNPKG16's local cache
