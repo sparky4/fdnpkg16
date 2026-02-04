@@ -138,8 +138,9 @@ void showheldedpkgs(char *filterstr, char *dosdir) {
   }
 }
 
-#define NOTINST_SEARCHFLAG 1
-#define NOTINST_MATCHFLAG  2
+#define NOTINST_SEARCHFLAG  1
+#define NOTINST_MATCHFLAG   2
+#define NOTINST_SMFLAG      NOTINST_SEARCHFLAG+NOTINST_MATCHFLAG
 
 // sparky4: SLOW BUT IT WORKS! :D
 //TODO MAKE THIS FASTER (An idea is to use only matching 1st letters of the package to match packages in repo..)
@@ -201,7 +202,7 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
       }
     }
     //printf("\tx == %d\tnomatch == %d\tmatchflag == %d\tsearchflag == %d\t%d\n", x, nomatch, matchflag, searchflag, numofpkginrepo);
-    if (/*(searchflag != 0) && (matchflag != 0)*/flag & (NOTINST_MATCHFLAG + NOTINST_SEARCHFLAG)) {
+    if (/*(searchflag != 0) && (matchflag != 0)*/flag & (NOTINST_MATCHFLAG)) {
       if (snprintf(linebuf, 80, "%s - %s", curpkg->name, curpkg->desc) > 79) { /* truncated */
         linebuf[76] = '.';
         linebuf[77] = '.';
