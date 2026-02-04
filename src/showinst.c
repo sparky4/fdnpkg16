@@ -138,10 +138,11 @@ void showheldedpkgs(char *filterstr, char *dosdir) {
   }
 }
 
+// sparky4: SLOW BUT IT WORKS! :D
 void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, int verbosemode, char **repolist) {
   char *packagelist[packagelist_maxlen];
   char *packagelist_ver[packagelist_maxlen];
-  int packagelist_len, x, xsnp, numofpkginrepo, nomatch;
+  int packagelist_len, x, numofpkginrepo, nomatch;
   int matchflag, searchflag, matchtimes = 0;
   struct pkgdb *curpkg;
   struct pkgrepo *currep;
@@ -169,7 +170,7 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
   for (curpkg = pkgdb->nextpkg; curpkg != NULL; curpkg = curpkg->nextpkg) {
     // sparky4: initiate variable
     searchflag = 0; matchflag = 0;
-    for (x = nomatch = xsnp = 0; x <= numofpkginrepo; x++) {
+    for (x = nomatch = 0; x <= numofpkginrepo; x++) {
       if (searchflag == 0) {
         if (filterstr == NULL) {
           searchflag = 1;
@@ -186,7 +187,7 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
       } else nomatch = 0; // sparky4: package found
 
       if ((nomatch == numofpkginrepo)) {
-        matchflag = 1;  // sparky4: PACKAGE NOT INSTALLED
+        matchflag = 1;    // sparky4: PACKAGE NOT INSTALLED
       }
     }
     //printf("\tx == %d\tnomatch == %d\tmatchflag == %d\tsearchflag == %d\t%d\n", x, nomatch, matchflag, searchflag, numofpkginrepo);
