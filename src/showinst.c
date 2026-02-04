@@ -185,14 +185,14 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
 
       // sparky4: check if package is NOT installed
       if (strcasecmp(curpkg->name, packagelist[x]) != 0) {
-        nomatch++;        // sparky4: package NOT found
+        nomatch++;     // sparky4: package NOT found
       } else {
-        nomatch = 0; // sparky4: package found
+        nomatch = 0;   // sparky4: package found
         break;
       }
 
       if ((nomatch == numofpkginrepo)) {
-        matchflag = 1;    // sparky4: PACKAGE NOT INSTALLED
+        matchflag = 1; // sparky4: PACKAGE NOT INSTALLED
       }
     }
     //printf("\tx == %d\tnomatch == %d\tmatchflag == %d\tsearchflag == %d\t%d\n", x, nomatch, matchflag, searchflag, numofpkginrepo);
