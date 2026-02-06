@@ -389,8 +389,8 @@ void listfilesofpkg(char *pkgname, char *dosdir) {
 
 // sparky4: hold packages
 void holdpkg(char *pkgname, char *dosdir) {
-  char old_filename[512];
-  char new_filename[512];
+  char old_filename[256];
+  char new_filename[256];
 
   sprintf(old_filename, "%s\\packages\\%s.lst", dosdir, pkgname);
   sprintf(new_filename, "%s\\packages\\%s.lsx", dosdir, pkgname);
@@ -410,8 +410,8 @@ void holdpkg(char *pkgname, char *dosdir) {
 
 // sparky4: unhold packages
 void unholdpkg(char *pkgname, char *dosdir) {
-  char old_filename[512];
-  char new_filename[512];
+  char old_filename[256];
+  char new_filename[256];
 
   sprintf(old_filename, "%s\\packages\\%s.lsx", dosdir, pkgname);
   sprintf(new_filename, "%s\\packages\\%s.lst", dosdir, pkgname);

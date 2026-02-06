@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
   char *proxy = NULL;
   char downloadingstring[64];
   int proxyport = 8080;
-  int i, x, y;
+  int x;
   char *mapdrv = "";
   unsigned long cfgfilecrc;
   struct pkgdb *pkgdb = NULL;
@@ -264,16 +264,17 @@ int main(int argc, char **argv) {
   struct ziplist *zipfileidx;
 
   //sparky4: new variables from me! <3
-  int netinitres;     // sparky4: for netowrking initialization for internal networking (external for now)
-  int arglen;         // sparky4: pkgname length
-  int argci;          // sparky4: argument variable for number of variables. for multi packages
-  char actionarg[18]; // sparky4: this gotta be long enough for the commands
+  int i, y;                 // sparky4: used in for loops... you know.. counting
+  int netinitres;           // sparky4: for netowrking initialization for internal networking (external for now)
+  int arglen;               // sparky4: pkgname length
+  int argci;                // sparky4: argument variable for number of variables. for multi packages
+  char actionarg[18] = "";  // sparky4: this gotta be long enough for the commands
 
   // sparky4: this is for various action flags to prevent networking on local files or no repository action for local files
   //short /*action_*/flags; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
 
   // sparky4: empty string initiation
-  strcpy(actionarg, "");
+  //strcpy(actionarg, "");
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
