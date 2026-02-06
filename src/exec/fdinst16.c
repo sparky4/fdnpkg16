@@ -44,8 +44,8 @@ enum ACTIONTYPES {
 
 
 static int showhelp(void) {
-  printf("FDINST16 v" PVER " Copyright (C) " POLDDATE " Mateusz Viste\n"
-         "Copyright (C) " PNEWDATE " Victoria Crenshaw & Katheryn Northwood\n\n"
+  printf("FDINST16 v" PVER " Copyright (C)" POLDDATE " Mateusz Viste\n"
+         "Copyright (C)" PNEWDATE " Victoria Crenshaw & Katheryn Northwood\n\n"
          "FDINST16 is a lightweigth package installer for FreeDOS. It is an alternative\n"
          "to FDNPKG16, when only basic, local install/remove actions are necessary.\n"
          "FDINST16 is a 16-bit, 8086-compatible application running in real mode.\n"
@@ -134,11 +134,12 @@ static int pkginst(char *file, int flags, char *dosdir, char *tempdir, struct cu
 
 
 int main(int argc, char **argv) {
-  int res, flags;
+  int i, argci, res, flags;
   enum ACTIONTYPES action;
   char *dosdir, *tempdir, *cfgfile;
   struct customdirs *dirlist;
   char *mapdrv = "";
+  // char actionarg[18] = "";
 
   action = parsearg(argc, argv);
   if (action == ACTION_HELP) return(showhelp());
@@ -165,21 +166,29 @@ int main(int argc, char **argv) {
   free(cfgfile);
   cfgfile = NULL;
 
-  switch (action) {
-    case ACTION_INSTALL:
-      res = pkginst(argv[2], flags, dosdir, tempdir, dirlist, mapdrv);
-    break;
-    case ACTION_REMOVE:
-      res = pkgrem(argv[2], dosdir, mapdrv);
-    break;
-    case ACTION_FCL:
-      printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
-      printf("coreleft() == %ld Byte(s) Free\n", coreleft());
-      res = 0;
-    break;
-    default:
-      res = showhelp();
-    break;
+  argci = argc;
+
+  for (i = 0; i < argci; i++) {
+    if ((argc > 2) && (argv[2] != NULL)) {
+      argci = argc - 2;
+    } else argci--;
+
+    switch (action) {
+      case ACTION_INSTALL:
+        res = pkginst(argv[i+2], flags, dosdir, tempdir, dirlist, mapdrv);
+      break;
+      case ACTION_REMOVE:
+        res = pkgrem(argv[i+2], dosdir, mapdrv);
+      break;
+      case ACTION_FCL:
+        printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
+        printf("coreleft() == %ld Byte(s) Free\n", coreleft());
+        res = 0;
+      break;
+      default:
+        res = showhelp();
+      break;
+    }
   }
 
   if (res != 0) return(1);
