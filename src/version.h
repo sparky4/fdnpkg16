@@ -4,7 +4,7 @@
  *
  * http://fdnpkg.sourceforge.net
  * Copyright (C) 2012-2021 Mateusz Viste
- * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-#define PVER "0.99.8253"
+#define PVER "0.99.8253a"
 #define POLDDATE "2012-2021"
 #define PNEWDATE "2025-2026"
 #define PDATE POLDDATE " & " PNEWDATE

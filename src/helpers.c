@@ -142,7 +142,7 @@ void removeDoubleBackslashes(char *str) {
   char *curpos;
   int x;
   for (;;) {
-    curpos = fdnpkg_strcasestr(str, "\\\\");
+    curpos = fdnpkg16_strcasestr(str, "\\\\");
     if (curpos == NULL) return; /* job done */
     for (x = 1; curpos[x] != 0; x++) {
       curpos[x - 1] = curpos[x];
@@ -160,7 +160,7 @@ void strtolower(char *mystring) {
 
 
 /* Find the first occurrence of find in s, ignore case. */
-char *fdnpkg_strcasestr(const char *s, const char *find) {
+char *fdnpkg16_strcasestr(const char *s, const char *find) {
   char c, sc;
   size_t len;
   if ((c = *find++) != 0) {
@@ -245,7 +245,7 @@ char *computelocalpath(char *longfilename, char *respath, char *dosdir, struct c
     savedchar = longfilename[firstsep];
     longfilename[firstsep] = 0;
     for (; dirlist != NULL; dirlist = dirlist->next) {
-      if (fdnpkg_strcasestr(longfilename, dirlist->name) == longfilename) { /* found! */
+      if (fdnpkg16_strcasestr(longfilename, dirlist->name) == longfilename) { /* found! */
         /* sprintf(respath, "%s\\%s", dirlist->location, &longfilename[firstsep + 1]); */
         pathstart = &longfilename[firstsep + 1];
         dosdir = dirlist->location;

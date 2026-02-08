@@ -21,7 +21,7 @@
 #include "fdnpkg16.h" /* PKGINST_UPDATE */
 #include "fileexst.h"
 #include "getdelim.h"
-#include "helpers.h"  /* fdnpkg_strcasestr(), slash2backslash()... */
+#include "helpers.h"  /* fdnpkg16_strcasestr(), slash2backslash()... */
 #include "kprintf.h"
 #include "libunzip.h"  /* zip_freelist()... */
 #include "lsm.h"
@@ -68,7 +68,7 @@ static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packa
           }
 
           if (filterstr != NULL) {
-            if (fdnpkg_strcasestr(ep->d_name, filterstr) == NULL) continue; /* if it's not matching the non-NULL filter, skip it */
+            if (fdnpkg16_strcasestr(ep->d_name, filterstr) == NULL) continue; /* if it's not matching the non-NULL filter, skip it */
           }
           if (packagelist_len >= packagelist_maxlen) {
             closedir(dp);
@@ -183,8 +183,8 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
           flag |= NOTINST_SEARCHFLAG;
         } else {
           flag &= ~(NOTINST_SEARCHFLAG);
-          if (fdnpkg_strcasestr(curpkg->name, filterstr) != NULL) flag |= NOTINST_SEARCHFLAG; /* look into pkg name */
-          if (fdnpkg_strcasestr(curpkg->desc, filterstr) != NULL) flag |= NOTINST_SEARCHFLAG; /* look into pkg desc */
+          if (fdnpkg16_strcasestr(curpkg->name, filterstr) != NULL) flag |= NOTINST_SEARCHFLAG; /* look into pkg name */
+          if (fdnpkg16_strcasestr(curpkg->desc, filterstr) != NULL) flag |= NOTINST_SEARCHFLAG; /* look into pkg desc */
         }
       }
       // sparky4: check if package is NOT installed

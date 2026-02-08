@@ -13,7 +13,7 @@ int isversionnewer(char *v1, char *v2);
 void slash2backslash(char *str);
 void backslash2slash(char *str);
 void strtolower(char *mystring);
-char *fdnpkg_strcasestr(const char *s, const char *find);
+char *fdnpkg16_strcasestr(const char *s, const char *find);
 void mkpath(char *dirs);
 void mapdrives(char *s, char *mapdrv);
 void unmapdrives(char *s, char *mapdrv);

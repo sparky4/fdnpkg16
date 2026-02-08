@@ -1,6 +1,7 @@
 /*
- * This file is part of FDNPKG
+ * This file is part of FDNPKG16
  * Copyright (C) 2012-2016 Mateusz Viste
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  */
 
 #include <stdio.h>
@@ -10,7 +11,7 @@
 
 #include "kprintf.h"
 #include "pkgsrch.h"
-#include "helpers.h"  /* fdnpkg_strcasestr() */
+#include "helpers.h"  /* fdnpkg16_strcasestr() */
 #include "version.h"
 
 
@@ -30,8 +31,8 @@ void pkgsearch(struct pkgdb *pkgdb, char *searchterm, int verbosemode, char **re
       matchflag = 1;
     } else {
       matchflag = 0;
-      if (fdnpkg_strcasestr(curpkg->name, searchterm) != NULL) matchflag = 1; /* look into pkg name */
-      if (fdnpkg_strcasestr(curpkg->desc, searchterm) != NULL) matchflag = 1; /* look into pkg desc */
+      if (fdnpkg16_strcasestr(curpkg->name, searchterm) != NULL) matchflag = 1; /* look into pkg name */
+      if (fdnpkg16_strcasestr(curpkg->desc, searchterm) != NULL) matchflag = 1; /* look into pkg desc */
     }
     if (matchflag != 0) { /* display the package */
       if (snprintf(linebuf, 80, "%s - %s", curpkg->name, curpkg->desc) > 79) { /* truncated */

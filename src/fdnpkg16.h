@@ -4,8 +4,8 @@
  *  Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
  */
 
-#ifndef FDNPKG_H_SENTINEL
-#define FDNPKG_H_SENTINEL
+#ifndef FDNPKG16_H_SENTINEL
+#define FDNPKG16_H_SENTINEL
 
 /* flags used by FDNPKG16 */
 #define PKGINST_NOSOURCE  1

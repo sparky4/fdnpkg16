@@ -5,7 +5,7 @@
  *  Copyright (C) 2013-2016 Mateusz Viste
  *  Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
  *
- * Provides all network functions used by FDNPKG, wrapped around the WatTCP TCP/IP stack.
+ * Provides all network functions used by FDNPKG16, wrapped around the WatTCP TCP/IP stack.
  */
 
 #include <stdlib.h>

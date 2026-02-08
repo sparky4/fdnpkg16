@@ -2,7 +2,7 @@
  * This file is part of FDNPKG16
  * Copyright (C) 2012-2021 Mateusz Viste
  * Changes by TK Chia
- * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  */
 
 #include <ctype.h>     /* toupper() */
@@ -452,12 +452,12 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     }
     /* if --nosource specified, skip sources */
     if ((flags & PKGINST_NOSOURCE) != 0) {
-      if (fdnpkg_strcasestr(curzipnode->filename, "source\\") == curzipnode->filename) { /* drop this file */
+      if (fdnpkg16_strcasestr(curzipnode->filename, "source\\") == curzipnode->filename) { /* drop this file */
         curzipnode->filename[0] = 0; /* in fact, we just mark the file as 'empty' on the filename.. see below */
       }
     }
     /* is it a "link file"? */
-    if (fdnpkg_strcasestr(curzipnode->filename, "links\\") == curzipnode->filename) {
+    if (fdnpkg16_strcasestr(curzipnode->filename, "links\\") == curzipnode->filename) {
       /* skip links, if that's what the user wants */
       if ((flags & PKGINST_SKIPLINKS) != 0) {
         curzipnode->filename[0] = 0; /* in fact, we just mark the file as 'empty' on the filename.. see later below */

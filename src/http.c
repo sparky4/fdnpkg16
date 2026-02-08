@@ -1,5 +1,5 @@
 /*
- * This file is part of the FDNPKG project.
+ * This file is part of the FDNPKG16 project.
  * Copyright (C) Mateusz Viste 2013-2015
  * Copyright (C) Victoria Crenshaw aka sparky4 2025-2026 (bug fix)
  *
@@ -11,7 +11,7 @@
 #include <string.h>   /* strlen() */
 #include <time.h>
 
-#include "helpers.h"  /* fdnpkg_strcasestr() */
+#include "helpers.h"  /* fdnpkg16_strcasestr() */
 #include "net.h"
 #include "parseurl.h"
 #include "http.h"  /* adding self for control */
@@ -119,8 +119,8 @@ long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *
     if (proto == PARSEURL_PROTO_HTTP) {
       char httpokflag = 0;
       if (sock_getline(socket, buffer, buffer_max) > 0) {
-        if (fdnpkg_strcasestr(buffer, "HTTP/1.0 200") == buffer) httpokflag = 1;
-        if (fdnpkg_strcasestr(buffer, "HTTP/1.1 200") == buffer) httpokflag = 1;
+        if (fdnpkg16_strcasestr(buffer, "HTTP/1.0 200") == buffer) httpokflag = 1;
+        if (fdnpkg16_strcasestr(buffer, "HTTP/1.1 200") == buffer) httpokflag = 1;
       }
       if (httpokflag == 0) { /* something is not right */
         net_abort(socket);
@@ -128,7 +128,7 @@ long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *
       }
       /* eat all other headers, but look out for the content-length, if present */
       while (sock_getline(socket, buffer, buffer_max) > 0) {
-        if (fdnpkg_strcasestr(buffer, "CONTENT-LENGTH:") == buffer) {
+        if (fdnpkg16_strcasestr(buffer, "CONTENT-LENGTH:") == buffer) {
           /* get the value */
           expectedfilelen = atol(buffer + 15);
           if (expectedfilelen < 1) expectedfilelen = -1;

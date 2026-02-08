@@ -1,11 +1,11 @@
 /*
  * This file is part of FDNPKG16.
  *
- * Reads environment variables that will be used by FDNPKG and FDINST.
+ * Reads environment variables that will be used by FDNPKG16 and FDINST16.
  * Returns 0 on success, non-zero otherwise.
  *
  * Copyright (C) 2012-2016 Mateusz Viste
- * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  */
 
 #ifndef READENV_H_SENTINEL

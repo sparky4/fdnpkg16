@@ -653,7 +653,7 @@ int main(int argc, char **argv) {
 
       PRESS_KEY()
       printf("maxcachetime: %ld seconds\n", maxcachetime);
-      printf("installsources: %d\n", (flags & PKGINST_NOSOURCE) != 0);
+      printf("installsources: %d\n", (flags & PKGINST_NOSOURCE) == 0); // sparky4: found a bug here with comparison. == not != it inverted it.
       printf("mapdrives: %s\n", mapdrv);
       puts("");
 
