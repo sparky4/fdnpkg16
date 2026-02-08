@@ -1,6 +1,12 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8253a [08 Feb 2026]
+ - [fix] fixed a bug in dumpcfg with install sources flag being inverted.
+ - [new] httpget.exe unlinks files that fail to download.
+ - [mnt] fixed alot of copyrights headers and variable names.
+ - [new] fdinst16.exe has multipackage install and remove features! which means you can install more than 1 package with it at the same time now!
+
 FDNPKG16 v0.99.8253 [04 Feb 2026]
  - [new] FDNPKG16 has NOT INSTALLED features! The document fdnpkg16.txt should explain how it works! New actions are "vnotinstalled", "notinstalled", "vn", and "ni"
 

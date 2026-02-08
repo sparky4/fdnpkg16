@@ -271,10 +271,7 @@ int main(int argc, char **argv) {
   char actionarg[18] = "";  // sparky4: this gotta be long enough for the commands
 
   // sparky4: this is for various action flags to prevent networking on local files or no repository action for local files
-  //short /*action_*/flags; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
-
-  // sparky4: empty string initiation
-  //strcpy(actionarg, "");
+  //short action_flags; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -326,7 +323,7 @@ int main(int argc, char **argv) {
 
   // sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D
   for (i = 0; i < argci; i++) {
-    /*action_flags = 0;*/ // sparky4: old may remove
+    //action_flags = 0; // sparky4: old may remove
 
 //0000    printf("Starting  value(hex): 0x%X\n", flags);
     // sparky4 flag resetter for 2 bits
