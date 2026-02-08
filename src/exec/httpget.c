@@ -1,7 +1,7 @@
 /*
  * test app for the FDNPKG16 http module.
  * Copyright (C) Mateusz Viste 2013-2015. All rights reserved.
- * Copyright (C) Victoria Crenshaw (sparky4) && Katheryn Northwood 2025-2026. All rights reserved
+ * Copyright (C) Victoria Crenshaw (sparky4) && Katheryn Northwood 2025-2026. All rights reserved.
  */
 /*
  * HTTPGET.EXE part of FDNPKG16.
@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <strings.h>
+#include <unistd.h>   /* unlink() */
 
 //#define DEBUG_NET
 //#define VERBOSE_HTTPGET
@@ -123,6 +124,7 @@ long main(int argc, char **argv) {
 #endif
   } else {
     printf("ERROR OCCURED: %ld\n", res);
+    unlink(argv[2]);
   }
 #ifdef DEBUG_HTTPGET
   printf("memory eaten == %ld\n", memoryeaten);
