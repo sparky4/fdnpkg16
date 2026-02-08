@@ -1,7 +1,7 @@
 /*
  * This file is part of the FDNPKG16 project.
  * Copyright (C) Mateusz Viste 2012-2016. All rights reserved.
- * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
+ * Copyright (C) Victoria Crenshaw aka sparky4 && Katheryn Northwood 2025-2026. All rights reserved.
  */
 
 #include <ctype.h>    /* toupper() */

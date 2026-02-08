@@ -1,7 +1,7 @@
 /*
  * This file is part of the FDNPKG16 project.
  * Copyright (C) Mateusz Viste 2013-2015
- * Copyright (C) Victoria Crenshaw aka sparky4 2025-2026 (bug fix)
+ * Copyright (C) Victoria Crenshaw aka sparky4 && Katheryn Northwood 2025-2026 (bug fix)
  *
  * Provides a simplistic HTTP / Gopher downloader.
  */

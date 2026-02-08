@@ -3,7 +3,7 @@
  * This file is part of the FDNPKG16 project.
  *
  * Copyright (C) 2012-2017 Mateusz Viste
- * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
+ * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  */
 
 #ifndef pkgdb_sentinel

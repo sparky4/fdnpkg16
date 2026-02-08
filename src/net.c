@@ -3,7 +3,7 @@
  *  It provides a set of basic network-related functions.
  *
  *  Copyright (C) 2013-2016 Mateusz Viste
- *  Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4
+ *  Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  *
  * Provides all network functions used by FDNPKG16, wrapped around the WatTCP TCP/IP stack.
  */
