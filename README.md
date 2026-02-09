@@ -38,7 +38,7 @@ The target os is 16-bit FreeDOS!
 
 ### For libraries:
 
-watt32 is compiles with Open Watcom 1.9
+watt32 is compiled with Open Watcom 1.9
 
 zlib can be compiled with either (ow1.9 or ow2.0)! :D
 
@@ -59,6 +59,6 @@ You can try to compile though with wmake.
 
 
 # Stability report so far
-Currently at 0.99.8252b we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
+Currently at 0.99.8253a we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
 
 I am awaiting for fdrepo to be updated for fdnpkg16 then i will implement stable features and test it.
