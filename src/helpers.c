@@ -296,13 +296,16 @@ char *percent_adding(char *downloadingstring)
   char *downloadingstringformat = "";
   int str_len = strlen(downloadingstring);
   for (i = j = 0; (i < str_len) && (downloadingstring[i] != '\0'); i++) {
-    if (downloadingstring[i] == '%') {
-      // When a '%' is found, add two '%' characters to the destination
-      downloadingstringformat[j++] = '%';
-      downloadingstringformat[j++] = '%';
-    } else {
-      // Otherwise, copy the character as is
-      downloadingstringformat[j++] = downloadingstring[i];
+    switch (downloadingstring[i]) {
+      case '%':
+        // When a '%' is found, add two '%' characters to the destination
+        downloadingstringformat[j++] = '%';
+        downloadingstringformat[j++] = '%';
+      break;
+      default:
+        // Otherwise, copy the character as is
+        downloadingstringformat[j++] = downloadingstring[i];
+      break;
     }
   }
   // Null-terminate the new string
