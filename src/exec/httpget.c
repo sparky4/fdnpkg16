@@ -124,7 +124,10 @@ long main(int argc, char **argv) {
 #endif
   } else {
     printf("ERROR OCCURED: %ld\n", res);
-    unlink(argv[2]);
+    if ((argv[3] != NULL) && (argv[4] != NULL)) {
+      //printf("Deleting %s\n", argv[2]);
+      unlink(argv[2]);
+    }
   }
 #ifdef DEBUG_HTTPGET
   printf("memory eaten == %ld\n", memoryeaten);

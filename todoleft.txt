@@ -89,7 +89,7 @@ experimental dev cleanup todo for dev branch
   it's mostly clean up of old code i made because the project is a little messy where i worked at.
   this is ok it works fine i just need to fix things
 
-clean up old network code not used          --eventually
+clean up old network code not used. like mtcp usage to remove dependancies         --eventually
 optimize things for 8088/8086
   database operations
   just over all reduce disk access where unessessary!
