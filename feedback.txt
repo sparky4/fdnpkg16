@@ -16,6 +16,11 @@ katheryn
 fdimples was VERY slow and the original fdnpkg was quite buggy
 and yes the fact it works on 16 bit PCs is the best part, easily
 
+===============================================================================
+
+Also, thanks a lot for taking over the maintenance of FDNPKG. I was worried when Mateusz abandoned it/folded it to SvarDOS but now that it's getting new features that's no longer true 🙂 [:)]
+
+Berki
 
 ===============================================================================
 
