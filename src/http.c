@@ -51,7 +51,7 @@ long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *
   unsigned long ipaddr;
   int x;
   long fdlen = 0, byteread = 0, expectedfilelen = -1, result = -1; // sparky4: BUG FIX HERE! RESULT SHOULD OF BEEN DECLARED A LONG!
-     //and subsequence function and variables that the function returns too!
+     // and subsequence function and variables that the function returns too!
   struct net_tcpsocket *socket;
   FILE *fd;
   time_t curtime, lastrefreshtime;
@@ -88,9 +88,7 @@ long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *
     }
     if (ipaddr == 0) break;
 
-#ifdef DEBUG_NET
-    /**/ printf("%s -> %lu.%lu.%lu.%lu (%d)\n", host, (ipaddr >> 24) & 0xFF, (ipaddr >> 16) & 0xFF, (ipaddr >> 8) & 0xFF, ipaddr & 0xFF, port); /**/
-#endif
+    /* printf("%s -> %lu.%lu.%lu.%lu (%d)\n", host, (ipaddr >> 24) & 0xFF, (ipaddr >> 16) & 0xFF, (ipaddr >> 8) & 0xFF, ipaddr & 0xFF, port); */
 
     if (proxy != NULL) {
       socket = net_connect(ipaddr, proxyport);

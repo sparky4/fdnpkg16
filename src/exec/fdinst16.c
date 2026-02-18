@@ -1,5 +1,5 @@
 /*
- * FDINST16 - lightweigth FreeDOS package installer
+ * FDINST16 - lightweight FreeDOS package installer
  * Copyright (C) 2015-2017 Mateusz Viste
  * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  *

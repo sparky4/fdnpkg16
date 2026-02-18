@@ -6,7 +6,7 @@
 /*
  * HTTPGET.EXE part of FDNPKG16.
  * Currently in use as the networking part of FDNPKG16 to get the packages.
- * Can be used as stand alone software
+ * Can be used as stand alone software.
  */
 
 #include <stdio.h>
@@ -26,6 +26,7 @@
 #include <malloc.h>
 //#include "dbg/dbg.h"
 
+// included in memcore.h
 #if 0
 // sparky4: This function I did make. It works well. Returns near memory avalible!
 long coreleft() {
@@ -73,8 +74,8 @@ long farcoreleft() {
   _fheapshrink();
   return memoryAvailable;
 }
-#endif  // #ifdef DEBUG_HTTPGET
 #endif
+#endif  // #ifdef DEBUG_HTTPGET
 
 // main
 long main(int argc, char **argv) {
