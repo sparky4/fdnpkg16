@@ -38,16 +38,17 @@ LINKER_OPTIONS_HTTPGET = src/watt32/lib/wattcpwl.lib -i=src/watt32/inc
 LINKER_OPTIONS_FDINST = src/zlib/zlib_l.lib -i=src/zlib
 
 # Source files
-C_SOURCE = src/fdnpkg16.c src/crc32.c src/fileexst.c src/kprintf.c src/loadconf.c src/parsecmd.c src/pkginst.c src/readenv.c src/getdelim.c src/inf.c src/libgz.c src/lsm.c src/parseurl.c src/pkgrem.c src/rtrim.c src/helpers.c src/kitten.c src/libunzip.c src/pkgdb.c src/pkgsrch.c src/memcore.c src/showinst.c src/lzmadec.c
+C_SOURCE_COMMON = src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/memcore.c
+C_SOURCE = src/fdnpkg16.c             $(C_SOURCE_COMMON) src/kprintf.c src/libgz.c src/kitten.c src/pkgdb.c src/pkgsrch.c src/lzmadec.c
 C_SOURCE_HTTPGET = src/exec/httpget.c src/net.c src/http.c src/parseurl.c src/helpers.c src/memcore.c
-C_SOURCE_FDINST = src/exec/fdinst16.c src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/exec/kprintf0.c src/memcore.c
-C_SOURCE_FDINK = src/exec/fdink16.c src/crc32.c src/fileexst.c src/getdelim.c src/helpers.c src/inf.c src/libunzip.c src/loadconf.c src/lsm.c src/parsecmd.c src/pkginst.c src/pkgrem.c src/readenv.c src/rtrim.c src/showinst.c src/exec/kprintf0.c src/memcore.c
+C_SOURCE_FDINST = src/exec/fdinst16.c $(C_SOURCE_COMMON) src/kprintf0.c
+C_SOURCE_FDINK  = src/exec/fdink16.c  $(C_SOURCE_COMMON) src/kprintf0.c
 
 # Object files (derived from source files, adjust extension as needed for your setup)
 OBJECTS = $(C_SOURCE:../.c=.$(OBJ))
 OBJ_HTTPGET = $(C_SOURCE_HTTPGET:../.c=.$(OBJ))
 OBJ_FDINST = $(C_SOURCE_FDINST:../.c=.$(OBJ))
-OBJ_FDINK = $(C_SOURCE_FDINK:../.c=.$(OBJ))
+OBJ_FDINK  = $(C_SOURCE_FDINK:../.c=.$(OBJ))
 EXEC = &
      fdnpkg16.exe &
      httpget.exe &
@@ -58,36 +59,36 @@ EXEC = &
 all: $(EXEC)
 
 fdnpkg16.exe: $(OBJECTS)
-    @echo Building for dos
+#    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJECTS) $(LINKER_OPTIONS)
     @upx --8086 -9 fdnpkg16.exe
     @wmake -h vomitchan
-    @echo Finished building fdnpkg16.exe
+#    @echo Finished building fdnpkg16.exe
 
 httpget.exe: $(OBJ_HTTPGET)
-    @echo Building for dos
+#    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJ_HTTPGET) $(LINKER_OPTIONS_HTTPGET)
     @upx --8086 -9 httpget.exe
     @wmake -h vomitchan
-    @echo Finished building httpget.exe
+#    @echo Finished building httpget.exe
 
 fdinst16.exe: $(OBJ_FDINST)
-    @echo Building for dos
-    $(REMOVECOMMAND) *.$(OBJ)
+#    @echo Building for dos
+    @$(REMOVECOMMAND) *.$(OBJ)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINST) $(LINKER_OPTIONS_FDINST)
-    $(REMOVECOMMAND) *.$(OBJ)
+    @$(REMOVECOMMAND) *.$(OBJ)
     @upx --8086 -9 fdinst16.exe
     @wmake -h vomitchan
-    @echo Finished building fdinst16.exe
+#    @echo Finished building fdinst16.exe
 
 fdink16.exe: $(OBJ_FDINK)
-    @echo Building for dos
-    $(REMOVECOMMAND) *.$(OBJ)
+#    @echo Building for dos
+    @$(REMOVECOMMAND) *.$(OBJ)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINK) $(LINKER_OPTIONS_FDINST)
-    $(REMOVECOMMAND) *.$(OBJ)
+    @$(REMOVECOMMAND) *.$(OBJ)
     @upx --8086 -9 fdink16.exe
     @wmake -h vomitchan
-    @echo Finished building fdink16.exe
+#    @echo Finished building fdink16.exe
 
 # Generic rule to compile .c files into .$(OBJ) files
 .c.$(OBJ) :
@@ -106,14 +107,51 @@ fdink16.exe: $(OBJ_FDINK)
 clean: .symbolic
     @echo Cleaning up...
     @$(REMOVECOMMAND) *.$(OBJ) *.exe
+    @echo ===============================================================================
 
 vomitchan: .symbolic
-    @if exist *.err $(DUMP) *.err
-    @if exist *.exe $(LISTCOMMAND) *.exe
-
+    @if exist *.err @$(DUMP) *.err
+    @if exist *.exe @$(LISTCOMMAND) *.exe
+    @echo ===============================================================================
 
 #DO NOT USE YET!! I AM WORKING ON THIS --sparky4
-pkgfkjdsljflkdsajflkdsajflkdsa: fdnpkg16.exe httpget.exe fdinst16.exe
+pkgfkjdsljflkdsajflkdsajflkdsaDONTUSE: fdnpkg16.exe httpget.exe fdinst16.exe
+	mkdir appinfo
+	mkdir bin
+	mkdir doc
+	mkdir doc\fdnpkg
+	mkdir source
+	mkdir source\fdnpkg
+	mkdir source\fdnpkg\fdinst
+	mkdir source\fdnpkg\zlib
+	copy fdnpkg.lsm appinfo
+	copy fdnpkg.exe bin
+	copy fdinst\fdinst.exe bin
+	copy fdinst\fdinst.txt doc\fdnpkg
+	copy fdnpkg.cfg bin
+	copy fdnpkg.txt doc\fdnpkg
+	copy history.txt doc\fdnpkg
+	copy *.c source\fdnpkg
+	copy *.h source\fdnpkg
+	copy *.asm source\fdnpkg
+	copy *.txt source\fdnpkg
+	copy fdinst\*.c source\fdnpkg\fdinst
+	copy fdinst\*.h source\fdnpkg\fdinst
+	copy fdinst\*.txt source\fdnpkg\fdinst
+	copy fdinst\*.bat source\fdnpkg\fdinst
+	copy zlib\*.* source\fdnpkg\zlib
+	copy makefile source\fdnpkg
+	copy *.cfg source\fdnpkg
+	copy *.bin source\fdnpkg
+	if exist fdnpkg.zip del fdnpkg.zip
+	zip -r -k -9 fdnpkg.zip appinfo bin doc nls source
+	deltree /Y appinfo
+	deltree /Y bin
+	deltree /Y doc
+	deltree /Y source
+	echo "fdnpkg.zip ready!"
+
+pkgfkjdsljflkdsajflkdsajflkdsaDONOTUSE: fdnpkg16.exe httpget.exe fdinst16.exe
 	mkdir fdnpkg16
 	mkdir fdnpkg16/appinfo
 	mkdir fdnpkg16/bin
@@ -121,7 +159,7 @@ pkgfkjdsljflkdsajflkdsajflkdsa: fdnpkg16.exe httpget.exe fdinst16.exe
 	mkdir fdnpkg16/doc/fdnpkg16
 	mkdir fdnpkg16/source
 	mkdir fdnpkg16/source/fdnpkg16
-	# i need to work on this part
+	# sparky4: i need to work on this part
 	copy fdnpkg16.lsm appinfo
 	copy fdnpkg16.exe bin
 	copy fdinst16/fdinst16.exe bin

@@ -1,3 +1,2 @@
 #!/bin/sh
-./clean.sh
-./build.sh
+wmake -h clean; wmake -h
