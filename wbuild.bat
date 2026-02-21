@@ -1,2 +1,3 @@
 @echo off
-wmake -h clean; wmake -h
+wmake -h clean
+wmake -h
