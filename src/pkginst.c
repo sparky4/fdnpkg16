@@ -380,7 +380,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }
-      puts("ok"); // just let the user know the file was downloaded and installed
+//0000      puts("ok"); // just let the user know the file was downloaded and installed
     } else { /* else it's an on-disk repo, so we can use the package right from there */
       sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
     }
