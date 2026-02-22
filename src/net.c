@@ -60,19 +60,19 @@ unsigned long net_dnsresolve(const char *name) {
 
 
 
-#ifndef DEBUG_NET
+//0000#ifndef DEBUG_NET
 static int dummy_printf(const char * format, ...) {
   if (format == NULL) return(-1);
   return(0);
 }
-#endif
+//0000#endif
 
 /* must be called before using libtcp. returns 0 on success, or non-zero if network subsystem is not available. */
 int net_init() {
   tzset();
-#ifndef DEBUG_NET
+//0000#ifndef DEBUG_NET
   _printf = dummy_printf;  /* this is to avoid watt32 printing its stuff to console */
-#endif
+//0000#endif
   return(sock_init());
 }
 
