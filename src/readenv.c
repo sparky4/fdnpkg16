@@ -8,41 +8,42 @@
  * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood
  */
 
-#include "kprintf.h" /* kprintf(), kputs() */
-#include <libgen.h> /* dirname() */
-#include <stdio.h> /* snprintf() */
-#include <stdlib.h> /* getenv() */
+#include <stdio.h>    /* snprintf() */
+#include <stdlib.h>   /* getenv() */
+#include <libgen.h>   /* dirname() */
+#include "kprintf.h"  /* kprintf(), kputs() */
 
 #include "readenv.h"
 
-int readenv(char** dosdir, char** tempdir, char* cfgfile, int cfgfilemaxlen, char** argv)
-{
-    char* cfg;
 
-    /* check if %DOSDIR% is set, and retrieve it */
-    *dosdir = getenv("DOSDIR");
-    if (*dosdir == NULL) {
-        kitten_puts(2, 2, "%DOSDIR% not set! You should make it point to the FreeDOS main directory.");
-        kitten_puts(2, 3, "Example: SET DOSDIR=C:\\FDOS");
-        return (-1);
-    }
+int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, char **argv) {
+  char *cfg;
 
-    /* check if %TEMP% is set, and retrieve it */
-    *tempdir = getenv("TEMP");
-    if (*tempdir == NULL) {
-        kitten_puts(2, 0, "%TEMP% not set! You should make it point to a writeable directory.");
-        kitten_puts(2, 1, "Example: SET TEMP=C:\\TEMP");
-        return (-2);
-    }
+  /* check if %DOSDIR% is set, and retrieve it */
+  *dosdir = getenv("DOSDIR");
+  if (*dosdir == NULL) {
+    kitten_puts(2, 2, "%DOSDIR% not set! You should make it point to the FreeDOS main directory.");
+    kitten_puts(2, 3, "Example: SET DOSDIR=C:\\FDOS");
+    return(-1);
+  }
 
-    /* look for the FDNPKG16.CFG env. variable */
-    cfg = getenv("FDNPKG16.CFG");
-    cfgfilemaxlen -= 1; /* make room for the null terminator */
-    if (cfg != NULL) {
-        snprintf(cfgfile, cfgfilemaxlen, "%s", cfg);
-    } else { /* not set, so fallback to hardcoded location */
-        snprintf(cfgfile, cfgfilemaxlen, "%s\\fdnpkg16.cfg", dirname(argv[0]));
-    }
+  /* check if %TEMP% is set, and retrieve it */
+  *tempdir = getenv("TEMP");
+  if (*tempdir == NULL) {
+    kitten_puts(2, 0, "%TEMP% not set! You should make it point to a writeable directory.");
+    kitten_puts(2, 1, "Example: SET TEMP=C:\\TEMP");
+    return(-2);
+  }
 
-    return (0);
+  /* look for the FDNPKG16.CFG env. variable */
+  cfg = getenv("FDNPKG16.CFG");
+  cfgfilemaxlen -= 1; /* make room for the null terminator */
+  if (cfg != NULL) {
+    snprintf(cfgfile, cfgfilemaxlen, "%s", cfg);
+  } else { /* not set, so fallback to hardcoded location */
+    // sparky4: this was dont so that the program is more flexible and can be stored in various places. Not just in %DOSDIR%\bin
+    snprintf(cfgfile, cfgfilemaxlen, "%s\\fdnpkg16.cfg", dirname(argv[0]));
+  }
+
+  return(0);
 }

@@ -11,6 +11,6 @@
 #ifndef READENV_H_SENTINEL
 #define READENV_H_SENTINEL
 
-int readenv(char** dosdir, char** tempdir, char* cfgfile, int cfgfilemaxlen, char** argv);
+int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, char **argv);
 
 #endif

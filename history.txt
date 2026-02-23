@@ -1,6 +1,10 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8253c
+ - [fix] Updated translations
+ - [mnt] Polished somethings with the code. Functionally should be the same as previous minor version.
+
 FDNPKG16 v0.99.8253b [12 Feb 2026]
  - [fix] httpget.exe will only delete the file if the download failed and it was called from FDNPKG16.EXE with a 4th argument (the download string)
 
