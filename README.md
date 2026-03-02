@@ -67,3 +67,5 @@ You can try to compile though with wmake.
 Currently at 0.99.8253c we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
 
 I am awaiting for fdrepo to be updated for fdnpkg16 then i will implement stable features and test it.
+
+The fdrepo update includes updating by modification date... not just by version
