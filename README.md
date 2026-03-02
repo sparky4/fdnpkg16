@@ -28,11 +28,16 @@ If u got a very old (1.0) FreeDOS install with all the stuff in fdos dir then us
 
 
 # The program itself is compiled with Open Watcom 2.0
+
+!! Make sure you got upx installed on your system !!
+
 Just run
 ```
 wmake
 ```
 to compile the main program in GNU/Linux, BSD, or DOS families.
+
+Compiling the code is tested on FreeDOS, Debian GNU/Linux, and NetBSD.
 
 The target os is 16-bit FreeDOS!
 
@@ -59,6 +64,6 @@ You can try to compile though with wmake.
 
 
 # Stability report so far
-Currently at 0.99.8253b we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
+Currently at 0.99.8253c we are pretty stable now with many Quality of Life features! (I cannot see any bugs.)
 
 I am awaiting for fdrepo to be updated for fdnpkg16 then i will implement stable features and test it.
