@@ -1,0 +1,3 @@
+[submodule "src/kitten"]
+	path = src/kitten
+	url = https://github.com/FDOS/kitten.git

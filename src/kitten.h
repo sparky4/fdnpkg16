@@ -24,55 +24,53 @@
 #define _CATGETS_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
-
-#ifdef NO_KITTEN
-
-#define kittengets(x,y,z) (z)
-#define kittenclose()
-#define kittenopen(a)
-
-#else
 
 /* Data types */
 
-#define nl_catd int
+#if defined(__GNUC__)
+typedef int __attribute__((used)) nl_catd;
+#else
+typedef int nl_catd;
+#endif
 
 /* Functions */
-
+#ifdef NOCATS             /* #define NOCATS to disable completely */
+#define catgets(c,x,y,s) s
+#define catopen(x,y) 1
+#define catclose(x)
+#else
 #define catgets(catalog, set,message_number,message) kittengets(set,message_number,message)
 #define catopen(name,flag) kittenopen(name)
 #define catclose(catalog)  kittenclose()
+#endif
 
+const char *kittengets(int setnum, int msgnum, const char *message);
+nl_catd kittenopen(char *name);
+void    kittenclose (void);
 
-  char *kittengets (int set_number, int message_number, char *message);
-  nl_catd kittenopen (char *name);
-  void kittenclose (void);
+int get_line (int file, char *buffer, int size);
 
-  int get_line (int file, char *buffer, int size);
+int kitten_extract_response(const char *s, const char *delimiters,
+                            char *responses, int num);
 
-#ifndef _MICROC_
-#ifndef __DJGPP__
+#if defined(__TURBOC__)
+int dos_open(char *filename, int mode);
+#define open(filename,mode) dos_open(filename,mode)
 
-  int dos_open (const char *filename, int mode);
-#define __open(filename,mode) dos_open(filename,mode)
-
-  int dos_read (int file, void *ptr, unsigned count);
+int dos_read(int file, void *ptr, unsigned count);
 #define read(file, ptr, count) dos_read(file,ptr,count)
 
-  int dos_write (int file, void *ptr, unsigned count);
+int dos_write(int file, void *ptr, unsigned count);
 #define write(file, ptr, count) dos_write(file,ptr,count)
 
-  void dos_close (int file);
+void dos_close(int file);
 #define close(file) dos_close(file)
+#endif
 
-#endif  /*DJGPP*/
-#endif				/*Micro-C */
-#endif				/*NO_KITTEN */
 #ifdef __cplusplus
 }
 #endif
 
-#endif				/* _CATGETS_H */
+#endif /* _CATGETS_H */
