@@ -26,6 +26,7 @@
 #include <stdio.h>    /* printf() */
 #include <stdlib.h>   /* malloc() and friends */
 #include <strings.h>  /* strcasecmp() */
+#include <string.h>   /* strcasecmp() */
 
 #include "libunzip.h"
 #include "pkginst.h"
@@ -66,15 +67,28 @@ static int showhelp(void) {
 
 static enum ACTIONTYPES parsearg(int argc, char **argv) {
   int extpos, i;
+  char actionarg[18] = "";
   enum ACTIONTYPES res = ACTION_HELP;
   /* I expect exactly 2 to 3 arguments (ie argc < 2) */
   if (argc < 2) return(ACTION_HELP);
+
+  // sparky4: check for / at front of action argument 1
+  if (argc > 1) { // Ensure argv[1] exists
+    if (argv[1][0] == '/') { // Check if the first character is '/'
+      // Shift the pointer to effectively remove the first character
+      // This modifies what actionarg points to, but not the underlying string data
+      strcpy(actionarg, (++argv[1])); // sparky4: if there is /, copy the argument with out /.
+    } else {
+      strcpy(actionarg, argv[1]);     // sparky4: copy the argument directly if there is no /
+    }
+  }
+
   /* look for valid actions */
-  if ((strcasecmp(argv[1], "install") && strcasecmp(argv[1], "in")) == 0) {
+  if ((strcasecmp(actionarg, "install") && strcasecmp(actionarg, "in")) == 0) {
     res = ACTION_INSTALL;
-  } else if ((strcasecmp(argv[1], "remove") && strcasecmp(argv[1], "rm")) == 0) {
+  } else if ((strcasecmp(actionarg, "remove") && strcasecmp(actionarg, "rm")) == 0) {
     res = ACTION_REMOVE;
-  } else if (strcasecmp(argv[1], "fcl") == 0) {
+  } else if (strcasecmp(actionarg, "fcl") == 0) {
     res = ACTION_FCL;
   }
   /* the argument should never be empty */
@@ -139,7 +153,6 @@ int main(int argc, char **argv) {
   char *dosdir, *tempdir, *cfgfile;
   struct customdirs *dirlist;
   char *mapdrv = "";
-  // char actionarg[18] = "";
 
   action = parsearg(argc, argv);
   if (action == ACTION_HELP) return(showhelp());
@@ -166,6 +179,7 @@ int main(int argc, char **argv) {
   free(cfgfile);
   cfgfile = NULL;
 
+  // sparky4: for now initiate this variable as the same value as argc we will change it later
   argci = argc;
 
   for (i = 0; i < argci; i++) {

@@ -28,7 +28,6 @@ DUMP=type
 # --- MACROS ---
 
 # Compiler Options: Add desired options (e.g., debugging -g, optimization -O)
-# -bt=<system> is often passed via command line or inferred by wcl/wcl386
 COMPILER_OPTIONS = -q -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -fo=.$(OBJ) -i=src
 COMPILER_OPTIONS2 = -DNOREPOS -DNOLZMA
 
