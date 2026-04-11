@@ -81,11 +81,16 @@ long farcoreleft() {
 long main(int argc, char **argv) {
   long res;
   char downloadingstring[64];
+  extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 #ifdef DEBUG_HTTPGET
   long memoryeaten;
 #endif
   if (argc < 2) {
-    printf("%s url outfile arguments... [/q]", argv[0]);
+    printf("%s url outfile arguments... [/q]\n", argv[0]);
+    puts("");
+    printf("HTTPGET.EXE is linked against the Watt-32 version below:");
+    puts("");
+    puts(wattcpVersion());
     return(1);
   }
   res = net_init();
