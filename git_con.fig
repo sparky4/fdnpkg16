@@ -9,6 +9,7 @@
 	url = git@github.com:sparky4/fdnpkg16.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 	url = git@gitlab.com:sparky4/fdnpkg16.git
+	url = git@git.gay:sparky4/fdnpkg16.git
 [branch "main"]
 	remote = origin
 	merge = refs/heads/main

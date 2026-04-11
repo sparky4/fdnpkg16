@@ -23,7 +23,7 @@
 
 #ifdef DEBUG_HTTPGET
 #define DEBUG
-#include <malloc.h>
+//#include <malloc.h>
 //#include "dbg/dbg.h"
 
 // included in memcore.h
