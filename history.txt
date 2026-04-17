@@ -1,7 +1,11 @@
 
 * FDNPKG16 history file *
 
-FDNPKG16 v0.99.8253c
+FDNPKG16 v0.99.8253d [17 Mar 2026]
+ - [new] Kitten library updated!
+ - [new] fdinst16.exe now has / support so now u can use /install or /in to install a package
+
+FDNPKG16 v0.99.8253c [24 Feb 2026]
  - [fix] Updated translations
  - [mnt] Polished somethings with the code. Functionally should be the same as previous minor version.
 
