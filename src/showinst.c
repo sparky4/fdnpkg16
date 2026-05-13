@@ -335,6 +335,11 @@ struct flist_t *pkg_loadflist(char *pkgname, char *dosdir) {
     puts("");
     return(NULL);
   }
+  else if (filesize(buff) == 0) { /* file is 0 bytes in size */
+    kitten_printf(9, 1, "Error: Local package %s not found.", pkgname);
+    puts("");
+    return(NULL);
+  }
   fd = fopen(buff, "rb");
   if (fd == NULL) {
     kitten_puts(4, 1, "Error opening lst file!");

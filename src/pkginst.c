@@ -506,7 +506,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
           kitten_printf(3, 4, "Your choice:");
           printf(" ");
           fgets(userchoicestr, 6, stdin);
-          userchoice = atoi(userchoicestr);
+          if (tolower(userchoicestr[0]) == 'n') userchoice = 1;
+          else if (tolower(userchoicestr[0]) == 'y') userchoice = 2;
+          else userchoice = atoi(userchoicestr);
           if ((userchoice < 1) || (userchoice >= 3)) {
             kitten_puts(3, 5, "Invalid choice!");
           } else {
