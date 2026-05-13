@@ -121,6 +121,7 @@ As I see it, there are a couple issues with FDNPKG16 that need addressed:
 
 1) Case-less filename comparison when checking the TO-BE-INSTALLED files against the NOW-INSTALLED files in the relevant %DOSDIR%\PACKAGES\*.LST database file.
 2) Do not update the CACHE when the online scan fails.
+DONE on next compile as of 5/13/2026
 3) A simple check for sufficient memory and not just repeated failures would be nice. Or at least, stop when the first critical memory related error occurs.
 4) FDNPKG seems to get stuck if (1=NO) was selected. Re-launching with any option, it downloaded the ÅgDOSLFNÅh package again and exited. Had to manually delete the cache.
 5) a Zero byte LST file causes FDNPKG to just exit without any messages. Unable to remove, update or install a package.

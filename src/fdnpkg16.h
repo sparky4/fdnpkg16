@@ -19,7 +19,7 @@
 //#define DEBUG                 // uncomment this to enable debug mode
 //#define USE_INTERNAL_WATTCP   // enable/disable this to use external or internal watt32
 //#define USE_MTCP              // enable/disable this to use mtcp or watt32 externally
-#define ERRCACHE              // enable this to have databases, always. no matter what fails
+//#define ERRCACHE              // enable this to have databases, always. no matter what fails
 
 struct flist_t {
   struct flist_t *next;
