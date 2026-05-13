@@ -301,6 +301,7 @@ int main(int argc, char **argv) {
   if (farcoreleft() < 262144L) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
     getch(); // sparky4: warn user of low memory, and this getch() will let them see it!
+    QUIT(0)
   } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
 
   /* Load the list of package repositories */
