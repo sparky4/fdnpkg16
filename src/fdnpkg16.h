@@ -14,6 +14,7 @@
 
 #define FDNPKG16_NETINIT  8   // sparky4: no network action
 #define FDNPKG16_NOREPOA  16  // sparky4: no repository action
+#define FDNPKG16_NOINST   32  // sparky4: no install action
 
 #define MAXINDEXRETRIES   10  // maximum number of retries for downloading a repository index
 //#define DEBUG                 // uncomment this to enable debug mode

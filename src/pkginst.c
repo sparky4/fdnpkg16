@@ -205,9 +205,10 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 
   /* check if not already installed, if already here, print a message "you might want to use update instead"
    * of course this must not be done if we are in the process of upgrading said package */
+  if ((flags & FDNPKG16_NOINST) == 0) { // sparky4: dont check if we are just downloading!
   if (((flags & PKGINST_UPDATE) == 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv) != 0)) {
     return(NULL);
-  }
+  }}
 
   if (localfile != NULL) {  /* if it's a local file, then we will have to skip all the network stuff */
     strcpy(zipfile, localfile);
@@ -433,126 +434,130 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
     fclose(*zipfd);
     return(NULL);
   }
-  /* if updating, load the list of files belonging to the current package */
-  if ((flags & PKGINST_UPDATE) != 0) {
-    flist = pkg_loadflist(pkgname, dosdir);
-  } else {
-    flist = NULL;
-  }
-  /* Verify that there's no collision with existing local files, look for the appinfo presence, get rid of sources if required, and rename BAT links into COM files */
-  appinfopresence = 0;
-  prevzipnode = NULL;
-  for (curzipnode = ziplinkedlist; curzipnode != NULL;) {
-    /* change all slashes to backslashes, and switch into all-lowercase */
-    slash2backslash(curzipnode->filename);
-    strtolower(curzipnode->filename);
-    /* remove 'directory' ZIP entries to avoid false alerts about directory already existing */
-    if ((curzipnode->flags & ZIP_FLAG_ISADIR) != 0) {
-      curzipnode->filename[0] = 0; /* mark it "empty", will be removed in a short moment */
-    }
-    /* if --nosource specified, skip sources */
-    if ((flags & PKGINST_NOSOURCE) != 0) {
-      if (fdnpkg16_strcasestr(curzipnode->filename, "source\\") == curzipnode->filename) { /* drop this file */
-        curzipnode->filename[0] = 0; /* in fact, we just mark the file as 'empty' on the filename.. see below */
-      }
-    }
-    /* is it a "link file"? */
-    if (fdnpkg16_strcasestr(curzipnode->filename, "links\\") == curzipnode->filename) {
-      /* skip links, if that's what the user wants */
-      if ((flags & PKGINST_SKIPLINKS) != 0) {
-        curzipnode->filename[0] = 0; /* in fact, we just mark the file as 'empty' on the filename.. see later below */
-      } else {
-        /* if it's a *.BAT link, then rename it to *.COM */
-        char *ext = getfext(curzipnode->filename);
-        if (strcasecmp(ext, "bat") == 0) sprintf(ext, "com");
-      }
-    }
 
-    if (curzipnode->filename[0] == 0) { /* ignore empty filenames (maybe it was empty originally, or has been emptied because it's a dropped source or link) */
-      if (prevzipnode == NULL) {  /* take the item out of the list */
-        ziplinkedlist = curzipnode->nextfile;
-        free(curzipnode); /* free the item */
-        curzipnode = ziplinkedlist;
-      } else {
-        prevzipnode->nextfile = curzipnode->nextfile;
-        free(curzipnode); /* free the item */
-        curzipnode = prevzipnode->nextfile;
-      }
-      continue; /* go to the next item */
+  /* sparky4: INSTALL THE PACKAGE! :D */
+  if ((flags & FDNPKG16_NOINST) == 0) { // sparky4: dont install if we are just downloading :D
+    /* if updating, load the list of files belonging to the current package */
+    if ((flags & PKGINST_UPDATE) != 0) {
+      flist = pkg_loadflist(pkgname, dosdir);
+    } else {
+      flist = NULL;
     }
-    /* validate that the file has a valid filename (8+3, no shady chars...) */
-    if (validfilename(curzipnode->filename) != 0) {
-      kitten_puts(3, 23, "Error: Package contains an invalid filename:");
-      printf(" %s\n", curzipnode->filename);
-      zip_freelist(&ziplinkedlist);
-      fclose(*zipfd);
-      return(NULL);
-    }
-    /* look out for collisions with already existing files (unless we are
-     * updating the package and the local file belongs to it */
-    shortfile = computelocalpath(curzipnode->filename, fname, dosdir, dirlist);
-    mapdrives(fname, mapdrv);
-    strcat(fname, shortfile);
-    if ((findfileinlist(flist, fname) == NULL) && (fileexists(fname) != 0)) {
-      char userchoicestr[8];
-      if (forceflag < 2) {
-        kitten_puts(3, 9, "Error: Package contains a file that already exists locally:");
-        printf(" %s\n", fname);
+    /* Verify that there's no collision with existing local files, look for the appinfo presence, get rid of sources if required, and rename BAT links into COM files */
+    appinfopresence = 0;
+    prevzipnode = NULL;
+    for (curzipnode = ziplinkedlist; curzipnode != NULL;) {
+      /* change all slashes to backslashes, and switch into all-lowercase */
+      slash2backslash(curzipnode->filename);
+      strtolower(curzipnode->filename);
+      /* remove 'directory' ZIP entries to avoid false alerts about directory already existing */
+      if ((curzipnode->flags & ZIP_FLAG_ISADIR) != 0) {
+        curzipnode->filename[0] = 0; /* mark it "empty", will be removed in a short moment */
       }
-      if (forceflag == 0) {
-        for (;;) {
-          kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
-          puts("");
-          kitten_printf(3, 4, "Your choice:");
-          printf(" ");
-          fgets(userchoicestr, 6, stdin);
-          if (tolower(userchoicestr[0]) == 'n') userchoice = 1;
-          else if (tolower(userchoicestr[0]) == 'y') userchoice = 2;
-          else userchoice = atoi(userchoicestr);
-          if ((userchoice < 1) || (userchoice >= 3)) {
-            kitten_puts(3, 5, "Invalid choice!");
-          } else {
-            break;
-          }
+      /* if --nosource specified, skip sources */
+      if ((flags & PKGINST_NOSOURCE) != 0) {
+        if (fdnpkg16_strcasestr(curzipnode->filename, "source\\") == curzipnode->filename) { /* drop this file */
+          curzipnode->filename[0] = 0; /* in fact, we just mark the file as 'empty' on the filename.. see below */
         }
-        forceflag = userchoice;
       }
+      /* is it a "link file"? */
+      if (fdnpkg16_strcasestr(curzipnode->filename, "links\\") == curzipnode->filename) {
+        /* skip links, if that's what the user wants */
+        if ((flags & PKGINST_SKIPLINKS) != 0) {
+          curzipnode->filename[0] = 0; /* in fact, we just mark the file as 'empty' on the filename.. see later below */
+        } else {
+          /* if it's a *.BAT link, then rename it to *.COM */
+          char *ext = getfext(curzipnode->filename);
+          if (strcasecmp(ext, "bat") == 0) sprintf(ext, "com");
+        }
+      }
+
+      if (curzipnode->filename[0] == 0) { /* ignore empty filenames (maybe it was empty originally, or has been emptied because it's a dropped source or link) */
+        if (prevzipnode == NULL) {  /* take the item out of the list */
+          ziplinkedlist = curzipnode->nextfile;
+          free(curzipnode); /* free the item */
+          curzipnode = ziplinkedlist;
+        } else {
+          prevzipnode->nextfile = curzipnode->nextfile;
+          free(curzipnode); /* free the item */
+          curzipnode = prevzipnode->nextfile;
+        }
+        continue; /* go to the next item */
+      }
+      /* validate that the file has a valid filename (8+3, no shady chars...) */
+      if (validfilename(curzipnode->filename) != 0) {
+        kitten_puts(3, 23, "Error: Package contains an invalid filename:");
+        printf(" %s\n", curzipnode->filename);
+        zip_freelist(&ziplinkedlist);
+        fclose(*zipfd);
+        return(NULL);
+      }
+      /* look out for collisions with already existing files (unless we are
+      * updating the package and the local file belongs to it */
+      shortfile = computelocalpath(curzipnode->filename, fname, dosdir, dirlist);
+      mapdrives(fname, mapdrv);
+      strcat(fname, shortfile);
+      if ((findfileinlist(flist, fname) == NULL) && (fileexists(fname) != 0)) {
+        char userchoicestr[8];
+        if (forceflag < 2) {
+          kitten_puts(3, 9, "Error: Package contains a file that already exists locally:");
+          printf(" %s\n", fname);
+        }
+        if (forceflag == 0) {
+          for (;;) {
+            kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
+            puts("");
+            kitten_printf(3, 4, "Your choice:");
+            printf(" ");
+            fgets(userchoicestr, 6, stdin);
+            if (tolower(userchoicestr[0]) == 'n') userchoice = 1;
+            else if (tolower(userchoicestr[0]) == 'y') userchoice = 2;
+            else userchoice = atoi(userchoicestr);
+            if ((userchoice < 1) || (userchoice >= 3)) {
+              kitten_puts(3, 5, "Invalid choice!");
+            } else {
+              break;
+            }
+          }
+          forceflag = userchoice;
+        }
+      }
+      // if no or 1 is selected
+      if (forceflag == 1) {
+        zip_freelist(&ziplinkedlist);
+        fclose(*zipfd);
+        return(NULL);
+      }
+      /* abort if any entry is encrypted */
+      if ((curzipnode->flags & ZIP_FLAG_ENCRYPTED) != 0) {
+        kitten_printf(3, 20, "Error: Package contains an encrypted file:");
+        puts("");
+        printf(" %s\n", curzipnode->filename);
+        zip_freelist(&ziplinkedlist);
+        fclose(*zipfd);
+        return(NULL);
+      }
+      /* abort if any file is compressed with an unsupported method */
+      if ((curzipnode->compmethod != 0/*store*/) && (curzipnode->compmethod != 8/*deflate*/) && (curzipnode->compmethod != 14/*lzma*/)) { /* unsupported compression method */
+        kitten_printf(8, 2, "Error: Package contains a file compressed with an unsupported method (%d):", curzipnode->compmethod);
+        puts("");
+        printf(" %s\n", curzipnode->filename);
+        zip_freelist(&ziplinkedlist);
+        fclose(*zipfd);
+        return(NULL);
+      }
+      if (strcmp(curzipnode->filename, appinfofile) == 0) appinfopresence = 1;
+      prevzipnode = curzipnode;
+      curzipnode = curzipnode->nextfile;
     }
-    // if no or 1 is selected
-    if (forceflag == 1) {
-      zip_freelist(&ziplinkedlist);
-      fclose(*zipfd);
-      return(NULL);
-    }
-    /* abort if any entry is encrypted */
-    if ((curzipnode->flags & ZIP_FLAG_ENCRYPTED) != 0) {
-      kitten_printf(3, 20, "Error: Package contains an encrypted file:");
+    /* if appinfo file not found, this is not a real FreeDOS package */
+    if (appinfopresence != 1) {
+      kitten_printf(3, 12, "Error: Package do not contain the %s file! Not a valid FreeDOS package.", appinfofile);
       puts("");
-      printf(" %s\n", curzipnode->filename);
       zip_freelist(&ziplinkedlist);
       fclose(*zipfd);
       return(NULL);
     }
-    /* abort if any file is compressed with an unsupported method */
-    if ((curzipnode->compmethod != 0/*store*/) && (curzipnode->compmethod != 8/*deflate*/) && (curzipnode->compmethod != 14/*lzma*/)) { /* unsupported compression method */
-      kitten_printf(8, 2, "Error: Package contains a file compressed with an unsupported method (%d):", curzipnode->compmethod);
-      puts("");
-      printf(" %s\n", curzipnode->filename);
-      zip_freelist(&ziplinkedlist);
-      fclose(*zipfd);
-      return(NULL);
-    }
-    if (strcmp(curzipnode->filename, appinfofile) == 0) appinfopresence = 1;
-    prevzipnode = curzipnode;
-    curzipnode = curzipnode->nextfile;
-  }
-  /* if appinfo file not found, this is not a real FreeDOS package */
-  if (appinfopresence != 1) {
-    kitten_printf(3, 12, "Error: Package do not contain the %s file! Not a valid FreeDOS package.", appinfofile);
-    puts("");
-    zip_freelist(&ziplinkedlist);
-    fclose(*zipfd);
-    return(NULL);
   }
 
   return(ziplinkedlist);

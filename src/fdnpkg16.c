@@ -210,7 +210,8 @@ enum actions {
   ACTION_HOLDLIST,
   ACTION_HOLD,
   ACTION_UNHOLD,
-  ACTION_NOTSEARCH
+  ACTION_NOTSEARCH,
+  ACTION_DOWNLOAD
 };
 
 
@@ -328,7 +329,7 @@ int main(int argc, char **argv) {
 
 //0000    printf("Starting  value(hex): 0x%X\n", flags);
     // sparky4 flag resetter for 2 bits
-    flags &= (~((1 << 3) | (1 << 4)));  // sparky4: disable 3rd and 4th bit position in the flags for the 2 new bits to be reseted
+    flags &= (~((1 << 3) | (1 << 4) | (1 << 5)));  // sparky4: disable 3rd and 4th bit position in the flags for the 2 new bits to be reseted
     // 2 bits are for FDNPKG16_NETINIT && FDNPKG16_NOREPOA
 //0000    printf("Resulting value(hex): 0x%X\n", flags);
 
@@ -456,6 +457,15 @@ int main(int argc, char **argv) {
       } else if ((strcasecmp(actionarg, "vnotinstalled") && strcasecmp(actionarg, "vn")) == 0) {
         action = ACTION_NOTSEARCH;
         verbosemode = 1;
+      } else if ((strcasecmp(actionarg, "download") && strcasecmp(actionarg, "dl")) == 0) {
+        if (argc < 3) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
+        } else {
+          arglen = strlen(argv[i+2]);
+          action = ACTION_DOWNLOAD;
+          flags |= FDNPKG16_NOINST;
+        }
         // sparky4: <3
       } else if ((strcasecmp(actionarg, "bibabo")) == 0) {
         printf("ビバボ！ｗ");
@@ -872,6 +882,18 @@ int main(int argc, char **argv) {
                 }
                 fclose(zipfilefd);
               }
+              break;
+            }
+          break;
+          case ACTION_DOWNLOAD:  /* DOWNLOAD ONLY! */
+            {
+              char membuff1k[1024];
+              char tempfiledest[512];
+              /* prepare the zip file */
+              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+              sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
+              sprintf(tempfiledest, "%s.zip", argv[i+2]);
+              rename(tempfile, tempfiledest); // sparky4: the file gets renamed into the current working dir with original name! :D
               break;
             }
           break;
