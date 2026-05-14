@@ -776,7 +776,7 @@ int main(int argc, char **argv) {
               #ifndef ERRCACHE
               maxcachetime = 0; /* disable cache writing this time */
               #endif
-               // sparky4: plus there is no package or index as small as 3
+              // sparky4: plus there is no package or index as small as 3
               if (htgetres == 3) break;  // sparky4: break out of loop no packet driver found!
             } else {
               char *dbmsg;
