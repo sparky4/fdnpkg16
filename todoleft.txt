@@ -181,19 +181,31 @@ From Jerome:
 As I see it, there are a couple issues with FDNPKG16 that need addressed:
 
 1) Case-less filename comparison when checking the TO-BE-INSTALLED files against the NOW-INSTALLED files in the relevant %DOSDIR%\PACKAGES\*.LST database file.
+    i also need help with this.
 2) Do not update the CACHE when the online scan fails.
     DONE on next compile as of 5/13/2026
 3) A simple check for sufficient memory and not just repeated failures would be nice. Or at least, stop when the first critical memory related error occurs.
+
+    I need a bit of help on this one.
+
 4) FDNPKG seems to get stuck if (1=NO) was selected. Re-launching with any option, it downloaded the ÅgDOSLFNÅh package again and exited. Had to manually delete the cache.
     i tested this it seems fine.
 5) a Zero byte LST file causes FDNPKG to just exit without any messages. Unable to remove, update or install a package.
+    should be able to handle this with a remove command or reinstall command
+
 
 Some possible improvements:
 
 6) While 1 & 2 are acceptable responses to the NO/YES question (except for my broken keyboard), permitting the language equivalent of N/Y/NO/YES (caseless) would be nice.
     fixed and DONE 1 for no 2 for yes
 7) Possibly add an option to ÅgabortÅh as well.
+    hard todo as httpget.exe is a seperate program called by a batch script. and it agressively calls it.
 8) If not installed, maybe offer to save the download for later.
+
+    i can do this soon. this should be easy
+
 9) Maybe provide a command line option to ÅgonlyÅh download the updates and not install them.
+    i can do this soon. this should be easy
 
 10) There is one other thing to check in FDNPKG16 that was an issue in FDNPKG regarding Ågfile existsÅh problems. A long while back (I think maybe FreeDOS 1.2), there was a typo in the logic that created the environment variable data used by FDINST at OS install time. It resulted in an extra space in the file names in the LST file. Those entries looked something like ÅgC:\FreeDOS \bin\xcopy.exeÅh. FDNPKG and FDINST would see these as conflicts and refuse to update those packages. However, both of those programs had no problem performing a ÅgremoveÅh then ÅgreinstallÅh when the extra space was present. That OS installer issue was resolved a long time ago. But, it is something a user could do by accident when updating environment variables or the config file related to FDNPKG16. It would be good to check that FDNPKG16 does not suffer from the same "extra spaceÅh pathname issue.
+    i need todo this now! :D
