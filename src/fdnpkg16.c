@@ -771,11 +771,13 @@ int main(int argc, char **argv) {
   //          #else
   //          if (htgetres != 21) {
   //              #endif
-            if (htgetres < 0) {
+            if ((htgetres < 0) || (htgetres == 3)) {  /* sparky4: 3 is the size of a no packet driver return */
               kitten_puts(2, 10, "Repository download failed!");
               #ifndef ERRCACHE
               maxcachetime = 0; /* disable cache writing this time */
               #endif
+               // sparky4: plus there is no package or index as small as 3
+              if (htgetres == 3) break;  // sparky4: break out of loop no packet driver found!
             } else {
               char *dbmsg;
               /* uncompress and load the index file */
