@@ -201,11 +201,10 @@ Some possible improvements:
 7) Possibly add an option to ÅgabortÅh as well.
     hard todo as httpget.exe is a seperate program called by a batch script. and it agressively calls it.
 8) If not installed, maybe offer to save the download for later.
-
-    i can do this soon. this should be easy
+    DONE
 
 9) Maybe provide a command line option to ÅgonlyÅh download the updates and not install them.
-    i can do this soon. this should be easy
+    DONE
 
 10) There is one other thing to check in FDNPKG16 that was an issue in FDNPKG regarding Ågfile existsÅh problems. A long while back (I think maybe FreeDOS 1.2), there was a typo in the logic that created the environment variable data used by FDINST at OS install time. It resulted in an extra space in the file names in the LST file. Those entries looked something like ÅgC:\FreeDOS \bin\xcopy.exeÅh. FDNPKG and FDINST would see these as conflicts and refuse to update those packages. However, both of those programs had no problem performing a ÅgremoveÅh then ÅgreinstallÅh when the extra space was present. That OS installer issue was resolved a long time ago. But, it is something a user could do by accident when updating environment variables or the config file related to FDNPKG16. It would be good to check that FDNPKG16 does not suffer from the same "extra spaceÅh pathname issue.
     i need todo this now! :D
