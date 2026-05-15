@@ -506,7 +506,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         if (forceflag == 0) {
           for (;;) {
             kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
-            printf("(y or n)?");
+            printf("\n(y or n)?");
             puts("");
             kitten_printf(3, 4, "Your choice:");
             printf(" ");
