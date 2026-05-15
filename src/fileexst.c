@@ -27,5 +27,5 @@ long filesize(const char *filename) {
   size = ftell(fp);
   fclose(fp);
 
-  return size;
+  return(size);
 }
