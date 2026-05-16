@@ -299,10 +299,10 @@ int main(int argc, char **argv) {
   printf("coreleft() == %u\n", coreleft());
   //getch();
 #endif
-  if (farcoreleft() < 262144L) {
+  if (farcoreleft() < /*262144*/393216L) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
-    getch(); // sparky4: warn user of low memory, and this getch() will let them see it!
-    QUIT(0)
+    getch();           // sparky4: warn user of low memory, and this getch() will let them see it!
+    netinitres = -100; // sparky4: DO NOT USE NETWORKING! no ram!
   } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
 
   /* Load the list of package repositories */
@@ -480,6 +480,8 @@ int main(int argc, char **argv) {
       }
     }
 
+    if (netinitres == -100) flags |= (FDNPKG16_NOREPOA);  // sparky4: NO NETWORKING TOO LOW RAM!
+
     //sparky4: switches are faster
     switch (action) {
       /* sparky4: Dual help! this runs both helps! :D */
@@ -620,7 +622,7 @@ int main(int argc, char **argv) {
     }
 
     /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
-    if ((/*action_*/flags & FDNPKG16_NETINIT) == 0) {
+    if (((/*action_*/flags & FDNPKG16_NETINIT) == 0) && (netinitres != -100)) {
       if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
         /* if there is at least one online repo, init the Watt32 stack */
         for (x = 0; x < repolistcount; x++) {
@@ -632,7 +634,7 @@ int main(int argc, char **argv) {
             #ifdef USE_MTCP
             netinitres = system("dhcp");
             #else
-            netinitres = 0; // use dhcp in httpget this is currently used
+            netinitres = 0; // sparky4: use dhcp in httpget this is currently used
             #endif
             #else /* #ifndef USE_INTERNAL_WATTCP */
             #ifdef DEBUG
@@ -783,9 +785,9 @@ int main(int argc, char **argv) {
   //              #endif
             if ((htgetres < 0) || (htgetres == 3)) {  /* sparky4: 3 is the size of a no packet driver return */
               kitten_puts(2, 10, "Repository download failed!");
-              #ifndef ERRCACHE
+//              #ifndef ERRCACHE
               maxcachetime = 0; /* disable cache writing this time */
-              #endif
+//              #endif
               // sparky4: plus there is no package or index as small as 3
               if (htgetres == 3) break;  // sparky4: break out of loop no packet driver found!
             } else {
