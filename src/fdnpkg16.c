@@ -297,11 +297,10 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
-  //getch();
 #endif
   if (farcoreleft() < /*262144*/393216L) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
-    getch();           // sparky4: warn user of low memory, and this getch() will let them see it!
+    //--getch();           // sparky4: warn user of low memory, and this getch() will let them see it!
     netinitres = -100; // sparky4: DO NOT USE NETWORKING! no ram!
   } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
 
