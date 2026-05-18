@@ -85,6 +85,7 @@ Where action is one of the following:
  notinstalled      - show avalible packages from repositories
  vnotinstalled     - same as 'notinstalled', but prints also source repositories
  download          - just download the file. do not install.
+ downloadup        - download updates. do not install them.
  dumpcfg           - print out the configuration loaded from the cfg file
  clearcache        - clear FDNPKG16's local cache
  license           - print out the license of this program
@@ -113,9 +114,24 @@ Where action is one of the following:
  ni                - show avalible packages from repositories
  vn                - same as 'notinstalled', but prints also source repositories
  dl                - just download the file. do not install.
+ du                - download updates. do not install them.
  dc                - print out the configuration loaded from the cfg file
  cc                - clear FDNPKG16's local cache
  li                - print out the license of this program
+
+*** 4 actions here are not located in the program's help ***
+
+ notinstalled      - show avalible packages from repositories
+ vnotinstalled     - same as 'notinstalled', but prints also source repositories
+ download          - just download the file. do not install.
+ downloadup        - download updates. do not install them.
+
+short hand version:
+ ni                - show avalible packages from repositories
+ vn                - same as 'notinstalled', but prints also source repositories
+ dl                - just download the file. do not install.
+ du                - download updates. do not install them.
+
 
 *** Some details about what a "package" is ***
 

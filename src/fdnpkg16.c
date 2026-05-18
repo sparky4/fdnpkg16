@@ -211,7 +211,8 @@ enum actions {
   ACTION_HOLD,
   ACTION_UNHOLD,
   ACTION_NOTSEARCH,
-  ACTION_DOWNLOAD
+  ACTION_DOWNLOAD,
+  ACTION_DOWNLOADUPDATES
 };
 
 
@@ -463,6 +464,15 @@ int main(int argc, char **argv) {
         } else {
           arglen = strlen(argv[i+2]);
           action = ACTION_DOWNLOAD;
+          flags |= FDNPKG16_NOINST;
+        }
+      } else if ((strcasecmp(actionarg, "downloadup") && strcasecmp(actionarg, "du")) == 0) {
+        if (argc != 2) {
+          kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
+          QUIT(0)
+        } else {
+          arglen = strlen(argv[i+2]);
+          action = ACTION_DOWNLOADUPDATES;
           flags |= FDNPKG16_NOINST;
         }
         // sparky4: <3
@@ -897,6 +907,10 @@ int main(int argc, char **argv) {
               rename(tempfile, tempfiledest); // sparky4: the file gets renamed into the current working dir with original name! :D
               break;
             }
+          break;
+          case ACTION_DOWNLOADUPDATES:
+            flags &= ~(PKGINST_UPDATE);
+            checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags, dirlist, proxy, proxyport, downloadingstring, mapdrv);
           break;
         } //sparky4: end of action switch
         /* free memory of the pkg database */

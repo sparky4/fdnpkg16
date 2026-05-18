@@ -266,7 +266,7 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
         }
         /* actually upgrade the package, if requested so */
         if (foundupdate != 0) {
-          if (flags & PKGINST_UPDATE) {
+          if ((flags & PKGINST_UPDATE) || (flags & FDNPKG16_NOINST)) {
             FILE *zipfilefd;
             struct ziplist *zipfileidx;
             char buffmem1k[1024];
@@ -275,17 +275,25 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
             puts("");
             packages_updatefailed += 1; /* increment the updatefailed counter - later we will decrement it if we're okay */
             zipfileidx = pkginstall_preparepackage(pkgdb, packagelist[x], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
-            if (zipfileidx != NULL) {
-              if (pkgrem(packagelist[x], dosdir, mapdrv) != 0) {
-                /* ooops, package removal failed... */
-                zip_freelist(&zipfileidx);
-              } else {  /* pkgrem == 0 */
-                if (pkginstall_installpackage(packagelist[x], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv) == 0) {  // sparky4: no errors returned
-                  packages_updated += 1;
-                  packages_updatefailed -= 1; /* decrement the updatefailed counter to leverage the fact we incremented it without reason earlier */
+            if (!(flags & FDNPKG16_NOINST)) { // sparky4: flag to prevent package upgrade if the flag is set
+              if (zipfileidx != NULL) {
+                if (pkgrem(packagelist[x], dosdir, mapdrv) != 0) {
+                  /* ooops, package removal failed... */
+                  zip_freelist(&zipfileidx);
+                } else {  /* pkgrem == 0 */
+                  if (pkginstall_installpackage(packagelist[x], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv) == 0) {  // sparky4: no errors returned
+                    packages_updated += 1;
+                    packages_updatefailed -= 1; /* decrement the updatefailed counter to leverage the fact we incremented it without reason earlier */
+                  }
                 }
+                fclose(zipfilefd);
               }
-              fclose(zipfilefd);
+            } else { // sparky4: just download the package itself
+              char tempfile[512];
+              char tempfiledest[512];
+              sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
+              sprintf(tempfiledest, "%s.zip", packagelist[x]);
+              rename(tempfile, tempfiledest); // sparky4: the file gets renamed into the current working dir with original name! :D
             }
           }
           puts(""); /* add a line feed to visually separate packages */
