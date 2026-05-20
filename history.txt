@@ -1,7 +1,7 @@
 
 * FDNPKG16 history file *
 
-FDNPKG16 v0.99.8254 [18 May 2026]
+FDNPKG16 v0.99.8254 [20 May 2026]
  - [new] download feature added! you can download files into the curent working directory /dl <package>
  - [new] you can now press y or n for the force package install choice
  - [fix] fixed the no packet driver spam it will quit if there is no paket driver (by size guess of htgetres == 3)
