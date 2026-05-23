@@ -292,14 +292,13 @@ int main(int argc, char **argv) {
 
   /* check the available memory and display a warning if too low */
   // sparky4: farcoreleft() function from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
-  /* 192k */
-  /*196608L*/ //sparky4: old value. did some recalculating and 256k is needed for calling httpget.exe
-  /* 256k */ // sparky4: new value of 256k
+  /* 262144 */ // sparky4: old value. did some recalculating and around 327680 is needed for calling httpget.exe
+  /* 327680 */ // sparky4: new value of 256+64k
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
 #endif
-  if (farcoreleft() < /*262144*/327680L) {
+  if (farcoreleft() < 327680L) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
     //--getch();           // sparky4: warn user of low memory, and this getch() will let them see it!
     netinitres = -100; // sparky4: DO NOT USE NETWORKING! no ram!
@@ -325,7 +324,7 @@ int main(int argc, char **argv) {
 
   // sparky4: start of that huge for loop. This loop manages the packages in the argument list! :D
   for (i = 0; i < argci; i++) {
-    //action_flags = 0; // sparky4: old may remove
+    //----action_flags = 0; // sparky4: old may remove
 
 //0000    printf("Starting  value(hex): 0x%X\n", flags);
     // sparky4 flag resetter for 2 bits

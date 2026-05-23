@@ -6,6 +6,7 @@
      #                                                                #
      #              https://github.com/sparky4/fdnpkg16               #
      #              https://gitlab.com/sparky4/fdnpkg16               #
+     #              https://git.gay/sparky4/fdnpkg16                  #
      #                                                                #
      ##################################################################
 
@@ -84,13 +85,13 @@ Where action is one of the following:
  unhold pkg        - unhold 'pkg' for updates
  notinstalled      - show avalible packages from repositories
  vnotinstalled     - same as 'notinstalled', but prints also source repositories
- download          - just download the file. do not install.
+ download pkg      - just download the package. do not install.
  downloadup        - download updates. do not install them.
  dumpcfg           - print out the configuration loaded from the cfg file
  clearcache        - clear FDNPKG16's local cache
  license           - print out the license of this program
 
-*** Short-hand commands ***
+** Short-hand commands **
 
 FDNPKG16 adds short-hand commands much like you'd see in NetBSD's pkgin.
 
@@ -113,23 +114,23 @@ Where action is one of the following:
  uh pkg            - unhold 'pkg' for updates
  ni                - show avalible packages from repositories
  vn                - same as 'notinstalled', but prints also source repositories
- dl                - just download the file. do not install.
+ dl pkg            - just download the package. do not install.
  du                - download updates. do not install them.
  dc                - print out the configuration loaded from the cfg file
  cc                - clear FDNPKG16's local cache
  li                - print out the license of this program
 
-*** 4 actions here are not located in the program's help ***
 
+** 4 actions here are not located in the program's help **
  notinstalled      - show avalible packages from repositories
  vnotinstalled     - same as 'notinstalled', but prints also source repositories
- download          - just download the file. do not install.
+ download pkg      - just download the package. do not install.
  downloadup        - download updates. do not install them.
 
 short hand version:
  ni                - show avalible packages from repositories
  vn                - same as 'notinstalled', but prints also source repositories
- dl                - just download the file. do not install.
+ dl pkg            - just download the package. do not install.
  du                - download updates. do not install them.
 
 
