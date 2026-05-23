@@ -293,7 +293,23 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
               char tempfiledest[512];
               sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
               sprintf(tempfiledest, "%s.zip", packagelist[x]);
-              rename(tempfile, tempfiledest); // sparky4: the file gets renamed into the current working dir with original name! :D
+              if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+                // Non-zero return value indicates an error
+                kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfile);
+                puts("");
+                sprintf(tempfiledest, "%s\\%s.zip", tempdir, packagelist[x]);
+                if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+                  // Non-zero return value indicates an error
+                  kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfiledest);
+                  puts("");
+                } else {
+                  printf(" %c> %s", 0xC0, tempfiledest);
+                  puts("");
+                }
+              } else {
+                printf(" %c> %s", 0xC0, tempfiledest);
+                puts("");
+              }
             }
           }
           puts(""); /* add a line feed to visually separate packages */

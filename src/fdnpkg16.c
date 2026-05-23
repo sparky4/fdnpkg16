@@ -903,7 +903,23 @@ int main(int argc, char **argv) {
               zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
               sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
               sprintf(tempfiledest, "%s.zip", argv[i+2]);
-              rename(tempfile, tempfiledest); // sparky4: the file gets renamed into the current working dir with original name! :D
+              if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+                // Non-zero return value indicates an error
+                kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfile);
+                puts("");
+                sprintf(tempfiledest, "%s\\%s.zip", tempdir, argv[i+2]);
+                if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+                  // Non-zero return value indicates an error
+                  kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfiledest);
+                  puts("");
+                } else {
+                  printf(" %c> %s", 0xC0, tempfiledest);
+                  puts("");
+                }
+              } else {
+                printf(" %c> %s", 0xC0, tempfiledest);
+                puts("");
+              }
               break;
             }
           break;
