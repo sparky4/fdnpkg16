@@ -4,6 +4,7 @@
      #  Copyright (C)2012-2021 Mateusz Viste                          #
      #  Copyright (C)2025-2026 Victoria Crenshaw & Katheryn Northwood #
      #                                                                #
+     #              http://4ch.su/fdnpkg16.htm                        #
      #              https://github.com/sparky4/fdnpkg16               #
      #              https://gitlab.com/sparky4/fdnpkg16               #
      #              https://git.gay/sparky4/fdnpkg16                  #
