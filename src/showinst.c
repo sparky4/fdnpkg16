@@ -10,6 +10,7 @@
 #include <string.h>   /* strlen() */
 #include <strings.h>  /* strcasecmp() */
 #include <sys/types.h>
+#include <unistd.h>
 
 /* opendir() and friends */
 #ifdef __WATCOMC__
@@ -289,29 +290,7 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
                 fclose(zipfilefd);
               }
             } else { // sparky4: just download the package itself
-              char tempfile[512];
-              char tempfiledest[512];
-              sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
-              sprintf(tempfiledest, "%s.zip", packagelist[x]);
-              if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
-                // Non-zero return value indicates an error
-                //kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfile);
-                //puts("");
-                sprintf(tempfiledest, "%s\\%s.zip", tempdir, packagelist[x]);
-                if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
-                  // Non-zero return value indicates an error
-                  kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfiledest);
-                  puts("");
-                } else {
-                  // sparky4: let user know the file was renamed
-                  printf(" %c> %s", 0xC0, tempfiledest);
-                  puts("");
-                }
-              } else {
-                // sparky4: let user know the file was renamed
-                printf(" %c> %s", 0xC0, tempfiledest);
-                puts("");
-              }
+              pkgdownloadhandle(packagelist[x], tempdir);
             }
           }
           puts(""); /* add a line feed to visually separate packages */
@@ -456,5 +435,36 @@ void unholdpkg(char *pkgname, char *dosdir) {
     // Non-zero return value indicates an error
     kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", old_filename);
     puts("");
+  }
+}
+
+void pkgdownloadhandle(char *pkgname, char *tempdir)
+{
+  char tempfile[512];
+  char tempfiledest[512];
+  sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
+  sprintf(tempfiledest, "%s.zip", pkgname);
+  if (filesize(tempfile) == 8) { // sparky4: file failed to download? remove it!
+    unlink(tempfile);
+  } else {
+    if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+      // Non-zero return value indicates an error
+      //kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfile);
+      //puts("");
+      sprintf(tempfiledest, "%s\\%s.zip", tempdir, pkgname);
+      if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+        // Non-zero return value indicates an error
+        kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfiledest);
+        puts("");
+      } else {
+        // sparky4: let user know the file was renamed
+        printf(" %c> %s", 0xC0, tempfiledest);
+        puts("");
+      }
+    } else {
+      // sparky4: let user know the file was renamed
+      printf(" %c> %s", 0xC0, tempfiledest);
+      puts("");
+    }
   }
 }

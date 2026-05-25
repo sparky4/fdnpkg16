@@ -17,11 +17,13 @@
 #define FDNPKG16_NOINST   32  // sparky4: no install action
 
 #define MAXINDEXRETRIES   10  // maximum number of retries for downloading a repository index
-//#define DEBUG                 // uncomment this to enable debug mode
+#define DEBUG                 // uncomment this to enable debug mode
+
+
+//old dont use yet
 //#define USE_INTERNAL_WATTCP   // enable/disable this to use external or internal watt32
 //#define USE_MTCP              // enable/disable this to use mtcp or watt32 externally
-
-//old
+//old dont use
 //#define ERRCACHE              // enable this to have databases, always. no matter what fails
 
 struct flist_t {

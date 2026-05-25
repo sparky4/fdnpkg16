@@ -21,4 +21,5 @@
   void listfilesofpkg(char *pkgname, char *dosdir);
   void holdpkg(char *pkgname, char *dosdir);
   void unholdpkg(char *pkgname, char *dosdir);
+  void pkgdownloadhandle(char *pkgname, char *tempdir);
 #endif

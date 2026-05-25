@@ -206,9 +206,10 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
   /* check if not already installed, if already here, print a message "you might want to use update instead"
    * of course this must not be done if we are in the process of upgrading said package */
   if ((flags & FDNPKG16_NOINST) == 0) { // sparky4: dont check if we are just downloading!
-  if (((flags & PKGINST_UPDATE) == 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv) != 0)) {
-    return(NULL);
-  }}
+    if (((flags & PKGINST_UPDATE) == 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv) != 0)) {
+      return(NULL);
+    }
+  }
 
   if (localfile != NULL) {  /* if it's a local file, then we will have to skip all the network stuff */
     strcpy(zipfile, localfile);

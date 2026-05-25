@@ -1,6 +1,9 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8254b [26 May 2026]
+ - [fix] fixed a bug with downloading a file not existing in repository. It removes the broken file downloaded.
+
 FDNPKG16 v0.99.8254a [23 May 2026]
  - [fix] the download actions will retry to rename the downloaded file to the %temp% directory if it fails renaming the 1st time in the current working directory!
 
