@@ -52,7 +52,6 @@
 #include "readenv.h"  /* readenv() */
 #include "showinst.h" /* showinstalledpkgs() */
 #include "memcore.h"  /* farcoreleft() & coreleft() */
-#include "fileexst.h" /* filesize() */
 #include "version.h"
 
 /* #define DEBUG */ /* uncomment this to enable debug mode */

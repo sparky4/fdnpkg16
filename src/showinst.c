@@ -10,7 +10,7 @@
 #include <string.h>   /* strlen() */
 #include <strings.h>  /* strcasecmp() */
 #include <sys/types.h>
-#include <unistd.h>
+#include <unistd.h>   /* unlink() */
 
 /* opendir() and friends */
 #ifdef __WATCOMC__

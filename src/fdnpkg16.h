@@ -17,7 +17,7 @@
 #define FDNPKG16_NOINST   32  // sparky4: no install action
 
 #define MAXINDEXRETRIES   10  // maximum number of retries for downloading a repository index
-#define DEBUG                 // uncomment this to enable debug mode
+//#define DEBUG                 // uncomment this to enable debug mode
 
 
 //old dont use yet
