@@ -439,23 +439,14 @@ void unholdpkg(char *pkgname, char *dosdir) {
 }
 
 // sparky4: helper function on running forcedflag value. user gets to choose
-int forceflagfunction(char *tempfiledest, int flag) {
+int forceflagfunction(char *tempfiledest, char *location) {
   char userchoicestr[8];
-  char cwd[1024];
   int forceflag, userchoice;
   forceflag = userchoice = 0;
   if (fileexists(tempfiledest) != 0) {
     if (forceflag == 0) {
       for (;;) {
-        switch (flag) {
-          case 0:
-            getcwd(cwd, sizeof(cwd));
-            kitten_printf(2, 22, "File %s found locally at %s.\nOverwrite? (1 = NO)(2 = YES)", tempfiledest, cwd);
-          break;
-          case 1:
-            kitten_printf(2, 22, "File %s found locally at %s.\nOverwrite? (1 = NO)(2 = YES)", tempfiledest, getenv("temp"));
-          break;
-        }
+        kitten_printf(2, 22, "File %s found locally at %s.\nOverwrite? (1 = NO)(2 = YES)", tempfiledest, location);
         puts("");
         puts("(y/n)?");
         puts("");
@@ -477,15 +468,19 @@ int forceflagfunction(char *tempfiledest, int flag) {
   return(forceflag);
 }
 
+// sparky4: handle the downloading of packages but not installing them
 void pkgdownloadhandle(char *pkgname, char *tempdir)
 {
   char tempfile[512];
   char tempfiledest[512];
   int forceflag;
+  char cwd[1024];
+
+  getcwd(cwd, sizeof(cwd));
   sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
   sprintf(tempfiledest, "%s.zip", pkgname);
   //sparky4: if no or 1 is selected
-  if ((forceflag = forceflagfunction(tempfiledest, 0)) == 2) {
+  if ((forceflag = forceflagfunction(tempfiledest, cwd)) == 2) {
     unlink(tempfiledest);
   }
   if ((filesize(tempfile) == 8)) { // sparky4: file failed to download? remove it!
@@ -497,7 +492,7 @@ void pkgdownloadhandle(char *pkgname, char *tempdir)
       //puts("");
       sprintf(tempfiledest, "%s\\%s.zip", tempdir, pkgname);
       //sparky4: if no or 1 is selected
-      if ((forceflag = forceflagfunction(tempfiledest, 1)) == 2) {
+      if ((forceflag = forceflagfunction(tempfiledest, getenv("temp"))) == 2) {
         unlink(tempfiledest);
       }
       if ((rename(tempfile, tempfiledest) != 0) && (forceflag > 0)) { // sparky4: the file gets renamed into the current working dir with original name! :D
