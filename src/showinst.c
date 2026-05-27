@@ -481,6 +481,7 @@ void pkgdownloadhandle(char *pkgname, char *tempdir)
       //kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfile);
       //puts("");
       sprintf(tempfiledest, "%s\\%s.zip", tempdir, pkgname);
+      forceflag = userchoice = 0;
       if (fileexists(tempfiledest) != 0) {
         if (forceflag == 0) {
           for (;;) {
