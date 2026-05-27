@@ -901,6 +901,7 @@ int main(int argc, char **argv) {
               /* prepare the zip file */
               zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
               pkgdownloadhandle(argv[i+2], tempdir);
+              break;
             }
           break;
           case ACTION_DOWNLOADUPDATES:
