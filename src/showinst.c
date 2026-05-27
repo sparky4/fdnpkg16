@@ -438,6 +438,7 @@ void unholdpkg(char *pkgname, char *dosdir) {
   }
 }
 
+// sparky4: helper function on running forcedflag value. user gets to choose
 int forceflagfunction(char *tempfiledest, int flag) {
   char userchoicestr[8];
   char cwd[1024];
@@ -480,70 +481,26 @@ void pkgdownloadhandle(char *pkgname, char *tempdir)
 {
   char tempfile[512];
   char tempfiledest[512];
+  int forceflag;
   sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
   sprintf(tempfiledest, "%s.zip", pkgname);
-  /*if (fileexists(tempfiledest) != 0) {
-    if (forceflag == 0) {
-      for (;;) {
-        kitten_printf(2, 22, "File %s found locally on system. Overwrite? (1 = NO)(2 = YES)", tempfiledest);
-        puts("");
-        puts("(y/n)?");
-        puts("");
-        kitten_printf(3, 4, "Your choice:");
-        printf(" ");
-        fgets(userchoicestr, 6, stdin);
-        if (tolower(userchoicestr[0]) == 'n') userchoice = 1;
-        else if (tolower(userchoicestr[0]) == 'y') userchoice = 2;
-        else userchoice = atoi(userchoicestr);
-        if ((userchoice < 1) || (userchoice >= 3)) {
-          kitten_puts(3, 5, "Invalid choice!");
-        } else {
-          break;
-        }
-      }
-      forceflag = userchoice;
-    }
-  }*/
   //sparky4: if no or 1 is selected
-  if (forceflagfunction(tempfiledest, 0) == 2) {
+  if ((forceflag = forceflagfunction(tempfiledest, 0)) == 2) {
     unlink(tempfiledest);
   }
   if ((filesize(tempfile) == 8)) { // sparky4: file failed to download? remove it!
     unlink(tempfile);
   } else {
-    if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+    if ((rename(tempfile, tempfiledest) != 0) && (forceflag > 0)) { // sparky4: the file gets renamed into the current working dir with original name! :D
       // Non-zero return value indicates an error
       //kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfile);
       //puts("");
       sprintf(tempfiledest, "%s\\%s.zip", tempdir, pkgname);
-/*      forceflag = userchoice = 0;
-      if (fileexists(tempfiledest) != 0) {
-        if (forceflag == 0) {
-          for (;;) {
-            kitten_printf(2, 22, "File %s found locally at %s. Overwrite? (1 = NO)(2 = YES)", tempfiledest, getenv("_CWD"));
-            puts("");
-            puts("(y/n)?");
-            puts("");
-            kitten_printf(3, 4, "Your choice:");
-            printf(" ");
-            fgets(userchoicestr, 6, stdin);
-            if (tolower(userchoicestr[0]) == 'n') userchoice = 1;
-            else if (tolower(userchoicestr[0]) == 'y') userchoice = 2;
-            else userchoice = atoi(userchoicestr);
-            if ((userchoice < 1) || (userchoice >= 3)) {
-              kitten_puts(3, 5, "Invalid choice!");
-            } else {
-              break;
-            }
-          }
-          forceflag = userchoice;
-        }
-      }*/
       //sparky4: if no or 1 is selected
-      if (forceflagfunction(tempfiledest, 1) == 2) {
+      if ((forceflag = forceflagfunction(tempfiledest, 1)) == 2) {
         unlink(tempfiledest);
       }
-      if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+      if ((rename(tempfile, tempfiledest) != 0) && (forceflag > 0)) { // sparky4: the file gets renamed into the current working dir with original name! :D
         // Non-zero return value indicates an error
         kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfiledest);
         puts("");
