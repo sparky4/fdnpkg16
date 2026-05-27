@@ -525,7 +525,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
           forceflag = userchoice;
         }
       }
-      // if no or 1 is selected
+      //sparky4: if no or 1 is selected
       if (forceflag == 1) {
         zip_freelist(&ziplinkedlist);
         fclose(*zipfd);

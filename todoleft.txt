@@ -219,7 +219,13 @@ It should not save (or it should delete) the broken downloaded package. Also, it
 3) after downloading those packages and deleting the broken fdisk.zip file. Simply running Ågfdnpkg16 update *.zipÅh returns that Ågpackage *.zip is not installedÅh. It would be nicer to support wild-cards when referencing local files.
     I dont want to implement this because of the remove system if you fdnpkg16 rm * freedos will be uninstalled..
 
-4) when running Ågfdnpkg16 /duÅh, if a zip file exists locally, it is still downloaded. However, the newly downloaded zip file is discarded and does not replace the file on disk. Also, there are no messages that the download was discarded. It would be better to first check if there is a conflicting file already on the local hard drive. Then prompt to overwrite or skip downloading that zip file.
+4) when running Ågfdnpkg16 /duÅh, if a zip file exists locally, it is still downloaded.
+   However, the newly downloaded zip file is discarded and does not replace the file on disk.
+   Also, there are no messages that the download was discarded.
+
+   It would be better to first check if there is a conflicting file already on the local hard drive.
+   Then prompt to overwrite or skip downloading that zip file.
+
 
 
 5) Known issue, regarding case-less file name comparisons when checking packages for conflicting files on hard disk.
