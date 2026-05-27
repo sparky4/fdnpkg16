@@ -160,6 +160,94 @@ static void printhelpshort(void) {
   puts("");
   puts(wattcpVersion());
 #else
+  //kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
+#endif
+}
+static void printhelp2(void) {
+  //puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
+  //kitten_puts(1, 0, "This is a network package manager for FreeDOS."); puts("");
+  printhelpheader();
+  kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
+  puts("");
+  puts("");
+  kitten_puts(1, 2,  "Where action is one of the following:");
+  printf(" notinstalled      - "); kitten_puts(1, 25,  "show avalible packages from repositories");
+  printf(" vnotinstalled     - "); kitten_puts(1, 26,  "same as 'notinstalled', but prints also source repository");
+  printf(" download pkg      - "); kitten_puts(1, 27,  "just download the package. do not install");
+  printf(" downloadup        - "); kitten_puts(1, 28, "download updates. do not install them");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+#ifdef DEBUG
+#if defined(__WATCOMC__)
+#if (__WATCOMC__ >= 1200)
+  printf ("FDNPKG%s is Compiled with OpenWatcom %d.%d\n", EXECNAME,
+                  (__WATCOMC__/100) - 11, (__WATCOMC__ % 100) / 10);
+#else
+  printf ("FDNPKG%s is Compiled with Watcom C %d.%d\n", EXECNAME, __WATCOMC__/100, __WATCOMC__ % 100);
+#endif /* #if (__WATCOMC__ >= 1200) */
+#endif /* #if defined(__WATCOMC__) */
+  puts("");
+#endif /* #ifdef DEBUG */
+#ifdef USE_INTERNAL_WATTCP
+  kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
+  puts("");
+  puts(wattcpVersion());
+#else
+  //kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
+#endif
+}
+static void printhelp2short(void) {
+  //puts("FDNPKG" EXECNAME " v" PVER " (C) " PDATE " Mateusz Viste & Victoria Crenshaw");
+  //kitten_puts(1, 0, "This is a network package manager for FreeDOS."); puts("");
+  printhelpheader();
+  kitten_printf(1,1,"Usage: FDNPKG%s action [parameters]", EXECNAME);
+  puts("");
+  puts("");
+  kitten_puts(1, 2,  "Where action is one of the following:");
+  printf(" ni                - "); kitten_puts(1, 25,  "show avalible packages from repositories");
+  printf(" vn                - "); kitten_puts(1, 26,  "same as 'notinstalled', but prints also source repository");
+  printf(" dl pkg            - "); kitten_puts(1, 27,  "just download the package. do not install");
+  printf(" du                - "); kitten_puts(1, 28, "download updates. do not install them");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+  puts("");
+#ifdef DEBUG
+#if defined(__WATCOMC__)
+#if (__WATCOMC__ >= 1200)
+  printf ("FDNPKG%s is Compiled with OpenWatcom %d.%d\n", EXECNAME,
+                  (__WATCOMC__/100) - 11, (__WATCOMC__ % 100) / 10);
+#else
+  printf ("FDNPKG%s is Compiled with Watcom C %d.%d\n", EXECNAME, __WATCOMC__/100, __WATCOMC__ % 100);
+#endif /* #if (__WATCOMC__ >= 1200) */
+#endif /* #if defined(__WATCOMC__) */
+  puts("");
+#endif /* #ifdef DEBUG */
+#ifdef USE_INTERNAL_WATTCP
+  kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
+  puts("");
+  puts(wattcpVersion());
+#else
   kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
 #endif
 }
@@ -497,6 +585,10 @@ int main(int argc, char **argv) {
         printhelp();
         PRESS_KEY()
         printhelpshort();
+        PRESS_KEY()
+        printhelp2();
+        PRESS_KEY()
+        printhelp2short();
         puts("");
         QUIT(0)
       break;

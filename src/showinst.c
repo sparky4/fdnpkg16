@@ -446,8 +446,9 @@ int forceflagfunction(char *tempfiledest, char *location) {
   if (fileexists(tempfiledest) != 0) {
     if (forceflag == 0) {
       for (;;) {
-        kitten_printf(2, 22, "File %s found locally at %s.\nOverwrite? (1 = NO)(2 = YES)", tempfiledest, location);
+        kitten_printf(2, 22, "File %s found locally at %s.", tempfiledest, location);
         puts("");
+        kitten_puts(2, 23, "Overwrite? (1 = NO)(2 = YES)");
         puts("(y/n)?");
         puts("");
         kitten_printf(3, 4, "Your choice:");
