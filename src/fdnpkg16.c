@@ -360,8 +360,9 @@ int main(int argc, char **argv) {
   int argci;                // sparky4: argument variable for number of variables. for multi packages
   char actionarg[18] = "";  // sparky4: this gotta be long enough for the commands
 
+  //OLD
   // sparky4: this is for various action flags to prevent networking on local files or no repository action for local files
-  //short action_flags; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
+  //----short action_flags; // sparky4: this is for not doing repository stuff. specifically not require to load content of repositories!
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -415,9 +416,9 @@ int main(int argc, char **argv) {
     //----action_flags = 0; // sparky4: old may remove
 
 //0000    printf("Starting  value(hex): 0x%X\n", flags);
-    // sparky4 flag resetter for 2 bits
-    flags &= (~((1 << 3) | (1 << 4) | (1 << 5)));  // sparky4: disable 3rd and 4th bit position in the flags for the 2 new bits to be reseted
-    // 2 bits are for FDNPKG16_NETINIT && FDNPKG16_NOREPOA
+    // sparky4: flag resetter for 2 bits
+    flags &= (~((1 << 3) | (1 << 4) | (1 << 5)));  // sparky4: disable 3rd, 4th, and 5th bit position in the flags for the 3 new bits to be reseted
+    // 3 bits are for FDNPKG16_NETINIT && FDNPKG16_NOREPOA && FDNPKG16_NOINST
 //0000    printf("Resulting value(hex): 0x%X\n", flags);
 
     /* parse cli parameters */
@@ -885,9 +886,7 @@ int main(int argc, char **argv) {
   //              #endif
             if ((htgetres < 0) || (htgetres == 3)) {  /* sparky4: 3 is the size of a no packet driver return */
               kitten_puts(2, 10, "Repository download failed!");
-//              #ifndef ERRCACHE
               maxcachetime = 0; /* disable cache writing this time */
-//              #endif
               // sparky4: plus there is no package or index as small as 3
               if (htgetres == 3) break;  // sparky4: break out of loop no packet driver found!
             } else {
@@ -919,7 +918,7 @@ int main(int argc, char **argv) {
         //sparky4: switches are faster
         switch (action) {
           case ACTION_SEARCH: /* for search: iterate through the sorted db, and print out all packages that match the pattern */
-            if (argc >= 3) { /* a search term has been provided */
+            if (argc >= 3) {  /* a search term has been provided */
               pkgsearch(pkgdb, argv[i+2], verbosemode, repolist);
             } else {
               pkgsearch(pkgdb, NULL, verbosemode, repolist);

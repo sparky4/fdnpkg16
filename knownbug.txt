@@ -12,3 +12,5 @@ cant seem to get fdnpkg16 to work on a system with lower ram
 
 
 Known issue, regarding case-less file name comparisons when checking packages for conflicting files on hard disk.
+
+Known issue, No errorlevels at the moment. reason? complex program i need to talk to freedos people! :D

@@ -43,7 +43,8 @@ DONE
     --> now we getting into big leagues!! :D program should work as "fdnpkg16 reinstall fdnpkg16 fdnpkg" xD
 DONE!
 
-
+- implement errorlevels
+    easy todo just need to talk to others about what numbers for where.
 
 
 
@@ -133,75 +134,8 @@ Some possible improvements:
     DONE
 
 10) There is one other thing to check in FDNPKG16 that was an issue in FDNPKG regarding Ågfile existsÅh problems. A long while back (I think maybe FreeDOS 1.2), there was a typo in the logic that created the environment variable data used by FDINST at OS install time. It resulted in an extra space in the file names in the LST file. Those entries looked something like ÅgC:\FreeDOS \bin\xcopy.exeÅh. FDNPKG and FDINST would see these as conflicts and refuse to update those packages. However, both of those programs had no problem performing a ÅgremoveÅh then ÅgreinstallÅh when the extra space was present. That OS installer issue was resolved a long time ago. But, it is something a user could do by accident when updating environment variables or the config file related to FDNPKG16. It would be good to check that FDNPKG16 does not suffer from the same "extra spaceÅh pathname issue.
-    i need todo this now! :D
+    I need more info on this
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Booted in ÅgSafe ModeÅh (most drivers low), no packet driver.
-
-Ran:
-
-C:\fdnpkg16 cc
-Cache cleared.
-(Good)
-
-C:\fdnpkg16 se listpci
-Loading http://dps.lod.bz/repos/latest/base/Åc
-NO PACKET DRIVER FOUND.
-Repository download failed!
-No Package matched the search.
-(Good)
-
-C:\echo %errorlevel%
-0
-(Should be non-zero to indicate an error)
-
-C:\fdnet
-Packet driver loaded.
-
-C:\fdnpkg16 se listpci
-WARNING: Virtual memory too low. FDNPKG16 may behave unreliably.
-(Good)
-
-C:\echo %errorlevel%
-0
-(Should be non-zero to indicate an error)
-
-Reboot, default (JEMMEX More compatible).
-Packet driver loads automatically.
-
-C:\fdnpkg16 se listvesa
-Loading (each repo dir) Åc.
-Package database is being created. Please wait warmly.
-listvesa - (information)
-(Good)
-
-C:\fdnpkg16 remove pickles
-Package pickles is not installed, so not removed.
-(Good)
-
-C:\echo %errorlevel%
-0
-(Should be non-zero to indicate an error)
-
-C:\fdnpkg16 /dl listvesa
-Package database loaded from local cache.
-Downloaded package
-(Good)
 
 
 
@@ -214,7 +148,7 @@ But, I did run several other tests and found some things that should be improved
 2) running Ågfdnpkg16 /duÅh, started the process of downloading the available updates. However, I pressed ÅgCTRL+CÅh while it was downloading FDISK. It reported that it had a ÅgCRC errorÅh and ÅgAborted the installationÅh. However, it saved the partial package as ÅgFDISK.ZIPÅh and continued downloading additional packages.
     i cannot fix this with how it is set up currently
 
-It should not save (or it should delete) the broken downloaded package. Also, it should prompt to ÅgAbort, Retry or ContinueÅh when an error occurs.
+   It should not save (or it should delete) the broken downloaded package. Also, it should prompt to ÅgAbort, Retry or ContinueÅh when an error occurs.
 
 3) after downloading those packages and deleting the broken fdisk.zip file. Simply running Ågfdnpkg16 update *.zipÅh returns that Ågpackage *.zip is not installedÅh. It would be nicer to support wild-cards when referencing local files.
     I dont want to implement this because of the remove system if you fdnpkg16 rm * freedos will be uninstalled..
