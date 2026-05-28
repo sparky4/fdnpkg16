@@ -21,6 +21,6 @@
   void listfilesofpkg(char *pkgname, char *dosdir);
   void holdpkg(char *pkgname, char *dosdir);
   void unholdpkg(char *pkgname, char *dosdir);
-  int forceflagfunction(char *tempfiledest, char *location);
+  int forceflagfunction(char *tempfiledest, char *location, int tempincurrentdrive);
   void pkgdownloadhandle(char *pkgname, char *tempdir);
 #endif

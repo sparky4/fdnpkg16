@@ -439,11 +439,11 @@ void unholdpkg(char *pkgname, char *dosdir) {
 }
 
 // sparky4: helper function on running forcedflag value. user gets to choose
-int forceflagfunction(char *tempfiledest, char *location) {
+int forceflagfunction(char *tempfiledest, char *location, int tempincurrentdrive) {
   char userchoicestr[8];
   int forceflag, userchoice;
   forceflag = userchoice = 0;
-  if (fileexists(tempfiledest) != 0) {
+  if ((fileexists(tempfiledest) != 0) && (tempincurrentdrive == 1)) {
     if (forceflag == 0) {
       for (;;) {
         kitten_printf(2, 22, "File %s found locally at %s.", tempfiledest, location);
@@ -475,13 +475,15 @@ void pkgdownloadhandle(char *pkgname, char *tempdir)
   char tempfile[512];
   char tempfiledest[512];
   int forceflag;
-  char cwd[1024];
+  char cwd[512];
+  char tmpdir, cwdir;
 
   getcwd(cwd, sizeof(cwd));
   sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
   sprintf(tempfiledest, "%s.zip", pkgname);
+  cwdir = cwd[0]; tmpdir = tempdir[0];
   //sparky4: if no or 1 is selected
-  if ((forceflag = forceflagfunction(tempfiledest, cwd)) == 2) {
+  if ((forceflag = forceflagfunction(tempfiledest, cwd, cwdir == tmpdir)) == 2) {
     unlink(tempfiledest);
   }
   if ((filesize(tempfile) == 8)) { // sparky4: file failed to download? remove it!
@@ -491,10 +493,10 @@ void pkgdownloadhandle(char *pkgname, char *tempdir)
       // Non-zero return value indicates an error
       sprintf(tempfiledest, "%s\\%s.zip", tempdir, pkgname);
       //sparky4: if no or 1 is selected
-      if ((forceflag = forceflagfunction(tempfiledest, getenv("temp"))) == 2) {
+      if (forceflagfunction(tempfiledest, getenv("temp"), 1) == 2) {
         unlink(tempfiledest);
       }
-      if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the current working dir with original name! :D
+      if (rename(tempfile, tempfiledest) != 0) { // sparky4: the file gets renamed into the %temp% dir with original name! :D
         // Non-zero return value indicates an error
         kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", tempfiledest);
         puts("");
@@ -503,7 +505,7 @@ void pkgdownloadhandle(char *pkgname, char *tempdir)
         printf(" %c> %s", 0xC0, tempfiledest);
         puts("");
       }
-    } else {
+    } else if (cwdir == tmpdir) { // sparky4: if successful renaming and forceflag is yes then do this
       // sparky4: let user know the file was renamed
       printf(" %c> %s", 0xC0, tempfiledest);
       puts("");
