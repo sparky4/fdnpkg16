@@ -1,3 +1,4 @@
+if [ -d "fdnpkg16" ]; then
 cd fdnpkg16/NLS
 
 iconv -t cp437 -f utf8 fdnpkg16.en8 > fdnpkg16.en
@@ -31,4 +32,4 @@ iconv -t cp855 -f utf8 fdnpkg16.uk8 > fdnpkg16.uk
 rm fdnpkg16.*8
 cd ../..
 ./pkgzip.sh
-
+fi

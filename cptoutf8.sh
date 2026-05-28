@@ -1,3 +1,4 @@
+if [ ! -d "fdnpkg16" ]; then
 ./pkgunzip.sh
 cd fdnpkg16/NLS
 
@@ -30,3 +31,4 @@ iconv -f cp857 -t utf8 fdnpkg16.tr > fdnpkg16.tr8
 iconv -f cp855 -t utf8 fdnpkg16.uk > fdnpkg16.uk8
 
 cd ../..
+fi
