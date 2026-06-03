@@ -108,7 +108,7 @@ From Jerome:
 As I see it, there are a couple issues with FDNPKG16 that need addressed:
 
 1) Case-less filename comparison when checking the TO-BE-INSTALLED files against the NOW-INSTALLED files in the relevant %DOSDIR%\PACKAGES\*.LST database file.
-    i also need help with this.
+    FIXED
 2) Do not update the CACHE when the online scan fails.
     DONE on next compile as of 5/13/2026
 3) A simple check for sufficient memory and not just repeated failures would be nice. Or at least, stop when the first critical memory related error occurs.
@@ -163,6 +163,102 @@ But, I did run several other tests and found some things that should be improved
 
 
 5) Known issue, regarding case-less file name comparisons when checking packages for conflicting files on hard disk.
-    cant fix this yet
+    fixed
+/* find a filename in a flist linked list, and returns a pointer to it */
+static struct flist_t *findfileinlist(struct flist_t *flist, char *fname) {
+  while (flist != NULL) {
+    if (strcasecmp(flist->fname, fname) == 0) return(flist);
+    flist = flist->next;
+  }
+  return(NULL);
+}
 
 You have made a lot of progress with this updated version.
+
+
+
+
+
+
+
+
+
+In Open Watcom C, break_off() will turn off ctrl+c and ctrl+brk
+checking, but only during normal execution. It does not block ctrl+c
+or ctrl+brk during keyboard input, such as with getch()
+
+For example, this will prevent ctrl+c during the delay() function:
+
+#include <stdlib.h> /* break_on, break_off */
+
+  break_off();
+  puts("wait 2 seconds..");
+  delay(2000);
+  puts("Ok");
+
+
+To block ctrl+c and ctrl+brk during input, you should use
+signal(SIGINT,SIG_IGN) instead. This sets the SIGINT signal to be
+ignored. For example, this prevents ctrl+c when reading keyboard
+input:
+
+#include <signal.h> /* signal */
+
+  signal(SIGINT, SIG_IGN);
+  do {
+    key = getch();
+    if (key == 0) { getch(); }
+    printf("%d\n", key);
+  } while ((key != 27) && (key != 'q') && (key != 'Q'));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I had a few minutes to test out the new/improved features.
+It has improved a lot over previous versions.
+I did not notice any major issues with the new changes.
+However, there were some things which I think could improve user experience.
+
+1) When using /DL (download package) or /DU (download updates), it first downloads the package. Then, if a file already exists with the same name, it prompts to Overwrite. I think it would be better to check for the conflicting file name before downloading. That way, if the user does not want to overwrite the local file, they do not waste time downloading it. Sometimes, these files are pretty big and can take several minutes for a download to complete.
+    this works if u press 1 or n for no
+
+2) It would be nice to provide the option to ÅgAbortÅh, when a conflicting file name already exists.
+    i can implement this
+
+3) When downloading a package or available updates, it shows the message ÅgAn update was foundÅc Update in progressÅh. It should really say ÅgDownload in progressÅh or since the next line says ÅgDownloadingÅcÅh, that ÅgUpdate in progressÅh could simply be removed when just downloading.
+    i cant easily update those strings there is like 30 translation files. sigh
+    ill see what i can do about that then
+
+4) After downloading a package and wanting to update it, the command to do this could be a little confusing to the end user. For example, the was an update to DOSLFN. After it was downloaded, a user may thing running Ågfdnpkg16 update doslfn.zipÅh would update it. But, that will issue an error message that ÅgDOSLFN.ZIP is not installed". So, they may then try to run Ågfdnpkg16 install doslfn.zipÅh which shows the error ÅgDOSLFN is already installed! You may want to use ÅeupdateÅf action.Åh
+This may confuse a user who does not know about the RI option to reinstall a package.
+    again 30 translation files.... let me do this later
+
+5) After downloading all of the updates, it would be nice be able to update them all at once. While they could be done one at a time, if it has been a while since the packages were updated, there can be a lot of them. For example, this machine had 13 updates. It can be tedious to do one at a time. Using something like Ågfdnpkg16 ri *.zipÅh would be awesome when there are a couple dozen packages to (re)install or update.
+    i wont implement wild cards for the remove function because this can ruin the install of freedos
+    also u can just do fdnpkg16 up
+
+:-)
+:3

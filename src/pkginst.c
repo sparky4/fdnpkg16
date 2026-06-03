@@ -176,7 +176,7 @@ int validate_package_not_installed(char *pkgname, char *dosdir, char *mapdrv) {
 /* find a filename in a flist linked list, and returns a pointer to it */
 static struct flist_t *findfileinlist(struct flist_t *flist, char *fname) {
   while (flist != NULL) {
-    if (strcmp(flist->fname, fname) == 0) return(flist);
+    if (strcasecmp(flist->fname, fname) == 0) return(flist); // sparky4: this should be case insensitive! :D 06/03/2026
     flist = flist->next;
   }
   return(NULL);
@@ -508,15 +508,16 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
           for (;;) {
             kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
             puts("");
-            puts("(y/n)?");
+            puts("(y/n/a)?");
             puts("");
             kitten_printf(3, 4, "Your choice:");
             printf(" ");
             fgets(userchoicestr, 6, stdin);
             if (tolower(userchoicestr[0]) == 'n') userchoice = 1;
             else if (tolower(userchoicestr[0]) == 'y') userchoice = 2;
+            else if ((tolower(userchoicestr[0]) == 'a') || (atoi(userchoicestr) == 3)) return(NULL);
             else userchoice = atoi(userchoicestr);
-            if ((userchoice < 1) || (userchoice >= 3)) {
+            if ((userchoice < 1) || (userchoice >= 4)) {
               kitten_puts(3, 5, "Invalid choice!");
             } else {
               break;
