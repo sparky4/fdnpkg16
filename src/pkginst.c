@@ -165,7 +165,7 @@ int is_package_installed(char *pkgname, char *dosdir, char *mapdrv) {
 /* checks that pkgname is NOT installed. return 0 on success, non-zero otherwise. */
 int validate_package_not_installed(char *pkgname, char *dosdir, char *mapdrv) {
   if (is_package_installed(pkgname, dosdir, mapdrv) != 0) {
-    kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'update' action.", pkgname);
+    kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", pkgname);
     puts("");
     return(-1);
   }
@@ -506,7 +506,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         }
         if (forceflag == 0) {
           for (;;) {
-            kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)");
+            kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)(3 = ABORT)");
             puts("");
             puts("(y/n/a)?");
             puts("");

@@ -272,7 +272,7 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
             struct ziplist *zipfileidx;
             char buffmem1k[1024];
             clrline();
-            kitten_printf(10, 3, "An update of '%s' has been found. Update in progress...", packagelist[x]);
+            kitten_printf(10, 3, "An update of '%s' has been found. Download in progress...", packagelist[x]);
             puts("");
             packages_updatefailed += 1; /* increment the updatefailed counter - later we will decrement it if we're okay */
             zipfileidx = pkginstall_preparepackage(pkgdb, packagelist[x], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);

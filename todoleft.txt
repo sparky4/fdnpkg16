@@ -246,7 +246,8 @@ However, there were some things which I think could improve user experience.
     this works if u press 1 or n for no
 
 2) It would be nice to provide the option to ÅgAbortÅh, when a conflicting file name already exists.
-    i can implement this
+    DONE
+    just otta update translations
 
 3) When downloading a package or available updates, it shows the message ÅgAn update was foundÅc Update in progressÅh. It should really say ÅgDownload in progressÅh or since the next line says ÅgDownloadingÅcÅh, that ÅgUpdate in progressÅh could simply be removed when just downloading.
     i cant easily update those strings there is like 30 translation files. sigh
