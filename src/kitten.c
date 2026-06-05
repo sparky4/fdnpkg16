@@ -135,7 +135,7 @@ const char *kittengets(int setnum, int msgnum, const char *message)
 {
 
   int i = 0;
-  
+
   while ((catpoints[i].key1 != setnum) || (catpoints[i].key2 != msgnum)) {
     if ((catpoints[i].text == NULL) || (i>127)) /* at EOF */
       return message;
@@ -162,7 +162,7 @@ nl_catd kittenopen(char *name)
   char *nlsptr;				/* ptr to NLSPATH */
   char *lang;                           /* ptr to LANG */
   int i;
-  
+
   /* Open the _kitten_catalog file */
   /* The value of `_kitten_catalog' will be set based on catread */
 
@@ -226,7 +226,7 @@ nl_catd kittenopen(char *name)
         toklen = strlen(nlsptr); /* last segment */
       else
         toklen = (int)(tok - nlsptr); /* segment terminated by ';' */
-      
+
       /* catfile = malloc(toklen+1+strlen(name)+1+strlen(lang)+1); */
       /* Try to find the _kitten_catalog file in each path from NLSPATH */
 
@@ -261,7 +261,7 @@ nl_catd kittenopen(char *name)
 
         nlsptr = tok;
         if (nlsptr) nlsptr++;
-      
+
     } /* while tok */
 
   /* We could not find it.  Return failure. */
@@ -282,9 +282,9 @@ int catread (char *catfile)
   char  *tok;
 
   /* Get the whole catfile into a buffer and parse it */
-  
+
   file = open (catfile, O_RDONLY);
-  if (file < 0) 
+  if (file < 0)
       /* Cannot open the file.  Return failure */
       return 0;
 
@@ -316,7 +316,7 @@ int catread (char *catfile)
       return 1; /* success */
     }
 
-    tok[0] = '\0'; /* terminate here */ 
+    tok[0] = '\0'; /* terminate here */
     tok--; /* guess: \r before \n */
     if (tok[0] != '\r')
       tok++; /* if not, go back */
@@ -375,7 +375,7 @@ void kittenclose (void)
 int mystrtoul(char *src, int base, int size)
 {
 	int ret = 0;
-	
+
 	for (; size > 0; size--)  {
 	  int digit;
 	  int ch = *src;
@@ -392,13 +392,13 @@ int mystrtoul(char *src, int base, int size)
 
           if (digit >= base)
   	    return -1;
-	  
+
 	  ret = ret * base + digit;
 	} /* for */
 
 	return ret;
-}		  	  	
-	  	
+}
+
 
 /**
  * Process strings, converting \n, \t, \v, \b, \r, \f, \\,
@@ -424,7 +424,7 @@ char *processEscChars(char *line)
   while (*src != '\0') {
     ch = *src;
     src++;
-    
+
     if (ch == '\\') {
       ch = *src; /* what follows slash? */
       src++;
@@ -555,7 +555,7 @@ int get_line (int file, char *orig_str, int size)
       /* test if the pointers are equal, there is not content in the buffer */
       if(str == orig_str)
         return 0;  /* fail, no more content */
-      
+
       return 1; /* success */
     }
 
