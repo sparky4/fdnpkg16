@@ -6,7 +6,7 @@
 #ifndef fileexists_sentinel
 #define fileexists_sentinel
 
-int fileexists(char *filename);
+int fileexists(const char *filename);
 long filesize(const char *filename);
 
 #endif

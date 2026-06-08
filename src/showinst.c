@@ -454,9 +454,17 @@ int forceflagfunction(char *tempfiledest, char *location, int tempincurrentdrive
         kitten_printf(3, 4, "Your choice:");
         printf(" ");
         fgets(userchoicestr, 6, stdin);
-        if (tolower(userchoicestr[0]) == 'n') userchoice = 1;
-        else if (tolower(userchoicestr[0]) == 'y') userchoice = 2;
-        else userchoice = atoi(userchoicestr);
+        switch (tolower(userchoicestr[0])) {
+              case 'n':
+                userchoice = 1;
+              break;
+              case 'y':
+                userchoice = 2;
+              break;
+              default:
+                userchoice = atoi(userchoicestr);
+              break;
+            }
         if ((userchoice < 1) || (userchoice >= 3)) {
           kitten_puts(3, 5, "Invalid choice!");
         } else {

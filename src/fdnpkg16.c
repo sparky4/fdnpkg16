@@ -996,8 +996,7 @@ int main(int argc, char **argv) {
             }
           break;
           case ACTION_DOWNLOADUPDATES:
-            flags &= ~(PKGINST_UPDATE);
-            checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags, dirlist, proxy, proxyport, downloadingstring, mapdrv);
+            checkupdates(dosdir, pkgdb, repolist, NULL, tempdir, flags & ~(PKGINST_UPDATE), dirlist, proxy, proxyport, downloadingstring, mapdrv);
           break;
         } //sparky4: end of action switch
         /* free memory of the pkg database */

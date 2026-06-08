@@ -499,12 +499,10 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
       mapdrives(fname, mapdrv);
       strcat(fname, shortfile);
       if ((findfileinlist(flist, fname) == NULL) && (fileexists(fname) != 0)) {
-        char userchoicestr[8];
-        if (forceflag < 2) {
+        if (forceflag == 0) {
+          char userchoicestr[8];
           kitten_puts(3, 9, "Error: Package contains a file that already exists locally:");
           printf(" %s\n", fname);
-        }
-        if (forceflag == 0) {
           for (;;) {
             kitten_printf(3, 24, "Force install package? (1 = NO)(2 = YES)(3 = ABORT)");
             puts("");
@@ -513,10 +511,20 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
             kitten_printf(3, 4, "Your choice:");
             printf(" ");
             fgets(userchoicestr, 6, stdin);
-            if (tolower(userchoicestr[0]) == 'n') userchoice = 1;
-            else if (tolower(userchoicestr[0]) == 'y') userchoice = 2;
-            else if ((tolower(userchoicestr[0]) == 'a') || (atoi(userchoicestr) == 3)) return(NULL);
-            else userchoice = atoi(userchoicestr);
+            switch (tolower(userchoicestr[0])) {
+              case 'n':
+                userchoice = 1;
+              break;
+              case 'y':
+                userchoice = 2;
+              break;
+              case 'a':
+                userchoice = 3;
+              break;
+              default:
+                userchoice = atoi(userchoicestr);
+              break;
+            }
             if ((userchoice < 1) || (userchoice >= 4)) {
               kitten_puts(3, 5, "Invalid choice!");
             } else {
@@ -526,8 +534,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
           forceflag = userchoice;
         }
       }
-      //sparky4: if no or 1 is selected
-      if (forceflag == 1) {
+      // sparky4: if no or 1 is selected
+      if (forceflag%2 != 0) {
         zip_freelist(&ziplinkedlist);
         fclose(*zipfd);
         return(NULL);
@@ -550,7 +558,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         fclose(*zipfd);
         return(NULL);
       }
-      if (strcmp(curzipnode->filename, appinfofile) == 0) appinfopresence = 1;
+      if (strcasecmp(curzipnode->filename, appinfofile) == 0) appinfopresence = 1;
       prevzipnode = curzipnode;
       curzipnode = curzipnode->nextfile;
     }
