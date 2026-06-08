@@ -276,8 +276,8 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
             puts("");
             packages_updatefailed += 1; /* increment the updatefailed counter - later we will decrement it if we're okay */
             zipfileidx = pkginstall_preparepackage(pkgdb, packagelist[x], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
-            if (!(flags & FDNPKG16_NOINST)) { // sparky4: flag to prevent package upgrade if the flag is set
-              if (zipfileidx != NULL) {
+            if (zipfileidx != NULL) {
+              if (!(flags & FDNPKG16_NOINST)) { // sparky4: flag to prevent package upgrade if the flag is set
                 if (pkgrem(packagelist[x], dosdir, mapdrv) != 0) {
                   /* ooops, package removal failed... */
                   zip_freelist(&zipfileidx);
@@ -288,9 +288,9 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
                   }
                 }
                 fclose(zipfilefd);
+              } else { // sparky4: just download the package itself
+                pkgdownloadhandle(packagelist[x], tempdir);
               }
-            } else { // sparky4: just download the package itself
-              pkgdownloadhandle(packagelist[x], tempdir);
             }
           }
           puts(""); /* add a line feed to visually separate packages */
