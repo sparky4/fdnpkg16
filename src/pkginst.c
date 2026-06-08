@@ -378,7 +378,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //      #else
 //      if (htgetres != 21) {
 //      #endif
-      if (htgetres < 0) {
+      if ((htgetres < 0) || (htgetres == 3)) {  /* sparky4: 3 is the size of a no packet driver return */
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }
