@@ -164,14 +164,6 @@ But, I did run several other tests and found some things that should be improved
 
 5) Known issue, regarding case-less file name comparisons when checking packages for conflicting files on hard disk.
     fixed
-/* find a filename in a flist linked list, and returns a pointer to it */
-static struct flist_t *findfileinlist(struct flist_t *flist, char *fname) {
-  while (flist != NULL) {
-    if (strcasecmp(flist->fname, fname) == 0) return(flist);
-    flist = flist->next;
-  }
-  return(NULL);
-}
 
 You have made a lot of progress with this updated version.
 
@@ -247,15 +239,16 @@ However, there were some things which I think could improve user experience.
 
 2) It would be nice to provide the option to ÅgAbortÅh, when a conflicting file name already exists.
     DONE
-    just otta update translations
+    just gotta update translations
 
 3) When downloading a package or available updates, it shows the message ÅgAn update was foundÅc Update in progressÅh. It should really say ÅgDownload in progressÅh or since the next line says ÅgDownloadingÅcÅh, that ÅgUpdate in progressÅh could simply be removed when just downloading.
     i cant easily update those strings there is like 30 translation files. sigh
     ill see what i can do about that then
+    done
 
 4) After downloading a package and wanting to update it, the command to do this could be a little confusing to the end user. For example, the was an update to DOSLFN. After it was downloaded, a user may thing running Ågfdnpkg16 update doslfn.zipÅh would update it. But, that will issue an error message that ÅgDOSLFN.ZIP is not installed". So, they may then try to run Ågfdnpkg16 install doslfn.zipÅh which shows the error ÅgDOSLFN is already installed! You may want to use ÅeupdateÅf action.Åh
 This may confuse a user who does not know about the RI option to reinstall a package.
-    again 30 translation files.... let me do this later
+    done
 
 5) After downloading all of the updates, it would be nice be able to update them all at once. While they could be done one at a time, if it has been a while since the packages were updated, there can be a lot of them. For example, this machine had 13 updates. It can be tedious to do one at a time. Using something like Ågfdnpkg16 ri *.zipÅh would be awesome when there are a couple dozen packages to (re)install or update.
     i wont implement wild cards for the remove function because this can ruin the install of freedos

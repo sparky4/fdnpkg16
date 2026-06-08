@@ -122,7 +122,7 @@ Where action is one of the following:
  li                - print out the license of this program
 
 
-** 4 actions here are not located in the program's help **
+** 4 new actions here are now located in the program's help **
  notinstalled      - show avalible packages from repositories
  vnotinstalled     - same as 'notinstalled', but prints also source repositories
  download pkg      - just download the package. do not install
