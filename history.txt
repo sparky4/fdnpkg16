@@ -1,11 +1,10 @@
 
 * FDNPKG16 history file *
 
-FDNPKG16 v0.99.8254c [08 Jun 2026]
+FDNPKG16 v0.99.8254c [09 Jun 2026]
  - [fix] case-less file name comparisons when checking packages for conflicting files on hard disk
  - [new] you can now press a or 3 to abort the installation of a package with files on disk
  - [fix] updated translations
- - [fix] fixed another bug with downloading packages
 
 FDNPKG16 v0.99.8254b [28 May 2026]
  - [fix] fixed a bug with downloading a file not existing in repository. It removes the broken file downloaded.
