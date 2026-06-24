@@ -20,12 +20,15 @@ int fileexists(const char *filename) {
 
 long filesize(const char *filename) {
   long size;
-  FILE *fp = fopen(filename, "rb");
-  if (fp == NULL) return -1;
-
-  fseek(fp, 0L, SEEK_END);
-  size = ftell(fp);
-  fclose(fp);
-
+  FILE *fp;
+  fp = fopen(filename, "rb");
+  if (fp == NULL) {
+    fclose(fp);
+    return -1;
+  } else {
+    fseek(fp, 0L, SEEK_END);
+    size = ftell(fp);
+    fclose(fp);
+  }
   return(size);
 }
