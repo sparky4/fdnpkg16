@@ -1,0 +1,173 @@
+### Language: spanish
+### File ending: es
+### Codepage: 850
+### English NLS creator: Mateusz Viste && Victoria Crenshaw (sparky4)
+### Translation made by Google Gemini
+### This translation was made by Google AI, please help the
+### FreeDOS group to improve it.
+
+
+############ Help ############
+
+1.0:Gestor de paquetes de red para FreeDOS.
+1.1:Uso: FDNPKG%s acci¢n [par metros]
+1.2:Donde acci¢n es una de las siguientes:
+1.3:buscar paquetes en repositorios que contengan 'str'
+1.4:igual que 'search', pero muestra repositorios fuente
+1.5:instalar el paquete 'pkg' (o archivo zip local)
+1.6:eliminar el paquete 'pkg'
+1.7:mostrar la configuraci¢n cargada del archivo cfg
+1.8:mostrar la licencia de este programa
+1.9:FDNPKG%s est  vinculado a la versi¢n de Watt-32:
+1.10:instalar paquete 'pkg' (o zip local) sin fuentes
+1.11:instalar paquete 'pkg' (o zip local) con fuentes
+1.12:mostrar lista de paquetes instalados con 'str'
+1.13:buscar actualizaciones de paquetes disponibles
+1.14:actualizar el paquete 'pkg' a una versi¢n m s reciente
+1.15:actualizar 'pkg' a la £ltima (o todo si no hay arg)
+1.16:listar paquetes locales instalados con 'str'
+1.17:FDNPKG%s est  vinculado a la versi¢n de WatTCP:
+1.18:listar archivos del paquete 'pkg'
+1.19:limpiar el cach‚ local de FDNPKG%s
+1.20:reinstalar el paquete 'pkg' (o zip local)
+1.21:FDNPKG%s est  usando HTTPGET.EXE
+1.22:listar todos los paquetes retenida o los que contienen str
+1.23:mantener 'pkg' en la versi¢n actual
+1.24:liberar 'pkg' para actualizaciones
+
+
+######### General stuff ############
+
+2.0:­%%TEMP%% no definida! Debe apuntar a un directorio con escritura.
+2.1:Ejemplo: SET TEMP=C:\TEMP
+2.2:­%%DOSDIR%% no definida! Debe apuntar al directorio de FreeDOS.
+2.3:Ejemplo: SET DOSDIR=C:\FDOS
+2.4:Argumentos inv lidos. Ejecute FDNPKG%s sin par metros para ayuda.
+2.5:No hay repositorio configurado. Necesita al menos uno.
+2.6:Ponga en su configuraci¢n al menos una entrada como:
+2.7:REPO www.freedos.org/repo
+2.8:Lista de repositorios FDNPKG%s configurados:
+2.9:Actualizando %s...
+2.10:­Fallo al descargar repositorio!
+2.11:Error al cargar repositorio desde archivo temporal...
+2.12:Aviso: ­%%TZ%% no definida! Fechas de archivos pueden ser err¢neas.
+2.13:Base de datos cargada desde cach‚ local.
+2.14:­Memoria insuficiente! (%s)
+2.15:Error: ­Fallo al inicializar TCP/IP!
+2.16:Cargando %s...
+2.17:AVISO: Memoria virtual baja. FDNPKG%s puede ser inestable.
+2.18:ERROR: No se puede escribir en '%s'. Revise %%TEMP%%.
+2.19:Cach‚ limpiado.
+2.20:Creando base de datos. Por favor, espere.
+2.21:Pulse cualquier tecla excepto Q para continuar...
+
+
+############ Installing package ############
+
+3.0:­%s ya instalado! Elim¡nelo primero para actualizar.
+3.1:No se hall¢ el paquete '%s' en repositorios.
+3.2:El paquete '%s' no est  disponible en repositorios.
+3.3:%s disponible en varios repositorios. Elija uno:
+3.4:Su elecci¢n:
+3.5:­Elecci¢n inv lida!
+3.6:Descargando paquete %s...
+3.7:Error descargando paquete. Abortado.
+3.8:Error: ­Archivo zip inv lido! No se instal¢.
+3.9:Error: El paquete contiene un archivo que ya existe:
+3.10:Error: ­No se pudo crear %s!
+3.11:Paquete %s instalado.
+3.12:Error: ­Falta el archivo %s! Paquete FreeDOS no v lido.
+3.13:Error: CRC del paquete err¢neo. Instalaci¢n abortada.
+3.14:Error: No se pudo abrir el paquete. Instalaci¢n abortada.
+3.15:Error: ­Sin memoria al calcular CRC del paquete!
+3.16:Paquete %s instalado (con fuentes).
+3.17:Paquete %s instalado (sin fuentes).
+3.18:­%s ya instalado! Use la acci¢n 'update'.
+3.19:Paquete %s instalado: %d archivos, %d errores.
+3.20:Error: El paquete contiene un archivo cifrado:
+3.21:Error: No se pudo leer el archivo de enlace '%s'.
+3.22:Error: No se pudo escribir el archivo de enlace '%s'.
+3.23:Error: El paquete contiene un nombre de archivo inv lido:
+3.24:¨Forzar instalaci¢n? (1 = NO)(2 = SÖ)
+
+
+############ Removing package ############
+
+4.0:El paquete %s no est  instalado, no se elimina.
+4.1:­Error al abrir archivo .lst!
+4.2:L¡mite alcanzado. ­No se borrar  el directorio %s!
+4.3:­Sin memoria! ­No se pudo guardar el directorio %s!
+4.4:eliminando %s
+4.5:El paquete %s ha sido eliminado.
+
+
+############ Searching package ############
+
+5.0:Ning£n paquete coincide con la b£squeda.
+5.1:­Sin memoria al procesar descripciones!
+
+
+############ Package database handling ############
+
+6.0:Error: Öndice inv lido (cabecera). Repositorio omitido.
+6.1:Error: Öndice inv lido. Repositorio omitido.
+6.2:Error: ­Sin memoria al cargar base de datos!
+6.3:Error: No se pudo abrir el archivo de datos en '%s'.
+6.4:Aviso: ­No se pudo abrir cach‚ de BD en %s!
+6.5:Mensaje de %s:
+
+
+############ Loading configuration ############
+
+7.0:Error: ­el repositorio '%s' est  duplicado!
+7.1:Error: ­No se pudo abrir el archivo '%s'!
+7.2:Aviso: etiqueta sin valor en l¡nea ###%d
+7.3:Aviso: desbordamiento de etiqueta en l¡nea ###%d
+7.4:Aviso: etiqueta con valor vac¡o en l¡nea ###%d
+7.5:Aviso: espacios al final en l¡nea ###%d
+7.6:Repositorio omitido: demasiados (m x=%d)
+7.8:Aviso: Etiqueta '%s' desconocida en l¡nea ###%d
+7.9:Aviso: desbordamiento de valor en l¡nea ###%d
+7.10:Aviso: valor '%s' ilegal en l¡nea ###%d
+7.11:Aviso: directiva 'DIR' inv lida en l¡nea ###%d
+7.12:Error: ruta DIR muy larga en l¡nea ###%d
+7.13:Error: Variable de entorno '%s' inexistente en l¡nea ###%d
+7.14:Error: ­el repositorio '%s' est  duplicado!
+7.15:Error: ­ruta '%s' no es una ruta absoluta v lida!
+7.16:Error: ­'%s' es un nombre reservado!
+
+
+############ Unzipping package ############
+
+8.0:­Sin memoria!
+8.1:firma zip desconocida: 0x%08lx
+8.2:Error: M‚todo de compresi¢n no soportado (%d):
+8.3:­Error al extraer '%s' en '%s'!
+
+
+############ Handling the local list of installed packages ############
+
+9.0:Error: No se pudo acceder al directorio %s.
+9.1:Error: No se encontr¢ el paquete local %s.
+
+
+############ Package updates ############
+
+10.0:%s (versi¢n local: %s)
+10.1:versi¢n %s en %s
+10.2:No hay actualizaciones para '%s'.
+10.3:Hay una actualizaci¢n para '%s'. Actualizando...
+10.4:%d paquete(s) actualizado(s), %d fallido(s).
+10.5:Se hallaron %d actualizaci¢n(es).
+10.6:El paquete %s no est  instalado.
+10.7:Buscando actualizaciones...
+
+
+############ Downloading ############
+
+11.0:Descargando %s... %ld bytes
+
+
+#### Mantener el cambio de nombre ####
+
+12.0:Error: Se ha producido un error al cambiar el nombre del archivo %s.
