@@ -14,13 +14,11 @@
 
   void pkg_freeflist(struct flist_t *flist);
   struct flist_t *pkg_loadflist(char *pkgname, char *dosdir);
-  void showinstalledpkgs(char *filterstr, char *dosdir);
-  void showheldedpkgs(char *filterstr, char *dosdir);
+  void showinstalledpkgs(char *filterstr, char *dosdir, int heldflag);
   void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, int verbosemode, char **repolist);
   int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, char *tempdir, int flags, struct customdirs *dirlist, char *proxy, int proxyport, char *downloadingstring, char *mapdrv);
   void listfilesofpkg(char *pkgname, char *dosdir);
-  void holdpkg(char *pkgname, char *dosdir);
-  void unholdpkg(char *pkgname, char *dosdir);
+  void modifyholdstatuspkg(char *pkgname, char *dosdir, int holdflag);
   int forceflagfunction(char *tempfiledest, char *location, int tempincurrentdrive);
   void pkgdownloadhandle(char *pkgname, char *tempdir);
 #endif

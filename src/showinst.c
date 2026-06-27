@@ -99,13 +99,13 @@ static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packa
 
 #define packagelist_maxlen 1024
 
-void showinstalledpkgs(char *filterstr, char *dosdir) {
+void showinstalledpkgs(char *filterstr, char *dosdir, int heldflag) {
   char *packagelist[packagelist_maxlen];
   char *packagelist_ver[packagelist_maxlen];
   int packagelist_len, x;
 
   /* load the list of packages */
-  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, filterstr, dosdir, 0);   /* Populate the packages list */
+  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, filterstr, dosdir, heldflag);   /* Populate the packages list */
   if (packagelist_len < 0) return;
   if (packagelist_len == 0) {
     kitten_puts(5, 0, "No package matched the search.");
@@ -119,25 +119,6 @@ void showinstalledpkgs(char *filterstr, char *dosdir) {
   }
 }
 
-void showheldedpkgs(char *filterstr, char *dosdir) {
-  char *packagelist[packagelist_maxlen];
-  char *packagelist_ver[packagelist_maxlen];
-  int packagelist_len, x;
-
-  /* load the list of packages */
-  packagelist_len = loadinstpkglist(packagelist, packagelist_ver, packagelist_maxlen, filterstr, dosdir, 1);   /* Populate the packages list */
-  if (packagelist_len < 0) return;
-  if (packagelist_len == 0) {
-    kitten_puts(5, 0, "No package matched the search.");
-    return;
-  }
-
-  /* iterate through all packages */
-  for (x = 0; x < packagelist_len; x++) {
-    /* print the package/version couple on screen */
-    printf("%s %s\n", packagelist[x], packagelist_ver[x]);
-  }
-}
 
 #define NOTINST_SEARCHFLAG     1
 #define NOTINST_MATCHFLAG      2
@@ -396,34 +377,24 @@ void listfilesofpkg(char *pkgname, char *dosdir) {
 }
 
 
-// sparky4: hold packages
-void holdpkg(char *pkgname, char *dosdir) {
+// sparky4: modify hold status of a package
+void modifyholdstatuspkg(char *pkgname, char *dosdir, int holdflag) {
   char old_filename[256];
   char new_filename[256];
 
-  sprintf(old_filename, "%s\\packages\\%s.lst", dosdir, pkgname);
-  sprintf(new_filename, "%s\\packages\\%s.lsx", dosdir, pkgname);
-  if (fileexists(old_filename) == 0) { /* file does not exist */
-    kitten_printf(9, 1, "Error: Local package %s not found.", pkgname);
-    puts("");
-    return;
+  switch (holdflag) {
+    case 0: // sparky4: hold
+      sprintf(old_filename, "%s\\packages\\%s.lst", dosdir, pkgname);
+      sprintf(new_filename, "%s\\packages\\%s.lsx", dosdir, pkgname);
+    break;
+    case 1: // sparky4: unhold
+      sprintf(old_filename, "%s\\packages\\%s.lsx", dosdir, pkgname);
+      sprintf(new_filename, "%s\\packages\\%s.lst", dosdir, pkgname);
+    break;
+    default:
+      return;
+    break;
   }
-
-  // Use the rename function
-  if (rename(old_filename, new_filename) != 0) {
-    // Non-zero return value indicates an error
-    kitten_printf(12, 0, "Error: Renaming the file %s has returned an error.", old_filename);
-    puts("");
-  }
-}
-
-// sparky4: unhold packages
-void unholdpkg(char *pkgname, char *dosdir) {
-  char old_filename[256];
-  char new_filename[256];
-
-  sprintf(old_filename, "%s\\packages\\%s.lsx", dosdir, pkgname);
-  sprintf(new_filename, "%s\\packages\\%s.lst", dosdir, pkgname);
   if (fileexists(old_filename) == 0) { /* file does not exist */
     kitten_printf(9, 1, "Error: Local package %s not found.", pkgname);
     puts("");

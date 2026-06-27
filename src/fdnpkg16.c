@@ -609,7 +609,7 @@ int main(int argc, char **argv) {
       {
         char *filterstr = NULL;
         if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-        showinstalledpkgs(filterstr, dosdir);
+        showinstalledpkgs(filterstr, dosdir, 0);
       }
       break;
       /* listing local files need no special preparation - do it now and quit */
@@ -621,7 +621,7 @@ int main(int argc, char **argv) {
       {
         char *filterstr = NULL;
         if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-        showheldedpkgs(filterstr, dosdir);
+        showinstalledpkgs(filterstr, dosdir, 1);
       }
       break;
       /* hold a package and dont change it */
@@ -629,7 +629,7 @@ int main(int argc, char **argv) {
       {
         char *filterstr = NULL;
         if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-        holdpkg(filterstr, dosdir);
+        modifyholdstatuspkg(filterstr, dosdir, 0);
       }
       break;
       /* unhold a package and do change it */
@@ -637,7 +637,7 @@ int main(int argc, char **argv) {
       {
         char *filterstr = NULL;
         if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-        unholdpkg(filterstr, dosdir);
+        modifyholdstatuspkg(filterstr, dosdir, 1);
       }
       break;
       /* if we install from a local file, do it and quit */
