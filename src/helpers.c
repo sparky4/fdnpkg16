@@ -289,26 +289,25 @@ char *getfext(char *fname) {
 }
 
 
-// sparky4: percentage adding.
-char *percent_adding(char *downloadingstring)
-{
+// sparky4: percentage adding
+char *percent_adding(const char *dlstr) {
   int i, j;
-  char *downloadingstringformat = "";
-  int str_len = strlen(downloadingstring);
-  for (i = j = 0; (i < str_len) && (downloadingstring[i] != '\0'); i++) {
-    switch (downloadingstring[i]) {
+  char *dlstrres = ""; // sparky4: return string
+  int dlstrlen = strlen(dlstr);
+  for (i = j = 0; (i < dlstrlen) && (dlstr[i] != '\0'); i++) {
+    switch (dlstr[i]) {
       case '%':
         // When a '%' is found, add two '%' characters to the destination
-        downloadingstringformat[j++] = '%';
-        downloadingstringformat[j++] = '%';
+        dlstrres[j++] = '%';
+        dlstrres[j++] = '%';
       break;
       default:
         // Otherwise, copy the character as is
-        downloadingstringformat[j++] = downloadingstring[i];
+        dlstrres[j++] = dlstr[i];
       break;
     }
   }
   // Null-terminate the new string
-  downloadingstringformat[j] = '\0';
-  return(downloadingstringformat);
+  dlstrres[j] = '\0';
+  return(dlstrres);
 }
