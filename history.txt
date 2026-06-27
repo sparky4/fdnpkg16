@@ -1,6 +1,11 @@
 
 * FDNPKG16 history file *
 
+FDNPKG16 v0.99.8254d [28 Jun 2026]
+ - [fix] a bunch of code
+ - [new] added basic error levels
+ - [fix] fixed a potential bug with an error catcher
+
 FDNPKG16 v0.99.8254c [09 Jun 2026]
  - [fix] case-less file name comparisons when checking packages for conflicting files on hard disk
  - [new] you can now press a or 3 to abort the installation of a package with files on disk
