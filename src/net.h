@@ -8,9 +8,6 @@
 #ifndef libtcp_hdr
 #define libtcp_hdr
 
-//#define DEBUG_NET  /* uncomment this to enable debug mode for networking */
-//#undef DEBUG_NET  //sparky4: undefining debug_net for quietness
-
 struct net_tcpsocket {
   void *sock;
   char *buffer;

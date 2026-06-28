@@ -15,17 +15,16 @@
 #include <utime.h>     /* utime() */
 #include <unistd.h>    /* unlink() */
 
-#include "libunzip.h"  /* include self for control */
-
 #include "crc32.h"
 #include "kprintf.h"
-#include "parsecmd.h"
 #ifndef NOLZMA
   #define _LZMA_UINT32_IS_ULONG
   #include "lzmadec.h"   /* LZMA support */
 #endif
 #include "inf.h"   /* DEFLATE support */
 #include "version.h"
+
+#include "libunzip.h"  /* include self for control */
 
 
 /* converts a "DOS format" timestamp into unix timestamp. The DOS timestamp is constructed an array of 4 bytes, that contains following data at the bit level:

@@ -1,4 +1,4 @@
-/* This file is part of the FDNPKG project. It is an adaptation of the
+/* This file is part of the FDNPKG16 project. It is an adaptation of the
  * "zpipe.c" example of zlib's inflate() and deflate() usage.
  *
  * Not copyrighted -- provided to the public domain

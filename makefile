@@ -25,6 +25,7 @@ OBJ=obj
 DUMP=type
 !endif
 
+#getdelim for open watcom 1.9
 #!ifdef __WATCOMC__
 !if $(__VERSION__) < 1300
 GETDELIM = src$(DIRSEP)getdelim.c
