@@ -103,7 +103,7 @@ static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packa
 
 #define packagelist_maxlen 1024
 
-void showinstalledpkgs(char *filterstr, char *dosdir, int heldflag) {
+void showinstalledpkgs(char *filterstr, char *dosdir, char heldflag) {
   char *packagelist[packagelist_maxlen];
   char *packagelist_ver[packagelist_maxlen];
   int packagelist_len, x;
@@ -382,7 +382,7 @@ void listfilesofpkg(char *pkgname, char *dosdir) {
 
 
 // sparky4: modify hold status of a package
-void modifyholdstatuspkg(char *pkgname, char *dosdir, int holdflag) {
+void modifyholdstatuspkg(char *pkgname, char *dosdir, char holdflag) {
   char old_filename[256];
   char new_filename[256];
 
