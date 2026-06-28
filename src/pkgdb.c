@@ -13,7 +13,11 @@
 #include <strings.h>/* strcasecmp() */
 #include <time.h>   /* time() */
 
-//#include "getdelim.h" /* a getdelim() implementation - there is none availble on DJGPP */
+#if defined(__WATCOMC__)
+#if (__WATCOMC__ < 1300)
+#include "getdelim.h" /* a getdelim() implementation - there is none availble on DJGPP */
+#endif
+#endif
 #include "kprintf.h"
 #include "pkgdb.h"
 #include "rtrim.h"

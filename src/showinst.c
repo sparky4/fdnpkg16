@@ -21,7 +21,11 @@
 
 #include "fdnpkg16.h" /* PKGINST_UPDATE */
 #include "fileexst.h"
-//#include "getdelim.h"
+#if defined(__WATCOMC__)
+#if (__WATCOMC__ < 1300)
+#include "getdelim.h"
+#endif
+#endif
 #include "helpers.h"  /* fdnpkg16_strcasestr(), slash2backslash()... */
 #include "kprintf.h"
 #include "libunzip.h"  /* zip_freelist()... */

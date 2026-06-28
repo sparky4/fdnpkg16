@@ -16,7 +16,11 @@
 #endif
 
 #include "fileexst.h"
-//#include "getdelim.h"
+#if defined(__WATCOMC__)
+#if (__WATCOMC__ < 1300)
+#include "getdelim.h"
+#endif
+#endif
 #include "helpers.h"   /* slash2backslash() */
 #include "kprintf.h"
 #include "pkgrem.h"
