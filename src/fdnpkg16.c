@@ -357,7 +357,7 @@ int main(int argc, char **argv) {
   int i, y;                 // sparky4: used in for loops... you know.. counting
   int netinitres;           // sparky4: for netowrking initialization for internal networking (external for now)
   int argci;                // sparky4: argument variable for number of variables. for multi packages
-  char actionarg[18] = "";  // sparky4: this gotta be long enough for the commands
+  char actionarg[24] = "";  // sparky4: this gotta be long enough for the commands
 
   #ifdef DEBUG
   puts("DEBUG BUILD " __DATE__ " " __TIME__);
@@ -646,7 +646,7 @@ int main(int argc, char **argv) {
       /* if we install from a local file, do it and quit */
       case ACTION_INSTALL_LOCALFILE:
       {
-        char pkgname[64];
+        char pkgname[16];
         char buffmem1k[1024];
         int t, lastpathdelim = -1, u = 0;
         for (t = 0; argv[i+2][t] != 0; t++) {
@@ -674,7 +674,7 @@ int main(int argc, char **argv) {
       /* sparky4: Reinstall a local file! */
       case ACTION_REINSTALL_LOCALFILE:
       {
-        char pkgname[64];
+        char pkgname[16];
         char buffmem1k[1024];
         int t, lastpathdelim = -1, u = 0;
         for (t = 0; argv[i+2][t] != 0; t++) {
