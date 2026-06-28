@@ -13,7 +13,7 @@
 #include <strings.h>/* strcasecmp() */
 #include <time.h>   /* time() */
 
-#include "getdelim.h" /* a getdelim() implementation - there is none availble on DJGPP */
+//#include "getdelim.h" /* a getdelim() implementation - there is none availble on DJGPP */
 #include "kprintf.h"
 #include "pkgdb.h"
 #include "rtrim.h"

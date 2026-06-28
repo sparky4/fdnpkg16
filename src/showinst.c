@@ -21,7 +21,7 @@
 
 #include "fdnpkg16.h" /* PKGINST_UPDATE */
 #include "fileexst.h"
-#include "getdelim.h"
+//#include "getdelim.h"
 #include "helpers.h"  /* fdnpkg16_strcasestr(), slash2backslash()... */
 #include "kprintf.h"
 #include "libunzip.h"  /* zip_freelist()... */

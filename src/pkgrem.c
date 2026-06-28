@@ -16,7 +16,7 @@
 #endif
 
 #include "fileexst.h"
-#include "getdelim.h"
+//#include "getdelim.h"
 #include "helpers.h"   /* slash2backslash() */
 #include "kprintf.h"
 #include "pkgrem.h"
