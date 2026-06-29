@@ -993,10 +993,25 @@ int main(int argc, char **argv) {
           break;
           case ACTION_DOWNLOAD:  /* DOWNLOAD ONLY! */
             {
+              char pkgname[16];
               char membuff1k[1024];
+              int t, lastpathdelim = -1, u = 0;
+              for (t = 0; argv[i+2][t] != 0; t++) {
+                if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
+              }
+              /* copy the filename into pkgname (without path elements) */
+              for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
+              pkgname[u] = 0; /* terminate the string */
+              /* truncate the file's extension (.zip) */
+              for (t = u; t > 0; t--) {
+                if (pkgname[t] == '.') {
+                  pkgname[t] = 0;
+                  break;
+                }
+              }
               /* prepare the zip file */
-              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
-              pkgdownloadhandle(argv[i+2], tempdir);
+              zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+              pkgdownloadhandle(pkgname, tempdir);
               break;
             }
           break;
