@@ -1,7 +1,7 @@
 
 * FDNPKG16 history file *
 
-FDNPKG16 v0.99.8254d [28 Jun 2026]
+FDNPKG16 v0.99.8254d [29 Jun 2026]
  - [fix] cleaned a bunch of code
  - [new] added basic error levels
  - [fix] fixed a potential bug with an error catcher and lsxflag
