@@ -325,9 +325,12 @@ static int trycreatefileindir(char *dirname) {
   kittenclose(); \
   return(x);
 
+#define PRESS_QKEY() \
+  while (tolower(getch()) == 'q') { QUIT(0) }
+
 #define PRESS_KEY() \
   kitten_puts(2, 21, "Press any key but Q to continue..."); \
-  while (tolower(getch()) == 'q') { QUIT(0) }
+  PRESS_QKEY()
 
 
 int main(int argc, char **argv) {
