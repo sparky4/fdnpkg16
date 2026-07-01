@@ -52,7 +52,7 @@ unsigned long net_dnsresolve(const char *name) {
   hostaddr = lookup_host(name,NULL);
   if (hostaddr == 0) return(0); /* dns resolving error */
   if ((namelen < 64) && (freeentry >= 0)) { /* if not longer than maxlen, and cache not full, then save it */
-    strcpy(cachename[freeentry], name); /* save name in cache */
+    snprintf(cachename[freeentry], 64, "%s", name); /* save name in cache */
     cacheaddr[freeentry] = hostaddr; /* save addr in cache */
   }
   return(hostaddr);
