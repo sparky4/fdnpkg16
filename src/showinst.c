@@ -68,7 +68,7 @@ static int loadinstpkglist(char **packagelist, char **packagelist_ver, int packa
           int tlen = strlen(ep->d_name);
           if (lsxflag & 0) {      // sparky4: this variable is for enabling the listing of held files and will eventually list them
             if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 't')) continue;  /* if it's not an .lst file, skip it silently */
-          } else {
+          } else if (lsxflag & 1) {
             if ((ep->d_name[tlen - 4] != '.') || (tolower(ep->d_name[tlen - 3]) != 'l') || (tolower(ep->d_name[tlen - 2]) != 's') || (tolower(ep->d_name[tlen - 1]) != 'x')) continue;  /* if it's not an .lsx file, skip it silently */
           }
 
