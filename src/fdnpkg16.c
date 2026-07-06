@@ -569,16 +569,26 @@ int main(int argc, char **argv) {
           action = ACTION_DOWNLOADUPDATES;
           flags |= FDNPKG16_NOINST;
         }
+      } else if ((strcasecmp(actionarg, "fcl")) == 0) { // sparky4: farcoreleft() debug action
+        printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
+        printf("coreleft() == %ld Byte(s) Free\n", coreleft());
+        QUIT(0)
+      } else if ((strcasecmp(actionarg, "ci")) == 0) { // sparky4: compile info
+#if defined(__WATCOMC__)
+#if (__WATCOMC__ >= 1200)
+        printf ("FDNPKG%s is Compiled with OpenWatcom %d.%d\n", EXECNAME,
+                  (__WATCOMC__/100) - 11, (__WATCOMC__ % 100) / 10);
+#else
+        printf ("FDNPKG%s is Compiled with Watcom C %d.%d\n", EXECNAME, __WATCOMC__/100, __WATCOMC__ % 100);
+#endif /* #if (__WATCOMC__ >= 1200) */
+#endif /* #if defined(__WATCOMC__) */
+        QUIT(0)
         // sparky4: <3
       } else if ((strcasecmp(actionarg, "bibabo")) == 0) {
         printf("ビバボ！ｗ");
         QUIT(0)
       } else if ((strcasecmp(actionarg, "poi")) == 0) {
         printf("ぽい！ｗ");
-        QUIT(0)
-      } else if ((strcasecmp(actionarg, "fcl")) == 0) {
-        printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
-        printf("coreleft() == %ld Byte(s) Free\n", coreleft());
         QUIT(0)
       }
     }
