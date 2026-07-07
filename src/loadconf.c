@@ -119,8 +119,8 @@ static int addnewdir(struct customdirs **dirlist, char *name, char *location) {
     free(newentry);
     return(-1);
   }
-  strcpy(newentry->name, name);
-  strcpy(newentry->location, location);
+  memcpy(newentry->name, name, strlen(name) + 1);
+  memcpy(newentry->location, location, strlen(location) + 1);
   newentry->next = *dirlist;
   *dirlist = newentry;
   return(0);
@@ -368,7 +368,7 @@ int loadconf(char *cfgfile, char **repolist, int maxreps, unsigned long *crc32va
                             fclose(fd);
                             return(-1);
                           }
-                          strcat(realLocation, evar_content);
+                          snprintf(realLocation + y, realLocation_len - y, "%s", evar_content);
                           y += strlen(evar_content);
                           evar = NULL;
                         }
@@ -377,7 +377,7 @@ int loadconf(char *cfgfile, char **repolist, int maxreps, unsigned long *crc32va
                   /* add the entry to the list */
                   slash2backslash(realLocation);
                   removeDoubleBackslashes(realLocation);
-                  if (realLocation[strlen(realLocation) - 1] != '\\') strcat(realLocation, "\\"); /* make sure to end dirs with a backslash */
+                  if (realLocation[strlen(realLocation) - 1] != '\\') snprintf(realLocation + strlen(realLocation), realLocation_len - strlen(realLocation), "\\"); /* make sure to end dirs with a backslash */
                   if (addnewdir(dirlist, argv[0], realLocation) != 0) {
                     kitten_printf(2, 14, "Out of memory! (%s)", "addnewdir");
                     puts("");
