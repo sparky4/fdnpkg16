@@ -51,7 +51,7 @@ zlib can be compiled with either (ow1.9 or ow2.0)! :D
 they have their own compiling style
 
 ## INFO ON POPULAR OS HOST COMPILING
-#### Microsoft Windows & Apple macos is unsupported for compiling
+#### Microsoft Windows & Apple macOS is unsupported for compiling
 
 reason?: I do not have Windows anymore since 2010.
 
@@ -60,6 +60,13 @@ I also don't own a mac... If u got one contact me if you want to compile it ther
 I do not have the systems, I do not support it. Sorry!
 
 You can try to compile though with wmake.
+
+
+UPDATE from sparky4:
+
+I have tested compiling fdnpkg16 on a friend's Windows system and it weem to worked correctly with wbuild.bat
+
+If you have upx and open watcom 2.0, then it should compile just fine there.
 
 
 
