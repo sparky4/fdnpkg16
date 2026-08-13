@@ -62,7 +62,7 @@ I do not have the systems, I do not support it. Sorry!
 You can try to compile though with wmake.
 
 
-###UPDATE on compiling on Microsoft Windows from sparky4:
+### UPDATE on compiling on Microsoft Windows from sparky4:
 
 I have tested compiling fdnpkg16 on a friend's Windows system and it weem to worked correctly with wbuild.bat
 
