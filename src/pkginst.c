@@ -361,7 +361,17 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
           //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
           _fheapmin();
           //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
-          htgetres = system(commandforbatch);
+          system(commandforbatch);
+          sprintf(commandforbatch, "%s\\httpget.err", tempdir);
+          batch_file = fopen(commandforbatch, "r");
+          if(batch_file == NULL) {
+            kitten_printf(3, 10, "Error: Could not create %s!", commandforbatch);
+            puts("");
+            htgetres = -1;
+          } else {
+            fscanf(batch_file, "%ld", &htgetres);
+          }
+        fclose(batch_file);
         }
         #endif /* #ifdef USE_INTERNAL_WATTCP */
         #ifdef DEBUG
@@ -378,7 +388,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //      #else
 //      if (htgetres != 21) {
 //      #endif
-      if ((htgetres < 0) || (htgetres == 3)) {  /* sparky4: 3 is the size of a no packet driver return */
+      if (htgetres < 0) {  /* sparky4: below 0 is an error */
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <unistd.h>   /* unlink() */
+#include <stdlib.h>   /* getenv() */
 
 //#define DEBUG_NET
 //#define VERBOSE_HTTPGET
@@ -21,6 +22,8 @@
 #include "net.h"
 #include "memcore.h"
 
+//#define DEBUG
+
 #ifdef DEBUG_HTTPGET
 #define DEBUG
 #endif  // #ifdef DEBUG_HTTPGET
@@ -29,6 +32,9 @@
 long main(int argc, char **argv) {
   long res;
   char downloadingstring[64];
+  char fileforerror[512];
+  FILE *error_file;
+  char *tempdir;
   extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 #ifdef DEBUG_HTTPGET
   long memoryeaten;
@@ -70,6 +76,7 @@ long main(int argc, char **argv) {
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
 #endif
+  tempdir = getenv("TEMP");
   if (res >= 0) {
 #ifdef VERBOSE_HTTPGET
     if (strcasecmp(argv[3], "/q") != 0) {
@@ -79,12 +86,27 @@ long main(int argc, char **argv) {
   } else {
     printf("ERROR OCCURED: %ld\n", res);
     if ((argv[3] != NULL) && (argv[4] != NULL)) {
-      //printf("Deleting %s\n", argv[2]);
-      unlink(argv[2]);
+      printf("Deleting %s\n", argv[2]); // sparky4: let the user know the file will be deleted.
+      unlink(argv[2]); // sparky4: delete the incomplete file.
     }
   }
 #ifdef DEBUG_HTTPGET
   printf("memory eaten == %ld\n", memoryeaten);
 #endif
+#ifdef DEBUG
+  printf("\tres == %ld\n", res);
+#endif
+  // sparky4: this segment of code is for the writing of the return error of httpget.exe
+  // mostly for fdnpkg16.exe
+  if (tempdir != NULL) {
+    sprintf(fileforerror, "%s\\httpget.err", tempdir);
+    error_file = fopen(fileforerror, "w");
+    if (error_file == NULL) {
+      return(-1);
+    } else {
+      fprintf(error_file, "%ld", res);  // sparky4: report the res size or res error.
+      fclose(error_file);
+    }
+  }
   return(res);
 }

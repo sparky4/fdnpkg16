@@ -872,7 +872,8 @@ int main(int argc, char **argv) {
                 sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
                 batch_file = fopen(commandforbatch, "w");
                 if (batch_file == NULL) {
-                  kitten_printf(3, 10, "Error: Could not create %s!");
+                  kitten_printf(3, 10, "Error: Could not create %s!", commandforbatch);
+                  puts("");
                   htgetres = -1;
                 } else {
                   fprintf(batch_file, "%s", command);
@@ -881,11 +882,23 @@ int main(int argc, char **argv) {
                     //_nheapshrink(); // sparky4: these 2 functions are for heap management to make it smaller so we can call the batch file with the commands
                   _fheapmin();
                     //_fheapshrink(); // sparky4: these 4 functions are for heap management to make it smaller so we can call the batch file with the commands
-                  htgetres = system(commandforbatch);
+                  system(commandforbatch);
+                  // sparky4: this segment of code is for the reading of the return error of httpget.exe
+                  sprintf(commandforbatch, "%s\\httpget.err", tempdir);
+                  batch_file = fopen(commandforbatch, "r");
+                  if(batch_file == NULL) {
+// sparky4: incorrect error message but the spirit of it is here
+//                    kitten_printf(3, 10, "Error: Could not create %s!", commandforbatch);
+                    puts("");
+                    htgetres = -1;
+                  } else {
+                    fscanf(batch_file, "%ld", &htgetres); // sparky4: load htgetres variable value here. the address of the variable is thrown in there to cahnge it.
+                  }
+                  fclose(batch_file);
                 }
                 #endif
                 #ifdef DEBUG
-                printf("htgetres returned: %d\n", htgetres);
+                printf("htgetres returned: %ld\n", htgetres);
                 #endif
   //              #ifdef USE_INTERNAL_WATTCP
   //              if (htgetres <= 0) putchar('.');
@@ -902,11 +915,9 @@ int main(int argc, char **argv) {
   //          #else
   //          if (htgetres != 21) {
   //              #endif
-            if ((htgetres < 0) || (htgetres == 3)) {  /* sparky4: 3 is the size of a no packet driver return */
+            if (htgetres < 0) {
               kitten_puts(2, 10, "Repository download failed!");
               maxcachetime = 0; /* disable cache writing this time */
-              // sparky4: plus there is no package or index as small as 3
-              if (htgetres == 3) break;  // sparky4: break out of loop no packet driver found!
             } else {
               char *dbmsg;
               /* uncompress and load the index file */
