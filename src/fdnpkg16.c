@@ -411,15 +411,13 @@ int main(int argc, char **argv) {
   for (i = 0; i < argci; i++) {
 
   #ifdef DEBUG
-//0000
-    printf("Starting  value(hex): 0x%X\n", flags);
+//0000    printf("Starting  value(hex): 0x%X\n", flags);
   #endif
     // sparky4: flag resetter for 2 bits
     flags &= (~((1 << 3) | (1 << 4) | (1 << 5)));  // sparky4: disable 3rd, 4th, and 5th bit position in the flags for the 3 new bits to be reseted
     // 3 bits are for FDNPKG16_NETINIT && FDNPKG16_NOREPOA && FDNPKG16_NOINST
     #ifdef DEBUG
-//0000
-    printf("Resulting value(hex): 0x%X\n", flags);
+//0000    printf("Resulting value(hex): 0x%X\n", flags);
     #endif
 
     /* parse cli parameters */
