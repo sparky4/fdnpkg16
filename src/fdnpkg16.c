@@ -379,7 +379,6 @@ int main(int argc, char **argv) {
 
   /* check the available memory and display a warning if too low */
   // sparky4: farcoreleft() function from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
-  /* 262144 */ // sparky4: old value. did some recalculating and around 327680 is needed for calling httpget.exe
   /* 327680 */ // sparky4: new value of 256+64k
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
