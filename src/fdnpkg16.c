@@ -889,7 +889,7 @@ int main(int argc, char **argv) {
                     puts("");
                     htgetres = -1;
                   } else {
-                    fscanf(batch_file, "%ld", &htgetres); // sparky4: load htgetres variable value here. the address of the variable is thrown in there to cahnge it.
+                    fscanf(batch_file, "%ld", &htgetres); // sparky4: load htgetres variable value here. the address of the variable is thrown in there to change it.
                   }
                   fclose(batch_file);
                 }
