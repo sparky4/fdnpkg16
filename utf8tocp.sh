@@ -4,8 +4,8 @@ cd fdnpkg16/NLS
 iconv -t cp437 -f utf8 fdnpkg16.en8 > fdnpkg16.en
 iconv -t cp865 -f utf8 fdnpkg16.fi8 > fdnpkg16.fi
 iconv -t cp850 -f utf8 fdnpkg16.es8 > fdnpkg16.es
-iconv -t cp852 -f utf8 fdnpkg16.cs8 > fdnpkg16.cs
-iconv -t cp850 -f utf8 fdnpkg16.da8 > fdnpkg16.da
+iconv -t cp852 -f utf8 fdnpkg16.cz8 > fdnpkg16.cz
+iconv -t cp850 -f utf8 fdnpkg16.dk8 > fdnpkg16.dk
 iconv -t cp850 -f utf8 fdnpkg16.de8 > fdnpkg16.de
 iconv -t cp858 -f utf8 fdnpkg16.eo8 > fdnpkg16.eo
 iconv -t cp775 -f utf8 fdnpkg16.et8 > fdnpkg16.et
@@ -23,7 +23,7 @@ iconv -t cp860 -f utf8 fdnpkg16.pt8 > fdnpkg16.pt
 iconv -t cp866 -f utf8 fdnpkg16.ru8 > fdnpkg16.ru
 iconv -t cp852 -f utf8 fdnpkg16.si8 > fdnpkg16.si
 iconv -t cp852 -f utf8 fdnpkg16.sk8 > fdnpkg16.sk
-iconv -t cp852 -f utf8 fdnpkg16.sl8 > fdnpkg16.sl
+#iconv -t cp852 -f utf8 fdnpkg16.sl8 > fdnpkg16.sl
 iconv -t cp855 -f utf8 fdnpkg16.sr8 > fdnpkg16.sr
 iconv -t cp858 -f utf8 fdnpkg16.sv8 > fdnpkg16.sv
 iconv -t cp857 -f utf8 fdnpkg16.tr8 > fdnpkg16.tr
