@@ -103,7 +103,7 @@ long main(int argc, char **argv) {
     error_file = fopen(fileforerror, "w");
     if (error_file == NULL) {
       printf("ERROR OCCURED: %ld\n", -1);
-      return(-1);
+      return(res);
     } else {
       fprintf(error_file, "%ld", res);  // sparky4: report the res size or res error.
       fclose(error_file);
