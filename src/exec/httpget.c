@@ -102,6 +102,7 @@ long main(int argc, char **argv) {
     sprintf(fileforerror, "%s\\httpget.err", tempdir);
     error_file = fopen(fileforerror, "w");
     if (error_file == NULL) {
+      printf("ERROR OCCURED: %ld\n", -1);
       return(-1);
     } else {
       fprintf(error_file, "%ld", res);  // sparky4: report the res size or res error.
