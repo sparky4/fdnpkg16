@@ -28,12 +28,8 @@ cp -p fdinst16.ico fdnpkg16/BIN/
 #. ./build.sh
 wmake
 rm *.obj
-cp -p fdnpkg16.exe fdnpkg16/BIN/
-cp -p httpget.exe fdnpkg16/BIN/
-cp -p fdinst16.exe fdnpkg16/BIN/
-mv fdnpkg16.exe .temp/
-mv httpget.exe .temp/
-mv fdinst16.exe .temp/
+cp -p *.exe fdnpkg16/BIN/
+mv *.exe .temp/
 cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 mkdir fdnpkg16/SOURCE/fdnpkg16
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
