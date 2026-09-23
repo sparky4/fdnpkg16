@@ -18,25 +18,28 @@ echo "zip"
 if [ -d "fdnpkg16" ]; then
 #rm fdnpkg16/BIN/*.exe
 ####wmake clean
-cp -rp fdpget.bat fdnpkg16/BIN/
-cp -rp fdnpkg16.cfg fdnpkg16/BIN/
-cp -rp fdnpkg16.oem fdnpkg16/BIN/
-cp -rp fdnpkg16.4 fdnpkg16/BIN/
-cp -rp fdnpkg16.lat fdnpkg16/BIN/
-cp -rp fdnpkg16.ico fdnpkg16/BIN/
-cp -rp fdinst16.ico fdnpkg16/BIN/
+cp -p fdpget.bat fdnpkg16/BIN/
+cp -p fdnpkg16.cfg fdnpkg16/BIN/
+cp -p fdnpkg16.oem fdnpkg16/BIN/
+cp -p fdnpkg16.4 fdnpkg16/BIN/
+cp -p fdnpkg16.lat fdnpkg16/BIN/
+cp -p fdnpkg16.ico fdnpkg16/BIN/
+cp -p fdinst16.ico fdnpkg16/BIN/
 #. ./build.sh
 wmake
 rm *.obj
-mv fdnpkg16.exe fdnpkg16/BIN/
-mv httpget.exe fdnpkg16/BIN/
-mv fdinst16.exe fdnpkg16/BIN/
+cp -p fdnpkg16.exe fdnpkg16/BIN/
+cp -p httpget.exe fdnpkg16/BIN/
+cp -p fdinst16.exe fdnpkg16/BIN/
+mv fdnpkg16.exe .temp/
+mv httpget.exe .temp/
+mv fdinst16.exe .temp/
 cp -p *.txt fdnpkg16/DOC/FDNPKG16/
 mkdir fdnpkg16/SOURCE/fdnpkg16
 cp -p * fdnpkg16/SOURCE/fdnpkg16/
 rm -r fdnpkg16/SOURCE/fdnpkg16/src
 mkdir fdnpkg16/SOURCE/fdnpkg16/src
-cp -rp makefile fdnpkg16/SOURCE/fdnpkg16/
+cp -p makefile fdnpkg16/SOURCE/fdnpkg16/
 cp -rp src/* fdnpkg16/SOURCE/fdnpkg16/src/
 cd fdnpkg16/SOURCE/fdnpkg16/src/
 if [ -e "WATT32" ]; then
