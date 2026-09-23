@@ -17,7 +17,7 @@
 echo "zip"
 if [ -d "fdnpkg16" ]; then
 #rm fdnpkg16/BIN/*.exe
-wmake clean
+####wmake clean
 cp -rp fdpget.bat fdnpkg16/BIN/
 cp -rp fdnpkg16.cfg fdnpkg16/BIN/
 cp -rp fdnpkg16.oem fdnpkg16/BIN/
@@ -72,5 +72,5 @@ rmdir .temp
 rm -r fdnpkg16/
 fi
 #./build.sh
-wmake
+####wmake
 #rm *.obj
