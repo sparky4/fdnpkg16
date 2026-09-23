@@ -4,6 +4,7 @@
 FDNPKG16 v0.99.8254e [24 Sep 2026]
  - [fix] fixed the error code handling of fdnpkg16.exe and httpget.exe inter-program communication. If there is a simpler way to do it with set enviorment variables, without making the error file. I'll implement that.
  - [new] ritsu checked the finnish translation and said it's good but i need a shorter version of help explanation
+ - [fix] fixed some corrupted translation NLS files
 
 FDNPKG16 v0.99.8254d [30 Jun 2026]
  - [mnt] cleaned a bunch of code
