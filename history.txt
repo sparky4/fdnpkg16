@@ -2,9 +2,10 @@
 * FDNPKG16 history file *
 
 FDNPKG16 v0.99.8254e [24 Sep 2026]
- - [fix] fixed the error code handling of fdnpkg16.exe and httpget.exe inter-program communication. If there is a simpler way to do it with set enviorment variables, without making the error file. I'll implement that.
- - [new] ritsu checked the finnish translation and said it's good but i need a shorter version of help explanation
- - [fix] fixed some corrupted translation NLS files
+ - [fix] Fixed the error code handling of fdnpkg16.exe and httpget.exe inter-program communication. If there is a simpler way to do it with set enviorment variables, without making the error file. I'll implement that.
+ - [new] Nico checked the finnish translation and said it's good, but I need a shorter version of help explanation
+ - [fix] Fixed some corrupted translation NLS files.
+ - [fix] Fixed a bug with overinstalling a held package. This is not possible anymore. This lead to a bug with a held and unheld version of the package. This caused confusion with the program.
 
 FDNPKG16 v0.99.8254d [30 Jun 2026]
  - [mnt] cleaned a bunch of code

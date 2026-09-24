@@ -150,9 +150,18 @@ static void processlinkfile(char *linkfile, char *dosdir, struct customdirs *dir
 
 
 /* returns 0 if pkgname is not installed, non-zero otherwise */
-int is_package_installed(char *pkgname, char *dosdir, char *mapdrv) {
+int is_package_installed(char *pkgname, char *dosdir, char *mapdrv, unsigned short lsxflag) {
   char fname[512];
-  sprintf(fname, "%s\\packages\\%s.lst", dosdir, pkgname);
+
+  // sparky4: this is for checking for held packages called from lsxflag
+  switch (lsxflag) {
+    case 1:
+      sprintf(fname, "%s\\packages\\%s.lsx", dosdir, pkgname);
+    break;
+    default:
+      sprintf(fname, "%s\\packages\\%s.lst", dosdir, pkgname);
+    break;
+  }
   mapdrives(fname, mapdrv);
   if (fileexists(fname) != 0) { /* file exists -> package is installed */
     return(1);
@@ -163,9 +172,14 @@ int is_package_installed(char *pkgname, char *dosdir, char *mapdrv) {
 
 
 /* checks that pkgname is NOT installed. return 0 on success, non-zero otherwise. */
-int validate_package_not_installed(char *pkgname, char *dosdir, char *mapdrv) {
-  if (is_package_installed(pkgname, dosdir, mapdrv) != 0) {
-    kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", pkgname);
+int validate_package_not_installed(char *pkgname, char *dosdir, char *mapdrv, unsigned short lsxflag) {
+  if (is_package_installed(pkgname, dosdir, mapdrv, lsxflag) != 0) {
+    if (lsxflag & 0) {
+      kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", pkgname);
+    } else {
+      // sparky4: This is for held packages!
+      showinstalledpkgs(pkgname, dosdir, lsxflag);
+    }
     puts("");
     return(-1);
   }
@@ -206,7 +220,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
   /* check if not already installed, if already here, print a message "you might want to use update instead"
    * of course this must not be done if we are in the process of upgrading said package */
   if ((flags & FDNPKG16_NOINST) == 0) { // sparky4: dont check if we are just downloading!
-    if (((flags & PKGINST_UPDATE) == 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv) != 0)) {
+    if (((flags & PKGINST_UPDATE) == 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv, 0) != 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv, 1) == 0)) {
       return(NULL);
     }
   }

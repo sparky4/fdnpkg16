@@ -954,21 +954,23 @@ int main(int argc, char **argv) {
             {
               char *filterstr = NULL;
               if (argc >= 3) filterstr = argv[i+2];  // sparky4: again this is to stop it from listing all files 2x ...
-              shownotinstalledpkgs(filterstr, dosdir, pkgdb, verbosemode, repolist);//000000
+              shownotinstalledpkgs(filterstr, dosdir, pkgdb, verbosemode, repolist);
             }
           break;
           case ACTION_INSTALL: /* install remote package */
-            if (validate_package_not_installed(argv[i+2], dosdir, mapdrv) == 0) { /* check that package is not already installed first */
+            if ((validate_package_not_installed(argv[i+2], dosdir, mapdrv, 0) == 0) && (validate_package_not_installed(argv[i+2], dosdir, mapdrv, 1) == 0)) { /* check that package is not already installed first */
               char membuff1k[1024];
               zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
               if (zipfileidx != NULL) {
                 pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
                 fclose(zipfilefd);
               }
+            } else {
+              kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", argv[i+2]);
             }
           break;
           case ACTION_UPDATE: /* UPDATE, but only for a SINGLE package */
-            if (is_package_installed(argv[i+2], dosdir, mapdrv) == 0) { /* is this package installed at all? */
+            if (is_package_installed(argv[i+2], dosdir, mapdrv, 0) == 0) { /* is this package installed at all? */
               kitten_printf(10, 6, "Package %s is not installed.", argv[i+2]);
               puts("");
             } else if (checkupdates(dosdir, pkgdb, repolist, argv[i+2], tempdir, 0, dirlist, proxy, proxyport, downloadingstring, mapdrv) != 0) { /* no update available */
@@ -997,19 +999,21 @@ int main(int argc, char **argv) {
           break;
           case ACTION_REINSTALL: /* REINSTALL, but only for a SINGLE package */
             {
-              char membuff1k[1024];
-              /* prepare the zip file */
-              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
-              /* if the zip file is ok, remove the old package and install our zip file */
-              if (zipfileidx != NULL) {
-                if (pkgrem(argv[i+2], dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
-                  zip_freelist(&zipfileidx);
-                } else {
-                  pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+              if (validate_package_not_installed(argv[i+2], dosdir, mapdrv, 1) == 0) { /* check that package is not already held first */
+                char membuff1k[1024];
+                /* prepare the zip file */
+                zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+                /* if the zip file is ok, remove the old package and install our zip file */
+                if (zipfileidx != NULL) {
+                  if (pkgrem(argv[i+2], dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
+                    zip_freelist(&zipfileidx);
+                  } else {
+                    pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+                  }
+                  fclose(zipfilefd);
                 }
-                fclose(zipfilefd);
+                break;
               }
-              break;
             }
           break;
           case ACTION_DOWNLOAD:  /* DOWNLOAD ONLY! */

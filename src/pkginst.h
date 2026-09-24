@@ -10,9 +10,9 @@
 #include "pkgdb.h"
 #include "loadconf.h" /* required for struct customdirs */
 
-int is_package_installed(char *pkgname, char *dosdir, char *mapdrv);
+int is_package_installed(char *pkgname, char *dosdir, char *mapdrv, unsigned short lsxflag);
 struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, char *tempdir, char *localfile, int nosourceflag, char **repolist, FILE **zipfd, char *proxy, int proxyport, char *downloadingstring, char *dosdir, struct customdirs *dirlist, char *buffmem1k, char *mapdrv);
 long pkginstall_installpackage(char *pkgname, char *dosdir, struct customdirs *dirlist, struct ziplist *ziplinkedlist, FILE *zipfd, char *mapdrv);
-int validate_package_not_installed(char *pkgname, char *dosdir, char *mapdrv);
+int validate_package_not_installed(char *pkgname, char *dosdir, char *mapdrv, unsigned short lsxflag);
 
 #endif
