@@ -274,7 +274,7 @@ static void printlic(void) {
        "FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS\r\n"
        "IN THE SOFTWARE.");
 
-  puts("If you want to contribute, let me know! https://discord.com/invite/qBH9W7fXHJ\n"
+  puts("If you want to contribute, let me know! https://fluxer.gg/gShWtoK3\n"
        "or join my irc and ping me irc://4ch.mooo.com/#fdnpkg16");
 }
 
