@@ -152,7 +152,6 @@ static void processlinkfile(char *linkfile, char *dosdir, struct customdirs *dir
 /* returns 0 if pkgname is not installed, non-zero otherwise */
 int is_package_installed(char *pkgname, char *dosdir, char *mapdrv, unsigned short lsxflag) {
   char fname[512];
-
   // sparky4: this is for checking for held packages called from lsxflag
   switch (lsxflag) {
     case 1:

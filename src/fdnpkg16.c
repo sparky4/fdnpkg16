@@ -551,8 +551,6 @@ int main(int argc, char **argv) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
           QUIT(2)
         } else {
-          // int arglen; // sparky4: pkgname length
-          // arglen = strlen(argv[i+2]);
           action = ACTION_DOWNLOAD;
           flags |= FDNPKG16_NOINST;
         }
@@ -561,8 +559,6 @@ int main(int argc, char **argv) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
           QUIT(2)
         } else {
-          // int arglen; // sparky4: pkgname length
-          // arglen = strlen(argv[i+2]);
           action = ACTION_DOWNLOADUPDATES;
           flags |= FDNPKG16_NOINST;
         }
