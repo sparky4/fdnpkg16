@@ -322,6 +322,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 
     /* if it's a network repo, download the package from repoid into the temp directory */
     if (detect_localpath(instrepo) == 0) {
+#ifndef USE_INTERNAL_WATTCP
+      char *dlstr;
+#endif
       sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);
       sprintf(zipfile, "%s\\fdnpkg16.tmp", tempdir);
       kitten_printf(3, 6, "Downloading package %s...", fname);
@@ -341,7 +344,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         printf("farcoreleft() == %ld\n", farcoreleft());
         printf("coreleft() == %u\n", coreleft());
 #endif
-        htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring, 0);
+        htgetres = http_get(fname, zipfile, proxy, proxyport, downloadingstring, 1);
 #ifdef DEBUG_MEM
         printf("farcoreleft() == %ld\n", farcoreleft());
         printf("coreleft() == %u\n", coreleft());
@@ -357,7 +360,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 #ifdef USE_MTCP
         sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
 #else
-        sprintf(command, "@httpget.exe %s %s . \"%s\"", fname, zipfile, percent_adding(downloadingstring));
+        dlstr = percent_adding(downloadingstring);
+        sprintf(command, "@httpget.exe %s %s . \"%s\"", fname, zipfile, dlstr);
+        free(dlstr);
 #endif
         proxy = downloadingstring = NULL;
         proxyport = 8080;
@@ -492,7 +497,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         } else {
           /* if it's a *.BAT link, then rename it to *.COM */
           char *ext = getfext(curzipnode->filename);
-          if (strcasecmp(ext, "bat") == 0) sprintf(ext, "com");
+          if (strcasecmp(ext, "bat") == 0) strncpy(ext, "com", 3); // sparky4: original function dose not seem safe... doing this instead original to the right -> //sprintf(ext, "com");
         }
       }
 

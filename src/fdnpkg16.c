@@ -112,9 +112,9 @@ static void printhelp(void) {
   puts("");
 #endif /* #ifdef DEBUG */
 #ifdef USE_INTERNAL_WATTCP
-  kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
-  puts("");
-  puts(wattcpVersion());
+  //kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
+  //puts("");
+  //puts(wattcpVersion());
 #else
   //kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
 #endif
@@ -156,9 +156,9 @@ static void printhelpshort(void) {
   puts("");
 #endif /* #ifdef DEBUG */
 #ifdef USE_INTERNAL_WATTCP
-  kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
-  puts("");
-  puts(wattcpVersion());
+  //kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
+  //puts("");
+  //puts(wattcpVersion());
 #else
   //kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
 #endif
@@ -200,9 +200,9 @@ static void printhelp2(void) {
   puts("");
 #endif /* #ifdef DEBUG */
 #ifdef USE_INTERNAL_WATTCP
-  kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
-  puts("");
-  puts(wattcpVersion());
+  //kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
+  //puts("");
+  //puts(wattcpVersion());
 #else
   //kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
 #endif
@@ -230,8 +230,8 @@ static void printhelp2short(void) {
   puts("");
   puts("");
   puts("");
-  puts("");
-  puts("");
+  //puts("");
+  //puts("");
 #ifdef DEBUG
 #if defined(__WATCOMC__)
 #if (__WATCOMC__ >= 1200)
@@ -256,6 +256,10 @@ static void printlic(void) {
        "Copyright (C) " POLDDATE " Mateusz Viste\r\n"
        "Copyright (C) " PNEWDATE " Victoria Crenshaw & Katheryn Northwood\r\n");
 
+#ifdef USE_INTERNAL_WATTCP
+  puts("LICENCE: MIT");
+  puts("");
+#else
   puts("Permission is hereby granted, free of charge, to any person obtaining a copy\r\n"
        "of this software and associated documentation files (the \"Software\"), to deal\r\n"
        "in the Software without restriction, including without limitation the rights\r\n"
@@ -273,7 +277,7 @@ static void printlic(void) {
        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\r\n"
        "FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS\r\n"
        "IN THE SOFTWARE.");
-
+#endif
   puts("If you want to contribute, let me know! https://fluxer.gg/gShWtoK3\n"
        "or join my irc and ping me irc://4ch.mooo.com/#fdnpkg16");
 }
@@ -380,13 +384,20 @@ int main(int argc, char **argv) {
   /* check the available memory and display a warning if too low */
   // sparky4: farcoreleft() function from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
   /* 327680 */ // sparky4: new value of 256+64k
+  /* 196608 */ // sparky4: this is for combined packages 256-64k
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
 #endif
+#ifndef USE_INTERNAL_WATTCP
   if (farcoreleft() < 327680L) {
+#else
+  if (farcoreleft() < 196608L) {
+#endif /* #ifndef USE_INTERNAL_WATTCP */
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
+//#ifndef USE_INTERNAL_WATTCP
     netinitres = -100; // sparky4: DO NOT USE NETWORKING! no ram!
+//#endif
   } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
 
   /* Load the list of package repositories */
@@ -962,7 +973,7 @@ int main(int argc, char **argv) {
                 fclose(zipfilefd);
               }
             } else {
-              kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", argv[i+2]);
+              //kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", argv[i+2]);
             }
           break;
           case ACTION_UPDATE: /* UPDATE, but only for a SINGLE package */

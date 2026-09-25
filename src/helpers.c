@@ -288,11 +288,11 @@ char *getfext(char *fname) {
   return(res);
 }
 
-
+#ifndef USE_INTERNAL_WATTCP
 // sparky4: percentage adding
 char *percent_adding(const char *dlstr) {
   int i, j;
-  char *dlstrres = ""; // sparky4: return string
+  char *dlstrres = (char *)malloc(80); // sparky4: return string 80 is the width of the screen and the string should not be that long xD
   int dlstrlen = strlen(dlstr);
   for (i = j = 0; (i < dlstrlen) && (dlstr[i] != '\0'); i++) {
     switch (dlstr[i]) {
@@ -311,3 +311,4 @@ char *percent_adding(const char *dlstr) {
   dlstrres[j] = '\0';
   return(dlstrres);
 }
+#endif

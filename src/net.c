@@ -79,9 +79,19 @@ struct net_tcpsocket *net_connect(unsigned long ipaddr, int port) {
   int status = 0;
   int *statusptr = &status;
   resultsock = malloc(sizeof(*resultsock));
+  if (resultsock == NULL) return(NULL);
   resultsock->buffersize = BUFFERSIZE;
   resultsock->buffer = malloc(resultsock->buffersize);
+  if (resultsock->buffer == NULL) {
+    free(resultsock);
+    return(NULL);
+  }
   resultsock->sock   = malloc(sizeof(tcp_Socket));
+  if (resultsock->sock == NULL) {
+    free(resultsock->buffer);
+    free(resultsock);
+    return(NULL);
+  }
 
   if (!tcp_open(resultsock->sock, 0, ipaddr, port, NULL)) {
     free(resultsock->buffer);
@@ -135,6 +145,8 @@ void net_close(struct net_tcpsocket *socket) {
   sock_close(socket->sock);
   sock_wait_closed(socket->sock, sock_delay, NULL, &status);
  sock_err:
+  free(socket->buffer);
+  free(socket->sock);
   free(socket);
   return;
 }
@@ -143,6 +155,8 @@ void net_close(struct net_tcpsocket *socket) {
 /* Close the 'sock' socket immediately (to be used when the peer is behaving wrongly) - this is much faster than net_close(). */
 void net_abort(struct net_tcpsocket *socket) {
   sock_abort(socket->sock);
+  free(socket->buffer);
+  free(socket->sock);
   free(socket);
   return;
 }
