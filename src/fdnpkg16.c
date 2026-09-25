@@ -772,7 +772,7 @@ int main(int argc, char **argv) {
             QUIT(6)
           }
 #ifdef USE_INTERNAL_WATTCP
-          puts("");
+//          puts("");
 #endif
           flags |= (FDNPKG16_NETINIT);
           break;
