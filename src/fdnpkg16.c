@@ -245,7 +245,7 @@ static void printhelp2short(void) {
 #endif /* #ifdef DEBUG */
 #ifdef USE_INTERNAL_WATTCP
   //kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
-  puts("");
+  //puts("");
   //puts(wattcpVersion());
 #else
   kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
