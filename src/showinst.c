@@ -163,8 +163,8 @@ void shownotinstalledpkgs(char *filterstr, char *dosdir, struct pkgdb *pkgdb, in
   for (curpkg = pkgdb->nextpkg; curpkg != NULL; curpkg = curpkg->nextpkg) {
     // sparky4: initiate variable
     flag = 0;
-    //----for (x = nomatch = 0; x <= numofpkginrepo; x++) {
-    for (x = nomatch = 0; x < packagelist_len; x++) {
+    // sparky4: changing this from this will break this
+    for (x = nomatch = 0; x <= numofpkginrepo; x++) {
       if (flag == 0) {
         if (filterstr == NULL) {
           flag |= NOTINST_SEARCHFLAG;

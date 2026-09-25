@@ -750,11 +750,6 @@ int main(int argc, char **argv) {
 
     /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
     if (((flags & FDNPKG16_NETINIT) == 0) && (netinitres != -100)) {
-      //----int arglen; // sparky4: pkgname length
-      //----if (argc >= 3) {
-        //----arglen = strlen(argv[i+2]);
-      //----}
-      //----if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
       /* if there is at least one online repo, init the Watt32 stack */
       for (x = 0; x < repolistcount; x++) {
         if (detect_localpath(repolist[x]) == 0) {
