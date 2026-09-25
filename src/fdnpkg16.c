@@ -230,8 +230,8 @@ static void printhelp2short(void) {
   puts("");
   puts("");
   puts("");
-  //puts("");
-  //puts("");
+  puts("");
+  puts("");
 #ifdef DEBUG
 #if defined(__WATCOMC__)
 #if (__WATCOMC__ >= 1200)
@@ -244,9 +244,9 @@ static void printhelp2short(void) {
   puts("");
 #endif /* #ifdef DEBUG */
 #ifdef USE_INTERNAL_WATTCP
-  kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
+  //kitten_printf(1, 9, "FDNPKG%s is linked against the Watt-32 version below:", EXECNAME);
   puts("");
-  puts(wattcpVersion());
+  //puts(wattcpVersion());
 #else
   kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
 #endif
@@ -973,7 +973,7 @@ int main(int argc, char **argv) {
                 fclose(zipfilefd);
               }
             } else {
-              //kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", argv[i+2]);
+              kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", argv[i+2]);
             }
           break;
           case ACTION_UPDATE: /* UPDATE, but only for a SINGLE package */
