@@ -73,7 +73,6 @@ int net_init() {
 }
 
 
-//0000 BUG! sparky4: there is a memory eating bug here it eats 6400 bytes everytime it is called
 struct net_tcpsocket *net_connect(unsigned long ipaddr, int port) {
   struct net_tcpsocket *resultsock;
   int status = 0;

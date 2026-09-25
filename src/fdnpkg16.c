@@ -362,7 +362,7 @@ int main(int argc, char **argv) {
 
   //sparky4: new variables from me! <3
   int i, y;                 // sparky4: used in for loops... you know.. counting
-  int netinitres;           // sparky4: for netowrking initialization for internal networking (external for now)
+  int netinitres = 0;       // sparky4: for netowrking initialization for internal networking (external for now)
   int argci;                // sparky4: argument variable for number of variables. for multi packages
   char actionarg[24] = "";  // sparky4: this gotta be long enough for the commands
 
@@ -409,9 +409,11 @@ int main(int argc, char **argv) {
     if (argv[1][0] == '/') { // Check if the first character is '/'
       // Shift the pointer to effectively remove the first character
       // This modifies what actionarg points to, but not the underlying string data
-      strcpy(actionarg, (++argv[1])); // sparky4: if there is /, copy the argument with out /.
+      //strcpy(actionarg, (++argv[1])); // sparky4: if there is /, copy the argument with out /.
+      strncpy(actionarg, (++argv[1]), sizeof(actionarg)); // sparky4: if there is /, copy the argument with out /.
     } else {
-      strcpy(actionarg, argv[1]);     // sparky4: copy the argument directly if there is no /
+      //strcpy(actionarg, argv[1]);     // sparky4: copy the argument directly if there is no /
+      strncpy(actionarg, argv[1], sizeof(actionarg));     // sparky4: copy the argument directly if there is no /
     }
   }
 
@@ -680,11 +682,13 @@ int main(int argc, char **argv) {
           }
         }
 
-        /* prepare the zip file and install it */
-        zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
-        if (zipfileidx != NULL) {
-          pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
-          fclose(zipfilefd);
+        if ((validate_package_not_installed(pkgname, dosdir, mapdrv, 0) == 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv, 1) == 0)) { /* check that package is not already installed first */
+          /* prepare the zip file and install it */
+          zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+          if (zipfileidx != NULL) {
+            pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+            fclose(zipfilefd);
+          }
         }
       }
       break;
@@ -708,16 +712,18 @@ int main(int argc, char **argv) {
           }
         }
 
-        /* prepare the zip file */
-        zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
-        /* if the zip file is ok, remove the old package and install our zip file */
-        if (zipfileidx != NULL) {
-          if (pkgrem(pkgname, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
-            zip_freelist(&zipfileidx);
-          } else {
-            pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+        if (validate_package_not_installed(pkgname, dosdir, mapdrv, 1) == 0) { /* check that package is not already held first */
+          /* prepare the zip file */
+          zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+          /* if the zip file is ok, remove the old package and install our zip file */
+          if (zipfileidx != NULL) {
+            if (pkgrem(pkgname, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
+              zip_freelist(&zipfileidx);
+            } else {
+              pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+            }
+            fclose(zipfilefd);
           }
-          fclose(zipfilefd);
         }
       }
       break;
@@ -744,39 +750,35 @@ int main(int argc, char **argv) {
 
     /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
     if (((flags & FDNPKG16_NETINIT) == 0) && (netinitres != -100)) {
-      int arglen; // sparky4: pkgname length
-      arglen = strlen(argv[i+2]);
-      if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
-        /* if there is at least one online repo, init the Watt32 stack */
-        for (x = 0; x < repolistcount; x++) {
-          if (detect_localpath(repolist[x]) == 0) {
-            #ifndef USE_INTERNAL_WATTCP
-            #ifdef DEBUG
-            printf("mTCP is used\n");
-            #endif /* #ifdef DEBUG */
-            #ifdef USE_MTCP
-            netinitres = system("dhcp");
-            #else
-            netinitres = 0; // sparky4: use dhcp in httpget this is currently used
-            #endif
-            #else /* #ifndef USE_INTERNAL_WATTCP */
-            #ifdef DEBUG
-            printf("watt32 is used\n");
-            #endif /* #ifdef DEBUG */
-            netinitres = net_init();
-            #endif /* #ifndef USE_INTERNAL_WATTCP */
-            if (netinitres != 0) {
-              kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
-              QUIT(6)
-            }
-  #ifdef USE_INTERNAL_WATTCP
-            puts("");
-  #endif
-            flags |= (FDNPKG16_NETINIT);
-            break;
+      //----int arglen; // sparky4: pkgname length
+      //----if (argc >= 3) {
+        //----arglen = strlen(argv[i+2]);
+      //----}
+      //----if ((!((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')))) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
+      /* if there is at least one online repo, init the Watt32 stack */
+      for (x = 0; x < repolistcount; x++) {
+        if (detect_localpath(repolist[x]) == 0) {
+          #ifndef USE_INTERNAL_WATTCP
+          #ifdef USE_MTCP
+          netinitres = system("dhcp");
+          #else /* USE_MTCP */
+          netinitres = 0; // sparky4: use dhcp in httpget this is currently used
+          #endif /* USE_MTCP */
+          #else /* #ifndef USE_INTERNAL_WATTCP */
+          netinitres = net_init();
+          #endif /* #ifndef USE_INTERNAL_WATTCP */
+          if (netinitres != 0) {
+            kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
+            QUIT(6)
           }
+#ifdef USE_INTERNAL_WATTCP
+          puts("");
+#endif
+          flags |= (FDNPKG16_NETINIT);
+          break;
         }
       }
+      //----}
     } //sparky4: end of ((flags & FDNPKG16_NETINIT) == 0)
 
     if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
@@ -793,6 +795,7 @@ int main(int argc, char **argv) {
       for (dircursor = dirlist; dircursor != NULL; dircursor = dircursor->next) {
         switch (dci) {
           case 24:
+            printf("%s -> %s\n", dircursor->name, dircursor->location);
             getch();
             dci = 0;
           break;
@@ -891,8 +894,8 @@ int main(int argc, char **argv) {
                   sprintf(commandforbatch, "%s\\httpget.err", tempdir);
                   batch_file = fopen(commandforbatch, "r");
                   if(batch_file == NULL) {
-// sparky4: incorrect error message but the spirit of it is here
-//                    kitten_printf(3, 10, "Error: Could not create %s!", commandforbatch);
+                    // sparky4: incorrect error message but the spirit of it is here
+                    kitten_printf(3, 10, "Error: Could not create %s!", commandforbatch);
                     puts("");
                     htgetres = -1;
                   } else {
@@ -904,11 +907,6 @@ int main(int argc, char **argv) {
                 #ifdef DEBUG
                 printf("htgetres returned: %ld\n", htgetres);
                 #endif
-  //              #ifdef USE_INTERNAL_WATTCP
-  //              if (htgetres <= 0) putchar('.');
-  //              #else
-  //              if (htgetres != 21) putchar('.');
-  //              #endif
               }
               #ifdef DEBUG
               puts("DEBUG: download stop");
@@ -923,7 +921,7 @@ int main(int argc, char **argv) {
               kitten_puts(2, 10, "Repository download failed!");
               maxcachetime = 0; /* disable cache writing this time */
             } else {
-              char *dbmsg;
+              char *dbmsg = NULL;
               /* uncompress and load the index file */
               sprintf(tempfile, "%s\\fdnpkg16.tmp", tempdir);
               ungzres = ungz(tempfilegz, tempfile);
@@ -939,7 +937,7 @@ int main(int argc, char **argv) {
                 printf("\n%s\n", dbmsg);
                 free(dbmsg);
               }
-//0000              if (htgetres > 0) puts("ok");  // sparky4: just let the user know the file was downloaded and installed
+              //0000              if (htgetres > 0) puts("ok");  // sparky4: just let the user know the file was downloaded and installed
             }
           }
           /* save results into the (new) cache file db */
@@ -1043,7 +1041,10 @@ int main(int argc, char **argv) {
               }
               /* prepare the zip file */
               zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
-              pkgdownloadhandle(pkgname, tempdir);
+              if (zipfileidx != NULL) {
+                pkgdownloadhandle(pkgname, tempdir);
+              }
+              fclose(zipfilefd);
               break;
             }
           break;

@@ -294,21 +294,27 @@ char *percent_adding(const char *dlstr) {
   int i, j;
   char *dlstrres = (char *)malloc(80); // sparky4: return string 80 is the width of the screen and the string should not be that long xD
   int dlstrlen = strlen(dlstr);
-  for (i = j = 0; (i < dlstrlen) && (dlstr[i] != '\0'); i++) {
-    switch (dlstr[i]) {
-      case '%':
-        // When a '%' is found, add two '%' characters to the destination
-        dlstrres[j++] = '%';
-        dlstrres[j++] = '%';
-      break;
-      default:
-        // Otherwise, copy the character as is
-        dlstrres[j++] = dlstr[i];
-      break;
+
+  if (dlstrres != NULL) {
+    for (i = j = 0; (i < dlstrlen) && (dlstr[i] != '\0'); i++) {
+      if (j >= 80) break; // sparky4: break here if larger than allocated memory
+      switch (dlstr[i]) {
+        case '%':
+          // When a '%' is found, add two '%' characters to the destination
+          dlstrres[j++] = '%';
+          dlstrres[j++] = '%';
+        break;
+        default:
+          // Otherwise, copy the character as is
+          dlstrres[j++] = dlstr[i];
+        break;
+      }
     }
+    // Null-terminate the new string
+    dlstrres[j] = '\0';
+  } else {
+    return((char *)dlstr);  // sparky4 failed to malloc
   }
-  // Null-terminate the new string
-  dlstrres[j] = '\0';
   return(dlstrres);
 }
 #endif

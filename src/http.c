@@ -26,7 +26,7 @@ static int sock_getline(struct net_tcpsocket *socket, char *buf, int len) {
   char ch;
   /* int status = 0;
   int *statusptr = &status; */
-  while (i < len) {
+  while (i < len - 1) {
     net_result = net_recv(socket, &ch, 1);
     if (net_result == 0) continue;  /* if got nothing, loop again */
     if (net_result < 0) break; /* conn error */
@@ -100,7 +100,7 @@ long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *
 
     if (proto == PARSEURL_PROTO_HTTP) {
       if (proxy != NULL) {
-        sprintf(buffer, "GET http://%s:%d/%s HTTP/1.1\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG16\r\n\r\n", host, port, path, host);
+        sprintf(buffer, "GET http://%s:%d/%s HTTP/1.0\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG16\r\n\r\n", host, port, path, host);
       } else {
         sprintf(buffer, "GET /%s HTTP/1.1\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG16\r\n\r\n", path, host);
       }

@@ -38,7 +38,7 @@ GETDELIM =
 
 # Compiler Options: Add desired options (e.g., debugging -g, optimization -O)
 COMPILER_OPTIONS = -q -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -fo=.$(OBJ) -i=src
-COMPILER_OPTIONS2 = -DNOREPOS -DNOLZMA
+COMPILER_OPTIONS2 = -DNOREPOS
 
 # Linker Options
 LINKER_OPTIONS = src$(DIRSEP)zlib$(DIRSEP)zlib_l.lib -i=src$(DIRSEP)zlib src$(DIRSEP)watt32$(DIRSEP)lib$(DIRSEP)wattcpwl.lib -i=src$(DIRSEP)watt32$(DIRSEP)inc
@@ -46,7 +46,7 @@ LINKER_OPTIONS_HTTPGET = src$(DIRSEP)watt32$(DIRSEP)lib$(DIRSEP)wattcpwl.lib -i=
 LINKER_OPTIONS_FDINST = src$(DIRSEP)zlib$(DIRSEP)zlib_l.lib -i=src$(DIRSEP)zlib
 
 # Source files
-C_SOURCE = src$(DIRSEP)fdnpkg16.c src$(DIRSEP)crc32.c src$(DIRSEP)fileexst.c src$(DIRSEP)kprintf.c src$(DIRSEP)loadconf.c src$(DIRSEP)parsecmd.c src$(DIRSEP)pkginst.c src$(DIRSEP)readenv.c src$(DIRSEP)inf.c src$(DIRSEP)libgz.c src$(DIRSEP)lsm.c src$(DIRSEP)parseurl.c src$(DIRSEP)pkgrem.c src$(DIRSEP)rtrim.c src$(DIRSEP)helpers.c src$(DIRSEP)kitten.c src$(DIRSEP)libunzip.c src$(DIRSEP)pkgdb.c src$(DIRSEP)pkgsrch.c src$(DIRSEP)memcore.c src$(DIRSEP)showinst.c src$(DIRSEP)lzmadec.c src$(DIRSEP)net.c src$(DIRSEP)http.c $(GETDELIM)
+C_SOURCE = src$(DIRSEP)fdnpkg16.c src$(DIRSEP)crc32.c src$(DIRSEP)fileexst.c src$(DIRSEP)kprintf.c src$(DIRSEP)loadconf.c src$(DIRSEP)parsecmd.c src$(DIRSEP)pkginst.c src$(DIRSEP)readenv.c src$(DIRSEP)inf.c src$(DIRSEP)libgz.c src$(DIRSEP)lsm.c src$(DIRSEP)parseurl.c src$(DIRSEP)pkgrem.c src$(DIRSEP)rtrim.c src$(DIRSEP)helpers.c src$(DIRSEP)kitten.c src$(DIRSEP)libunzip.c src$(DIRSEP)pkgdb.c src$(DIRSEP)pkgsrch.c src$(DIRSEP)memcore.c src$(DIRSEP)showinst.c src$(DIRSEP)net.c src$(DIRSEP)http.c $(GETDELIM)
 C_SOURCE_HTTPGET = src$(DIRSEP)exec$(DIRSEP)httpget.c src$(DIRSEP)net.c src$(DIRSEP)http.c src$(DIRSEP)parseurl.c src$(DIRSEP)helpers.c src$(DIRSEP)memcore.c
 C_SOURCE_FDINST = src$(DIRSEP)exec$(DIRSEP)fdinst16.c src$(DIRSEP)crc32.c src$(DIRSEP)fileexst.c src$(DIRSEP)helpers.c src$(DIRSEP)inf.c src$(DIRSEP)libunzip.c src$(DIRSEP)loadconf.c src$(DIRSEP)lsm.c src$(DIRSEP)parsecmd.c src$(DIRSEP)pkginst.c src$(DIRSEP)pkgrem.c src$(DIRSEP)readenv.c src$(DIRSEP)rtrim.c src$(DIRSEP)showinst.c src$(DIRSEP)kprintf0.c src$(DIRSEP)memcore.c $(GETDELIM)
 C_SOURCE_FDINK = src$(DIRSEP)exec$(DIRSEP)fdink16.c src$(DIRSEP)crc32.c src$(DIRSEP)fileexst.c src$(DIRSEP)helpers.c src$(DIRSEP)inf.c src$(DIRSEP)libunzip.c src$(DIRSEP)loadconf.c src$(DIRSEP)lsm.c src$(DIRSEP)parsecmd.c src$(DIRSEP)pkginst.c src$(DIRSEP)pkgrem.c src$(DIRSEP)readenv.c src$(DIRSEP)rtrim.c src$(DIRSEP)showinst.c src$(DIRSEP)kprintf0.c src$(DIRSEP)memcore.c $(GETDELIM)

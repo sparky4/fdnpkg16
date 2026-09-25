@@ -66,7 +66,7 @@ long main(int argc, char **argv) {
     printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
     printf("coreleft() == %ld Byte(s) Free\n", coreleft());
     return(0);
-  } else if (strcasecmp(argv[3], "/q") == 0) {
+  } else if ((argv[3] != NULL) && (strcasecmp(argv[3], "/q") == 0)) {
     res = http_get(argv[1], argv[2], NULL, 8080, '\0', 0);
   } else {
     res = http_get(argv[1], argv[2], NULL, 8080, downloadingstring, 1);

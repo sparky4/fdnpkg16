@@ -315,7 +315,7 @@ int loadconf(char *cfgfile, char **repolist, int maxreps, unsigned long *crc32va
                   char *argv[2], *evar, *evar_content, *realLocation;
                   #define realLocation_len 512
                   int x, y;
-                  if (parsecmd(value, argv, 2) != 2) {
+                  if (parsecmd(value, argv, 2) != 2) {  // sparky4: this returns the number of arguments and argv is set inside of the function.
                     kitten_printf(7, 11, "Warning: Invalid 'DIR' directive found at line #%d", nline);
                     puts("");
                   }

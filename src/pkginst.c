@@ -173,7 +173,7 @@ int is_package_installed(char *pkgname, char *dosdir, char *mapdrv, unsigned sho
 /* checks that pkgname is NOT installed. return 0 on success, non-zero otherwise. */
 int validate_package_not_installed(char *pkgname, char *dosdir, char *mapdrv, unsigned short lsxflag) {
   if (is_package_installed(pkgname, dosdir, mapdrv, lsxflag) != 0) {
-    if (lsxflag & 0) {
+    if (lsxflag == 0) {
       kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", pkgname);
     } else {
       // sparky4: This is for held packages!
@@ -395,11 +395,6 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         #ifdef DEBUG
         printf("htgetres returned: %ld\n", htgetres);
         #endif
-//        #ifdef USE_INTERNAL_WATTCP
-//        if (htgetres <= 0) putchar('.');
-//        #else
-//        if (htgetres != 21) putchar('.');
-//        #endif
       }
 //      #ifdef USE_INTERNAL_WATTCP
 //      if (htgetres <= 0) {
@@ -410,7 +405,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }
-//0000      puts("ok"); // just let the user know the file was downloaded and installed
+      //0000      puts("ok"); // just let the user know the file was downloaded and installed
     } else { /* else it's an on-disk repo, so we can use the package right from there */
       sprintf(zipfile, "%s%s.%s", instrepo, pkgname, pkgext);
     }

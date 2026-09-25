@@ -429,8 +429,8 @@ int loaddb(struct pkgdb *db, char *datafile, unsigned char repo, char **dbmsg) {
             *dbmsg[0] = 0;
           }
           rtrim(lineptr); /* remove lf, cr and cr/lf trailers */
-          strncat(*dbmsg, lineptr+1, MAXDBMSGSIZE - 1);
-          strncat(*dbmsg, "\r\n", MAXDBMSGSIZE - 1);
+          strncat(*dbmsg, lineptr+1, MAXDBMSGSIZE - strlen(*dbmsg) - 1);
+          strncat(*dbmsg, "\r\n", MAXDBMSGSIZE - strlen(*dbmsg) - 1);
           continue;
         }
         /* get pkgname and version */ /* PkgName <tab> version <tab> description */

@@ -17,6 +17,9 @@
 
 #include "crc32.h"
 #include "kprintf.h"
+
+#define NOLZMA  // sparky4: 16 bit and 7zip dont like each other so disabled... not going to use
+
 #ifndef NOLZMA
   #define _LZMA_UINT32_IS_ULONG
   #include "lzmadec.h"   /* LZMA support */
@@ -78,8 +81,8 @@ static void SzFree(void *p, void *address) {
 struct ziplist *zip_listfiles(FILE *fd) {
   struct ziplist *reslist = NULL;
   struct ziplist *newentry;
-  unsigned long entrysig;
-  unsigned short filenamelen, extrafieldlen, filecommentlen;
+  unsigned long filenamelen, entrysig;
+  unsigned short extrafieldlen, filecommentlen;
   unsigned long compfilelen;
   int centraldirectoryfound = 0;
   unsigned int ux;

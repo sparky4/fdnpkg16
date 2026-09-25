@@ -23,7 +23,7 @@
 #define USE_INTERNAL_WATTCP   // enable/disable this to use external or internal watt32
 
 
-//old dont use yet
+//old dont use
 //#define USE_MTCP              // enable/disable this to use mtcp or watt32 externally
 
 struct flist_t {
