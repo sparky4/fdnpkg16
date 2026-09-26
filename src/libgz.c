@@ -37,7 +37,7 @@ int ungz(char *srcfile, char *destfile) {
   unsigned char *buff = NULL;   /* know whether it needs to be freed or not */
   unsigned char flags;
   int extract_res;
-  unsigned long filelen, compressedfilelen, gztotalfilelen;
+  long filelen, compressedfilelen, gztotalfilelen;
   uint16_t low_word, high_word;
 
   /* open the src file */
@@ -138,7 +138,9 @@ int ungz(char *srcfile, char *destfile) {
   }
 
   /* compute the length of the compressed stream */
-  compressedfilelen = gztotalfilelen - (ftell(fd) + 8);
+  if (gztotalfilelen >= (ftell(fd) + 8)) {
+    compressedfilelen = gztotalfilelen - (ftell(fd) + 8);
+  }
 
   /* printf("compressed stream length is %d\n", compressedfilelen); */
 
@@ -152,7 +154,7 @@ int ungz(char *srcfile, char *destfile) {
   cksum = crc32_init(); /* init the crc32 */
   extract_res = 0;   /* assume we will succeed */
   if (compmethod == 0) { /* if the file is stored, copy it over */
-    unsigned long i, toread;
+    long i, toread;
     for (i = 0; (signed)i < filelen;) {
       toread = filelen - i;
       if (toread > buffsize) toread = buffsize;

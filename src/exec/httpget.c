@@ -79,13 +79,7 @@ long main(int argc, char **argv) {
   printf("coreleft() == %u\n", coreleft());
 #endif
   tempdir = getenv("TEMP");
-  if (res >= 0) {
-// #ifdef VERBOSE_HTTPGET
-//     if (strcasecmp(argv[3], "/q") != 0) {
-//       printf("Saved %ld bytes into %s.\n", res, argv[2]);
-//     }
-// #endif
-  } else {
+  if (res < 0) {
     printf("ERROR OCCURED: %ld\n", res);
     if ((argv[3] != NULL) && (argv[4] != NULL)) {
       printf("Deleting %s\n", argv[2]); // sparky4: let the user know the file will be deleted.

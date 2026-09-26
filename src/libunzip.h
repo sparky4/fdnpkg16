@@ -18,10 +18,10 @@
 #define ZIP_FLAG_ENCRYPTED 2
 
 struct ziplist {
-  unsigned long filelen;
-  unsigned long compressedfilelen;
+  long filelen;
+  long compressedfilelen;
   unsigned long crc32;
-  unsigned long dataoffset;      /* offset in the file where compressed data starts */
+  long dataoffset;      /* offset in the file where compressed data starts */
   struct ziplist *nextfile;
   time_t timestamp;     /* the timestamp of the file */
   short compmethod;
