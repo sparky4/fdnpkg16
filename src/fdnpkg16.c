@@ -1007,11 +1007,13 @@ int main(int argc, char **argv) {
                 zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv, sizeof(membuff1k));
                 /* if the zip file is ok, remove the old package and install our zip file */
                 if (zipfileidx != NULL) {
-                  if (pkgrem(argv[i+2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
-                    zip_freelist(&zipfileidx);
-                  } else {
-                    pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
-                  }
+                  //if (pkgrem(argv[i+2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
+                  pkgrem(argv[i+2], dosdir, mapdrv);
+                    pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv); // sparky4: go ahead and install it. This is reinstall after all!
+                    //zip_freelist(&zipfileidx);
+                  //} else {
+                    //pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
+                  //}
                   fclose(zipfilefd);
                 }
                 break;
