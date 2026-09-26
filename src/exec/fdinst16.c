@@ -36,6 +36,9 @@
 #include "version.h"
 
 
+#define BUFFMEM1K_SZ 1024
+
+
 enum ACTIONTYPES {
   ACTION_INSTALL,
   ACTION_REMOVE,
@@ -108,7 +111,7 @@ static enum ACTIONTYPES parsearg(int argc, char **argv) {
 
 
 static int pkginst(char *file, int flags, char *dosdir, char *tempdir, struct customdirs *dirlist, char *mapdrv) {
-  char pkgname[32];
+  char pkgname[256];
   int t, lastpathdelim = -1, u = 0;
   char *buffmem1k;
   struct ziplist *zipfileidx;
@@ -117,7 +120,7 @@ static int pkginst(char *file, int flags, char *dosdir, char *tempdir, struct cu
     if ((file[t] == '/') || (file[t] == '\\')) lastpathdelim = t;
   }
   /* copy the filename into pkgname (without path elements) */
-  for (t = lastpathdelim + 1; file[t] != 0; t++) pkgname[u++] = file[t];
+  for (t = lastpathdelim + 1; file[t] != 0 && u < (int)sizeof(pkgname) - 1; t++) pkgname[u++] = file[t];
   pkgname[u] = 0; /* terminate the string */
   /* truncate the file's extension (.zip) */
   for (t = u; t > 0; t--) {
@@ -127,13 +130,13 @@ static int pkginst(char *file, int flags, char *dosdir, char *tempdir, struct cu
     }
   }
   /* allocate some memory for pkginst_preparepackage() to do its job */
-  buffmem1k = malloc(1024);
+  buffmem1k = malloc(BUFFMEM1K_SZ);
   if (buffmem1k == NULL) {
     puts("ERROR: Out of memory");
     return(1);
   }
   /* prepare the zip file and install it */
-  zipfileidx = pkginstall_preparepackage(NULL, pkgname, tempdir, file, flags, NULL, &zipfilefd, NULL, 0, NULL, dosdir, dirlist, buffmem1k, mapdrv, sizeof(buffmem1k));
+  zipfileidx = pkginstall_preparepackage(NULL, pkgname, tempdir, file, flags, NULL, &zipfilefd, NULL, 0, NULL, dosdir, dirlist, buffmem1k, mapdrv, BUFFMEM1K_SZ);
   free(buffmem1k);
   if (zipfileidx != NULL) {
     int res = 0;

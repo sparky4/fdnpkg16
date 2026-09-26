@@ -30,8 +30,8 @@
 
 // main
 long main(int argc, char **argv) {
-  long res;
-  char downloadingstring[64];
+  long res = -1;
+  char downloadingstring[64] = "";
   char fileforerror[512];
   FILE *error_file;
   char *tempdir;
