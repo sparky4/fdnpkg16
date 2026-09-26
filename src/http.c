@@ -102,7 +102,7 @@ long http_get(char *orgurl, char *outputfile, char *proxy, int proxyport, char *
       if (proxy != NULL) {
         sprintf(buffer, "GET http://%s:%d/%s HTTP/1.0\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG16\r\n\r\n", host, port, path, host);
       } else {
-        sprintf(buffer, "GET /%s HTTP/1.1\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG16\r\n\r\n", path, host);
+        sprintf(buffer, "GET /%s HTTP/1.0\r\nHOST: %s\r\nCONNECTION: close\r\nUSER-AGENT: FDNPKG16\r\n\r\n", path, host);
       }
     } else { /* gopher */
       sprintf(buffer, "%s\r\n", path);

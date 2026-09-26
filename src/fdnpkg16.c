@@ -411,9 +411,11 @@ int main(int argc, char **argv) {
       // This modifies what actionarg points to, but not the underlying string data
       //strcpy(actionarg, (++argv[1])); // sparky4: if there is /, copy the argument with out /.
       strncpy(actionarg, (++argv[1]), sizeof(actionarg)); // sparky4: if there is /, copy the argument with out /.
+      actionarg[sizeof(actionarg)-1] = 0;
     } else {
       //strcpy(actionarg, argv[1]);     // sparky4: copy the argument directly if there is no /
       strncpy(actionarg, argv[1], sizeof(actionarg));     // sparky4: copy the argument directly if there is no /
+      actionarg[sizeof(actionarg)-1] = 0;
     }
   }
 
@@ -665,8 +667,8 @@ int main(int argc, char **argv) {
       /* if we install from a local file, do it and quit */
       case ACTION_INSTALL_LOCALFILE:
       {
-        char pkgname[16];
-        char buffmem1k[1024];
+        char pkgname[256];
+        char buffmem1k[2048];
         int t, lastpathdelim = -1, u = 0;
         for (t = 0; argv[i+2][t] != 0; t++) {
           if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
@@ -695,8 +697,8 @@ int main(int argc, char **argv) {
       /* sparky4: Reinstall a local file! */
       case ACTION_REINSTALL_LOCALFILE:
       {
-        char pkgname[16];
-        char buffmem1k[1024];
+        char pkgname[256];
+        char buffmem1k[2048];
         int t, lastpathdelim = -1, u = 0;
         for (t = 0; argv[i+2][t] != 0; t++) {
           if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
@@ -717,7 +719,7 @@ int main(int argc, char **argv) {
           zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
           /* if the zip file is ok, remove the old package and install our zip file */
           if (zipfileidx != NULL) {
-            if (pkgrem(pkgname, dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
+            if (pkgrem(pkgname, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
               zip_freelist(&zipfileidx);
             } else {
               pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
@@ -1005,7 +1007,7 @@ int main(int argc, char **argv) {
                 zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
                 /* if the zip file is ok, remove the old package and install our zip file */
                 if (zipfileidx != NULL) {
-                  if (pkgrem(argv[i+2], dosdir, mapdrv) == -2) { /* mayday! removal failed for some reason */
+                  if (pkgrem(argv[i+2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
                     zip_freelist(&zipfileidx);
                   } else {
                     pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
@@ -1018,7 +1020,7 @@ int main(int argc, char **argv) {
           break;
           case ACTION_DOWNLOAD:  /* DOWNLOAD ONLY! */
             {
-              char pkgname[16];
+              char pkgname[256];
               char membuff1k[1024];
               int t, lastpathdelim = -1, u = 0;
               for (t = 0; argv[i+2][t] != 0; t++) {
@@ -1038,8 +1040,8 @@ int main(int argc, char **argv) {
               zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
               if (zipfileidx != NULL) {
                 pkgdownloadhandle(pkgname, tempdir);
+                fclose(zipfilefd);
               }
-              fclose(zipfilefd);
               break;
             }
           break;
