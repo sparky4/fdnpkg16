@@ -135,18 +135,21 @@ static int pkginst(char *file, int flags, char *dosdir, char *tempdir, struct cu
     puts("ERROR: Out of memory");
     return(1);
   }
-  /* prepare the zip file and install it */
-  zipfileidx = pkginstall_preparepackage(NULL, pkgname, tempdir, file, flags, NULL, &zipfilefd, NULL, 0, NULL, dosdir, dirlist, buffmem1k, mapdrv, BUFFMEM1K_SZ);
-  free(buffmem1k);
-  if (zipfileidx != NULL) {
-    int res = 0;
-    if (pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv) != 0) res = 1;
-    fclose(zipfilefd);
-    return(res);
-  } else {
-    fclose(zipfilefd);
-    return(1);
-  }
+  if ((validate_package_not_installed(pkgname, dosdir, mapdrv, 0) == 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv, 1) == 0)) { /* check that package is not already installed first */
+    /* prepare the zip file and install it */
+    zipfileidx = pkginstall_preparepackage(NULL, pkgname, tempdir, file, flags, NULL, &zipfilefd, NULL, 0, NULL, dosdir, dirlist, buffmem1k, mapdrv, BUFFMEM1K_SZ);
+    free(buffmem1k);
+    if (zipfileidx != NULL) {
+      int res = 0;
+      if (pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv) != 0) res = 1;
+      fclose(zipfilefd);
+      return(res);
+    } else {
+      fclose(zipfilefd);
+      return(1);
+    }
+  } // sparky4: end of checked package. If the program makes it to the line below then an error occured.
+  return(1);  // sparky4: bug fix here
 }
 
 
