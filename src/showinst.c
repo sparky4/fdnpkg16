@@ -273,10 +273,10 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
                     packages_updatefailed -= 1; /* decrement the updatefailed counter to leverage the fact we incremented it without reason earlier */
                   }
                 }
-                fclose(zipfilefd);
               } else { // sparky4: just download the package itself
                 pkgdownloadhandle(packagelist[x], tempdir);
               }
+              fclose(zipfilefd);
             }
           }
           puts(""); /* add a line feed to visually separate packages */

@@ -225,7 +225,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
   }
 
   if (localfile != NULL) {  /* if it's a local file, then we will have to skip all the network stuff */
-    strcpy(zipfile, localfile);
+    strncpy(zipfile, localfile, sizeof(zipfile));
   } else {
     zipfile[0] = 0;
   }

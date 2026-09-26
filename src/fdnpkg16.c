@@ -668,13 +668,13 @@ int main(int argc, char **argv) {
       case ACTION_INSTALL_LOCALFILE:
       {
         char pkgname[256];
-        char buffmem1k[2048];
+        char buffmem1k[1024];
         int t, lastpathdelim = -1, u = 0;
         for (t = 0; argv[i+2][t] != 0; t++) {
           if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
         }
         /* copy the filename into pkgname (without path elements) */
-        for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
+        for (t = lastpathdelim + 1; argv[i+2][t] != 0 && u < (int)sizeof(pkgname) - 1; t++) pkgname[u++] = argv[i+2][t];
         pkgname[u] = 0; /* terminate the string */
         /* truncate the file's extension (.zip) */
         for (t = u; t > 0; t--) {
@@ -698,13 +698,13 @@ int main(int argc, char **argv) {
       case ACTION_REINSTALL_LOCALFILE:
       {
         char pkgname[256];
-        char buffmem1k[2048];
+        char buffmem1k[1024];
         int t, lastpathdelim = -1, u = 0;
         for (t = 0; argv[i+2][t] != 0; t++) {
           if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
         }
         /* copy the filename into pkgname (without path elements) */
-        for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
+        for (t = lastpathdelim + 1; argv[i+2][t] != 0 && u < (int)sizeof(pkgname) - 1; t++) pkgname[u++] = argv[i+2][t];
         pkgname[u] = 0; /* terminate the string */
         /* truncate the file's extension (.zip) */
         for (t = u; t > 0; t--) {
