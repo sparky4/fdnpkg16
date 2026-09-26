@@ -245,8 +245,8 @@ int zip_unzip(FILE *zipfd, struct ziplist *curzipnode, char *fulldestfilename) {
       i += toread;
     }
   } else if (curzipnode->compmethod == 8) {  /* if the file is deflated, inflate it */
+    if (curzipnode->compressedfilelen <= 0) { extract_res = -18; return(-8); }  // sparky4: src/libunzip.c(248): Error! E1000: BREAK must appear in while, do, for or switch statement. using return(-8);
     extract_res = inf(zipfd, filefd, buff, &cksum, curzipnode->compressedfilelen);
-    if (curzipnode->compressedfilelen <= 0) { extract_res = -18; return(-18); }
 #ifndef NOLZMA
   } else if (curzipnode->compmethod == 14) {  /* LZMA */
     #define lzmaoutbufflen 32768u

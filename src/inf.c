@@ -36,8 +36,8 @@ int inf(FILE *source, FILE *dest, unsigned char *buff32K, unsigned long *cksum, 
   strm.avail_in = 0;
   strm.next_in = Z_NULL;
   ret = inflateInit2(&strm, -15); /* according to the zlib doc, passing -15 to inflateInit2() means "this is a raw deflate stream" (as opposed to a zlib- or gz- wrapped stream) */
-  if (streamlen <= 0) { (void)inflateEnd(&strm); return(Z_DATA_ERROR); }
   if (ret != Z_OK) return(ret);
+  if (streamlen <= 0) { (void)inflateEnd(&strm); return(Z_DATA_ERROR); }
 
   /* decompress until deflate stream ends or end of file */
   do {
