@@ -198,7 +198,7 @@ static struct flist_t *findfileinlist(struct flist_t *flist, char *fname) {
 
 /* prepare a package for installation. this is mandatory before actually installing it!
  * returns a pointer to the zip file's index on success, NULL on failure. the *zipfile pointer is updated with a file descriptor to the open zip file to install. */
-struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, char *tempdir, char *localfile, int flags, char **repolist, FILE **zipfd, char *proxy, int proxyport, char *downloadingstring, char *dosdir, struct customdirs *dirlist, char *buffmem1k, char *mapdrv) {
+struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, char *tempdir, char *localfile, int flags, char **repolist, FILE **zipfd, char *proxy, int proxyport, char *downloadingstring, char *dosdir, struct customdirs *dirlist, char *buffmem1k, char *mapdrv, unsigned int buffmem1k_sz) {
   char *fname;
   char *zipfile;
   char *appinfofile;
@@ -225,7 +225,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
   }
 
   if (localfile != NULL) {  /* if it's a local file, then we will have to skip all the network stuff */
-    strncpy(zipfile, localfile, sizeof(zipfile));
+    strncpy(zipfile, localfile, (buffmem1k_sz - 256) - 1);
+    zipfile[(buffmem1k_sz - 256) - 1] = 0;
   } else {
     zipfile[0] = 0;
   }

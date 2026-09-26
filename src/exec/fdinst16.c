@@ -133,7 +133,7 @@ static int pkginst(char *file, int flags, char *dosdir, char *tempdir, struct cu
     return(1);
   }
   /* prepare the zip file and install it */
-  zipfileidx = pkginstall_preparepackage(NULL, pkgname, tempdir, file, flags, NULL, &zipfilefd, NULL, 0, NULL, dosdir, dirlist, buffmem1k, mapdrv);
+  zipfileidx = pkginstall_preparepackage(NULL, pkgname, tempdir, file, flags, NULL, &zipfilefd, NULL, 0, NULL, dosdir, dirlist, buffmem1k, mapdrv, sizeof(buffmem1k));
   free(buffmem1k);
   if (zipfileidx != NULL) {
     int res = 0;

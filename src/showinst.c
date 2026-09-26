@@ -261,7 +261,7 @@ int checkupdates(char *dosdir, struct pkgdb *pkgdb, char **repolist, char *pkg, 
             kitten_printf(10, 3, "An update of '%s' has been found. Download in progress...", packagelist[x]);
             puts("");
             packages_updatefailed += 1; /* increment the updatefailed counter - later we will decrement it if we're okay */
-            zipfileidx = pkginstall_preparepackage(pkgdb, packagelist[x], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+            zipfileidx = pkginstall_preparepackage(pkgdb, packagelist[x], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv, sizeof(buffmem1k));
             if (zipfileidx != NULL) {
               if (!(flags & FDNPKG16_NOINST)) { // sparky4: flag to prevent package upgrade if the flag is set
                 if (pkgrem(packagelist[x], dosdir, mapdrv) != 0) {

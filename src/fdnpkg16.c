@@ -686,7 +686,7 @@ int main(int argc, char **argv) {
 
         if ((validate_package_not_installed(pkgname, dosdir, mapdrv, 0) == 0) && (validate_package_not_installed(pkgname, dosdir, mapdrv, 1) == 0)) { /* check that package is not already installed first */
           /* prepare the zip file and install it */
-          zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv, sizeof(buffmem1k));
           if (zipfileidx != NULL) {
             pkginstall_installpackage(pkgname, dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
             fclose(zipfilefd);
@@ -716,7 +716,7 @@ int main(int argc, char **argv) {
 
         if (validate_package_not_installed(pkgname, dosdir, mapdrv, 1) == 0) { /* check that package is not already held first */
           /* prepare the zip file */
-          zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv);
+          zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, argv[i+2], flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, buffmem1k, mapdrv, sizeof(buffmem1k));
           /* if the zip file is ok, remove the old package and install our zip file */
           if (zipfileidx != NULL) {
             if (pkgrem(pkgname, dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
@@ -962,7 +962,7 @@ int main(int argc, char **argv) {
           case ACTION_INSTALL: /* install remote package */
             if ((validate_package_not_installed(argv[i+2], dosdir, mapdrv, 0) == 0) && (validate_package_not_installed(argv[i+2], dosdir, mapdrv, 1) == 0)) { /* check that package is not already installed first */
               char membuff1k[1024];
-              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv, sizeof(membuff1k));
               if (zipfileidx != NULL) {
                 pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
                 fclose(zipfilefd);
@@ -981,7 +981,7 @@ int main(int argc, char **argv) {
             } else { /* the package is locally installed, and an update have been found - let's proceed */
               char membuff1k[1024];
               /* prepare the zip file */
-              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+              zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv, sizeof(membuff1k));
               /* if the zip file is ok, remove the old package and install our zip file */
               if (zipfileidx != NULL) {
                 if (pkgrem(argv[i+2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
@@ -1004,7 +1004,7 @@ int main(int argc, char **argv) {
               if (validate_package_not_installed(argv[i+2], dosdir, mapdrv, 1) == 0) { /* check that package is not already held first */
                 char membuff1k[1024];
                 /* prepare the zip file */
-                zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+                zipfileidx = pkginstall_preparepackage(pkgdb, argv[i+2], tempdir, NULL, flags | PKGINST_UPDATE, repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv, sizeof(membuff1k));
                 /* if the zip file is ok, remove the old package and install our zip file */
                 if (zipfileidx != NULL) {
                   if (pkgrem(argv[i+2], dosdir, mapdrv) != 0) { /* mayday! removal failed for some reason */
@@ -1027,7 +1027,7 @@ int main(int argc, char **argv) {
                 if ((argv[i+2][t] == '/') || (argv[i+2][t] == '\\')) lastpathdelim = t;
               }
               /* copy the filename into pkgname (without path elements) */
-              for (t = lastpathdelim + 1; argv[i+2][t] != 0; t++) pkgname[u++] = argv[i+2][t];
+              for (t = lastpathdelim + 1; argv[i+2][t] != 0 && u < (int)sizeof(pkgname) - 1; t++) pkgname[u++] = argv[i+2][t];
               pkgname[u] = 0; /* terminate the string */
               /* truncate the file's extension (.zip) */
               for (t = u; t > 0; t--) {
@@ -1037,7 +1037,7 @@ int main(int argc, char **argv) {
                 }
               }
               /* prepare the zip file */
-              zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv);
+              zipfileidx = pkginstall_preparepackage(pkgdb, pkgname, tempdir, NULL, flags & ~(PKGINST_UPDATE), repolist, &zipfilefd, proxy, proxyport, downloadingstring, dosdir, dirlist, membuff1k, mapdrv, sizeof(membuff1k));
               if (zipfileidx != NULL) {
                 pkgdownloadhandle(pkgname, tempdir);
                 fclose(zipfilefd);

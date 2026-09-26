@@ -19,7 +19,7 @@
 
 struct ziplist {
   long filelen;
-  long compressedfilelen;
+  unsigned long compressedfilelen;
   unsigned long crc32;
   long dataoffset;      /* offset in the file where compressed data starts */
   struct ziplist *nextfile;
