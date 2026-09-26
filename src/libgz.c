@@ -155,7 +155,7 @@ int ungz(char *srcfile, char *destfile) {
   cksum = crc32_init(); /* init the crc32 */
   extract_res = 0;   /* assume we will succeed */
   if (compmethod == 0) { /* if the file is stored, copy it over */
-    unsigned long i, toread;
+    long i, toread;
     for (i = 0; (signed)i < filelen;) {
       toread = filelen - i;
       if (toread > buffsize) toread = buffsize;
