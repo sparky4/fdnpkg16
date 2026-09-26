@@ -470,7 +470,7 @@ void pkgdownloadhandle(char *pkgname, char *tempdir)
   if ((forceflag = forceflagfunction(tempfiledest, cwd, cwdir == tmpdir)) == 2) {
     unlink(tempfiledest);
   }
-  if ((filesize(tempfile) == 8)) { // sparky4: file failed to download? remove it!
+  if ((filesize(tempfile) <= 0)) { // sparky4: file failed to download? remove it!
     unlink(tempfile);
   } else {
     if ((rename(tempfile, tempfiledest) != 0) && (forceflag < 2)) { // sparky4: the file gets renamed into the current working dir with original name! :D
