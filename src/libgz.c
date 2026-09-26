@@ -37,7 +37,7 @@ int ungz(char *srcfile, char *destfile) {
   unsigned char *buff = NULL;   /* know whether it needs to be freed or not */
   unsigned char flags;
   int extract_res;
-  long filelen, compressedfilelen, gztotalfilelen;
+  unsigned long filelen, compressedfilelen, gztotalfilelen;
   uint16_t low_word, high_word;
 
   /* open the src file */

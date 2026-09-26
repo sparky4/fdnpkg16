@@ -80,11 +80,11 @@ long main(int argc, char **argv) {
 #endif
   tempdir = getenv("TEMP");
   if (res >= 0) {
-#ifdef VERBOSE_HTTPGET
-    if (strcasecmp(argv[3], "/q") != 0) {
-      printf("Saved %ld bytes into %s.\n", res, argv[2]);
-    }
-#endif
+// #ifdef VERBOSE_HTTPGET
+//     if (strcasecmp(argv[3], "/q") != 0) {
+//       printf("Saved %ld bytes into %s.\n", res, argv[2]);
+//     }
+// #endif
   } else {
     printf("ERROR OCCURED: %ld\n", res);
     if ((argv[3] != NULL) && (argv[4] != NULL)) {
