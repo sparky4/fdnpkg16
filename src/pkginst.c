@@ -208,9 +208,14 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
   struct flist_t *flist;
   int forceflag, userchoice;
 
+  #define PKGSLOT 256
+
+  // sparky4: a memory error catcher
+  if (buffmem1k_sz < (PKGSLOT * 3)) return(NULL);   /* need 3 x 256 */
+
   fname = buffmem1k;
-  zipfile = buffmem1k + 256;
-  appinfofile = buffmem1k + 512;
+  zipfile = buffmem1k + PKGSLOT;
+  appinfofile = buffmem1k + (PKGSLOT * 2);
   forceflag = userchoice = 0;
 
   strtolower(pkgname); /* convert pkgname to lower case, because the http repo is probably case sensitive */
@@ -225,8 +230,8 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
   }
 
   if (localfile != NULL) {  /* if it's a local file, then we will have to skip all the network stuff */
-    strncpy(zipfile, localfile, (buffmem1k_sz - 256) - 1);
-    zipfile[(buffmem1k_sz - 256) - 1] = 0;
+    strncpy(zipfile, localfile, PKGSLOT - 1);
+    zipfile[PKGSLOT - 1] = 0;
   } else {
     zipfile[0] = 0;
   }
