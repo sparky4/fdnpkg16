@@ -246,7 +246,7 @@ int zip_unzip(FILE *zipfd, struct ziplist *curzipnode, char *fulldestfilename) {
     }
   } else if (curzipnode->compmethod == 8) {  /* if the file is deflated, inflate it */
     extract_res = inf(zipfd, filefd, buff, &cksum, curzipnode->compressedfilelen);
-    if (curzipnode->compressedfilelen <= 0) { extract_res = -18; break; }
+    if (curzipnode->compressedfilelen <= 0) { extract_res = -18; return(-18); }
 #ifndef NOLZMA
   } else if (curzipnode->compmethod == 14) {  /* LZMA */
     #define lzmaoutbufflen 32768u
