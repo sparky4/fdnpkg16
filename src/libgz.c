@@ -138,9 +138,10 @@ int ungz(char *srcfile, char *destfile) {
   }
 
   /* compute the length of the compressed stream */
-  if (gztotalfilelen >= (ftell(fd) + 8)) {
-    compressedfilelen = gztotalfilelen - (ftell(fd) + 8);
-  }
+  compressedfilelen = gztotalfilelen - (ftell(fd) + 8);
+
+  // sparky4: a fix - negitive checking
+  if (compressedfilelen < 0) return(-18);
 
   /* printf("compressed stream length is %d\n", compressedfilelen); */
 
@@ -154,7 +155,7 @@ int ungz(char *srcfile, char *destfile) {
   cksum = crc32_init(); /* init the crc32 */
   extract_res = 0;   /* assume we will succeed */
   if (compmethod == 0) { /* if the file is stored, copy it over */
-    long i, toread;
+    unsigned long i, toread;
     for (i = 0; (signed)i < filelen;) {
       toread = filelen - i;
       if (toread > buffsize) toread = buffsize;
