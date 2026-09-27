@@ -482,7 +482,7 @@ int main(int argc, char **argv) {
           QUIT(2)
         } else {
           action = ACTION_LISTFILES;
-          flags |= (FDNPKG16_NOREPOA);
+          flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
         }
       } else if ((strcasecmp(actionarg, "dumpcfg") && strcasecmp(actionarg, "dc")) == 0) {
         if (argc != 2) {
