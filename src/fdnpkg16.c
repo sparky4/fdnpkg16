@@ -399,9 +399,7 @@ int main(int argc, char **argv) {
   if (farcoreleft() < 196608L) {
 #endif /* #ifndef USE_INTERNAL_WATTCP */
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
-//#ifndef USE_INTERNAL_WATTCP
     netinitres = -100; // sparky4: DO NOT USE NETWORKING! no ram!
-//#endif
   } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
 
   /* Load the list of package repositories */
@@ -413,11 +411,9 @@ int main(int argc, char **argv) {
     if (argv[1][0] == '/') { // Check if the first character is '/'
       // Shift the pointer to effectively remove the first character
       // This modifies what actionarg points to, but not the underlying string data
-      //strcpy(actionarg, (++argv[1])); // sparky4: if there is /, copy the argument with out /.
       strncpy(actionarg, (++argv[1]), sizeof(actionarg)); // sparky4: if there is /, copy the argument with out /.
       actionarg[sizeof(actionarg)-1] = 0;
     } else {
-      //strcpy(actionarg, argv[1]);     // sparky4: copy the argument directly if there is no /
       strncpy(actionarg, argv[1], sizeof(actionarg));     // sparky4: copy the argument directly if there is no /
       actionarg[sizeof(actionarg)-1] = 0;
     }
@@ -760,14 +756,10 @@ int main(int argc, char **argv) {
             kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
             QUIT(6)
           }
-#ifdef USE_INTERNAL_WATTCP
-//          puts("");
-#endif
           flags |= (FDNPKG16_NETINIT);
           break;
         }
       }
-      //----}
     } //sparky4: end of ((flags & FDNPKG16_NETINIT) == 0)
 
     if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
@@ -959,9 +951,9 @@ int main(int argc, char **argv) {
                 pkginstall_installpackage(argv[i+2], dosdir, dirlist, zipfileidx, zipfilefd, mapdrv);
                 fclose(zipfilefd);
               }
-            }/* else {
+            } else {
               kitten_printf(3, 18, "Package %s is already installed! You might want to use the 'reinstall' action.", argv[i+2]);
-            }*/  // sparky4: no space for this
+            }
           break;
           case ACTION_UPDATE: /* UPDATE, but only for a SINGLE package */
             if (is_package_installed(argv[i+2], dosdir, mapdrv, 0) == 0) { /* is this package installed at all? */
