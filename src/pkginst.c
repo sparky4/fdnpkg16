@@ -405,7 +405,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //      #else
 //      if (htgetres != 21) {
 //      #endif
-      if (htgetres <= 0) {  /* sparky4: 0 and below is an error */
+      if (htgetres < 0) {  /* sparky4: 0 and below is an error */
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }

@@ -902,7 +902,7 @@ int main(int argc, char **argv) {
   //          #else
   //          if (htgetres != 21) {
   //              #endif
-            if (htgetres <= 0) {
+            if (htgetres < 0) {
               kitten_puts(2, 10, "Repository download failed!");
               maxcachetime = 0; /* disable cache writing this time */
             } else {

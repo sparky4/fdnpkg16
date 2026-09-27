@@ -115,7 +115,7 @@ static int pkginst(char *file, int flags, char *dosdir, char *tempdir, struct cu
   int t, lastpathdelim = -1, u = 0;
   char *buffmem1k;
   struct ziplist *zipfileidx;
-  FILE *zipfilefd;
+  FILE *zipfilefd = NULL;
   for (t = 0; file[t] != 0; t++) {
     if ((file[t] == '/') || (file[t] == '\\')) lastpathdelim = t;
   }
@@ -145,7 +145,6 @@ static int pkginst(char *file, int flags, char *dosdir, char *tempdir, struct cu
       fclose(zipfilefd);
       return(res);
     } else {
-      fclose(zipfilefd);
       return(1);
     }
   } // sparky4: end of checked package. If the program makes it to the line below then an error occured.
