@@ -41,7 +41,7 @@ int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, cha
   if (cfg != NULL) {
     snprintf(cfgfile, cfgfilemaxlen, "%s", cfg);
   } else { /* not set, so fallback to hardcoded location */
-    // sparky4: this was dont so that the program is more flexible and can be stored in various places. Not just in %DOSDIR%\bin
+    // sparky4: this was done so that the program is more flexible and can be stored in various places. Not just in %DOSDIR%\bin
     snprintf(cfgfile, cfgfilemaxlen, "%s\\fdnpkg16.cfg", dirname(argv[0]));
   }
 

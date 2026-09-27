@@ -1,6 +1,6 @@
 /*
  * This file is part of the FDNPKG16 project
- * http://fdnpkg.sourceforge.net
+ * https://git.gay/sparky4/fdnpkg16
  *
  * Copyright (C) 2012-2016 Mateusz Viste. All rights reserved.
  * Copyright (C) 2025-2026 Victoria Crenshaw aka sparky4 && Katheryn Northwood. All rights reserved.
@@ -247,7 +247,7 @@ int zip_unzip(FILE *zipfd, struct ziplist *curzipnode, char *fulldestfilename) {
   } else if (curzipnode->compmethod == 8) {  /* if the file is deflated, inflate it */
     if (curzipnode->compressedfilelen <= 0) { extract_res = -18; goto errorincompressedfilelen; }  // sparky4: src/libunzip.c(248): Error! E1000: BREAK must appear in while, do, for or switch statement. using return(-8);
     extract_res = inf(zipfd, filefd, buff, &cksum, curzipnode->compressedfilelen);
-#ifndef NOLZMA
+#ifndef NOLZMA //sparky4: NO LZMA BECAUSE 16-BIT..
   } else if (curzipnode->compmethod == 14) {  /* LZMA */
     #define lzmaoutbufflen 32768u
     long bytesread, bytesreadtotal = 0, byteswritetotal = 0;

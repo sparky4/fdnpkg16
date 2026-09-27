@@ -30,7 +30,6 @@
 
 //#define DEBUG_MEM  // uncomment this to enable debug mode of ram
 #ifdef DEBUG_MEM
-//#include <conio.h>
 #include "memcore.h"
 #endif
 
@@ -195,6 +194,7 @@ static struct flist_t *findfileinlist(struct flist_t *flist, char *fname) {
   return(NULL);
 }
 
+#define PKGSLOT 256
 
 /* prepare a package for installation. this is mandatory before actually installing it!
  * returns a pointer to the zip file's index on success, NULL on failure. the *zipfile pointer is updated with a file descriptor to the open zip file to install. */
@@ -207,8 +207,6 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
   struct ziplist *ziplinkedlist, *curzipnode, *prevzipnode;
   struct flist_t *flist;
   int forceflag, userchoice;
-
-  #define PKGSLOT 256
 
   // sparky4: a memory error catcher
   if (buffmem1k_sz < (PKGSLOT * 3)) return(NULL);   /* need 3 x 256 */
@@ -340,6 +338,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         sprintf(fname, "%s%s.%s", instrepo, pkgname, pkgext);  // refresh the index variable
         if (htgetres >= 0) break;
         #ifdef USE_INTERNAL_WATTCP
+        //if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
 #ifdef DEBUG_MEM
         printf("farcoreleft() == %ld\n", farcoreleft());
         printf("coreleft() == %u\n", coreleft());
@@ -361,7 +360,6 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         printf("farcoreleft() == %ld\n", farcoreleft());
         printf("coreleft() == %u\n", coreleft());
 #endif
-        //      if (http_get(fname, zipfile, proxy, proxyport, downloadingstring) <= 0) {
         #else /* #ifdef USE_INTERNAL_WATTCP */
 #ifdef USE_MTCP
         sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
@@ -407,7 +405,7 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
 //      #else
 //      if (htgetres != 21) {
 //      #endif
-      if (htgetres < 0) {  /* sparky4: below 0 is an error */
+      if (htgetres <= 0) {  /* sparky4: 0 and below is an error */
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);
       }

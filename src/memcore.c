@@ -59,7 +59,7 @@ long nearcoreleft() {
 // sparky4: modified by me xD
 long farcoreleft() {
   static long memoryAvailable;
-  int SAMPLE_SIZE = 640;//65534;  /* 640 Bytes */
+  int SAMPLE_SIZE = 640;  /* 640 Bytes */
   void __far * far *memoryBlock; /* Array of pointers */
   int i = 0, j = 0;
   int maxBlocks = 1024; /* for a max of about 640KB */
