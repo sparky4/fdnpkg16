@@ -68,32 +68,26 @@ all: $(EXEC)
 fdnpkg16.exe: $(OBJECTS)
 #    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJECTS) $(LINKER_OPTIONS)
-    @upx --8086 -9 fdnpkg16.exe
     @wmake -h vomitchan
 #    @echo Finished building fdnpkg16.exe
 
 httpget.exe: $(OBJ_HTTPGET)
 #    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJ_HTTPGET) $(LINKER_OPTIONS_HTTPGET)
-    @upx --8086 -9 httpget.exe
     @wmake -h vomitchan
 #    @echo Finished building httpget.exe
 
 fdinst16.exe: $(OBJ_FDINST)
 #    @echo Building for dos
-    @$(REMOVECOMMAND) *.$(OBJ)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINST) $(LINKER_OPTIONS_FDINST)
     @$(REMOVECOMMAND) *.$(OBJ)
-    @upx --8086 -9 fdinst16.exe
     @wmake -h vomitchan
 #    @echo Finished building fdinst16.exe
 
 fdink16.exe: $(OBJ_FDINK)
 #    @echo Building for dos
-    @$(REMOVECOMMAND) *.$(OBJ)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINK) $(LINKER_OPTIONS_FDINST)
     @$(REMOVECOMMAND) *.$(OBJ)
-    @upx --8086 -9 fdink16.exe
     @wmake -h vomitchan
 #    @echo Finished building fdink16.exe
 
@@ -113,13 +107,17 @@ fdink16.exe: $(OBJ_FDINK)
 # Clean target to remove built files
 clean: .symbolic
     @echo Cleaning up...
-    @$(REMOVECOMMAND) *.$(OBJ) *.exe
+    @$(REMOVECOMMAND) *.$(OBJ)
+    @$(REMOVECOMMAND) *.exe
     @echo ===============================================================================
 
 vomitchan: .symbolic
     @if exist *.err @$(DUMP) *.err
     @if exist *.exe @$(LISTCOMMAND) *.exe
     @echo ===============================================================================
+
+compress: .symbolic
+	@upx --8086 -9 *.exe
 
 #DO NOT USE YET!! I AM WORKING ON THIS --sparky4
 pkgfkjdsljflkdsajflkdsajflkdsaDONTUSE: fdnpkg16.exe httpget.exe fdinst16.exe

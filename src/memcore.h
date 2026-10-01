@@ -9,6 +9,8 @@
 #ifndef __MEMCORE_H__
 #define __MEMCORE_H__
 
+//#define DEBUG_MEMCORE
+
 long farcoreleft();
 long coreleft();
 

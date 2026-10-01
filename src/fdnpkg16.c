@@ -422,7 +422,7 @@ int main(int argc, char **argv) {
   #endif
     // sparky4: flag resetter for 2 bits
     flags &= (~((1 << 3) | (1 << 4) | (1 << 5)));  // sparky4: disable 3rd, 4th, and 5th bit position in the flags for the 3 new bits to be reseted
-    // 3 bits are for FDNPKG16_NETINIT && FDNPKG16_NOREPOA && FDNPKG16_NOINST
+    // 3 bits are for FDNPKG16_NONETINIT && FDNPKG16_NOREPOA && FDNPKG16_NOINST
     #ifdef DEBUG
 //0000    printf("Resulting value(hex): 0x%X\n", flags);
     #endif
@@ -450,7 +450,7 @@ int main(int argc, char **argv) {
           if (arglen > 4) {
             if ((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
               action = ACTION_INSTALL_LOCALFILE;
-              flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+              flags |= (FDNPKG16_NONETINIT | FDNPKG16_NOREPOA);
             }
           }
         }
@@ -461,7 +461,7 @@ int main(int argc, char **argv) {
         } else {
           action = ACTION_REMOVE;
           pkgrem(argv[i+2], dosdir, mapdrv);
-          flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+          flags |= (FDNPKG16_NONETINIT | FDNPKG16_NOREPOA);
         }
       // sparky4: this is a loop now so we can do this now! :D
       } else if ((strcasecmp(actionarg, "update") && strcasecmp(actionarg, "up")) == 0) {
@@ -475,14 +475,14 @@ int main(int argc, char **argv) {
         }
       } else if (((strcasecmp(actionarg, "listlocal") && strcasecmp(actionarg, "ll")) == 0) || ((strcasecmp(actionarg, "showinstalled") && strcasecmp(actionarg, "si")) == 0)) { /* 'showinstalled' is the old name for 'listlocal' - retained for backward compatibility, but to be removed in some futur */
           action = ACTION_LISTLOCAL;
-          flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+          flags |= (FDNPKG16_NONETINIT | FDNPKG16_NOREPOA);
       } else if ((strcasecmp(actionarg, "listfiles") && strcasecmp(actionarg, "lf")) == 0) {
         if (argc < 3) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
           QUIT(2)
         } else {
           action = ACTION_LISTFILES;
-          flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+          flags |= (FDNPKG16_NONETINIT | FDNPKG16_NOREPOA);
         }
       } else if ((strcasecmp(actionarg, "dumpcfg") && strcasecmp(actionarg, "dc")) == 0) {
         if (argc != 2) {
@@ -490,7 +490,7 @@ int main(int argc, char **argv) {
           QUIT(2)
         } else {
           action = ACTION_DUMPCFG;
-          flags |= (FDNPKG16_NETINIT);
+          flags |= (FDNPKG16_NONETINIT);
         }
       } else if ((strcasecmp(actionarg, "license") && strcasecmp(actionarg, "li")) == 0) {
         if (argc != 2) {
@@ -512,7 +512,7 @@ int main(int argc, char **argv) {
           QUIT(2)
         } else {
           action = ACTION_CLEARCACHE;
-          flags |= (FDNPKG16_NETINIT);
+          flags |= (FDNPKG16_NONETINIT);
         }
       } else if ((strcasecmp(actionarg, "reinstall") && strcasecmp(actionarg, "ri")) == 0) {
         if (argc < 3) {
@@ -525,20 +525,20 @@ int main(int argc, char **argv) {
           if (arglen > 4) {
             if ((argv[i+2][arglen - 4] == '.') && (tolower(argv[i+2][arglen - 3]) == 'z') && (tolower(argv[i+2][arglen - 2]) == 'i')) { /* if argument ends with '.zi?' (zip/zib), then it's a local package file */
               action = ACTION_REINSTALL_LOCALFILE;
-              flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+              flags |= (FDNPKG16_NONETINIT | FDNPKG16_NOREPOA);
             }
           }
         }
       } else if ((strcasecmp(actionarg, "holdlist") && strcasecmp(actionarg, "hl")) == 0) {
           action = ACTION_HOLDLIST;
-          flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+          flags |= (FDNPKG16_NONETINIT | FDNPKG16_NOREPOA);
       } else if ((strcasecmp(actionarg, "hold") && strcasecmp(actionarg, "ho")) == 0) {
         if (argc < 3) {
           kitten_printf(2, 4, "Invalid number of arguments. Run FDNPKG%s without any parameter for help.", EXECNAME); puts("");
           QUIT(2)
         } else {
           action = ACTION_HOLD;
-          flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+          flags |= (FDNPKG16_NONETINIT | FDNPKG16_NOREPOA);
         }
       } else if ((strcasecmp(actionarg, "unhold") && strcasecmp(actionarg, "uh")) == 0) {
         if (argc < 3) {
@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
           QUIT(2)
         } else {
           action = ACTION_UNHOLD;
-          flags |= (FDNPKG16_NETINIT | FDNPKG16_NOREPOA);
+          flags |= (FDNPKG16_NONETINIT | FDNPKG16_NOREPOA);
         }
       } else if ((strcasecmp(actionarg, "notinstalled") && strcasecmp(actionarg, "ni")) == 0) {
         action = ACTION_NOTSEARCH;
@@ -743,7 +743,7 @@ int main(int argc, char **argv) {
     }
 
     /* sparky4: check arg2 for a . if there is one in existance then skip networking initiation */ // sparky4: also dont do networking when we are removing a package or i > 0 (for the loop)
-    if (((flags & FDNPKG16_NETINIT) == 0) && (netinitres != -100)) {
+    if (((flags & FDNPKG16_NONETINIT) == 0) && (netinitres != -100)) {
       /* if there is at least one online repo, init the Watt32 stack */
       for (x = 0; x < repolistcount; x++) {
         if (detect_localpath(repolist[x]) == 0) {
@@ -760,11 +760,11 @@ int main(int argc, char **argv) {
             kitten_puts(2, 15, "Error: TCP/IP initialization failed!");
             QUIT(6)
           }
-          flags |= (FDNPKG16_NETINIT);
+          flags |= (FDNPKG16_NONETINIT);
           break;
         }
       }
-    } //sparky4: end of ((flags & FDNPKG16_NETINIT) == 0)
+    } //sparky4: end of ((flags & FDNPKG16_NONETINIT) == 0)
 
     if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
       short dci;

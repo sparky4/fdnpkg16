@@ -8,6 +8,9 @@
 
 #include "memcore.h"
 #include <malloc.h>
+#ifdef DEBUG_MEMCORE
+#include <stdio.h>
+#endif
 
 // sparky4: This function I did make. It works well. Returns near memory avalible!
 long coreleft() {
@@ -41,7 +44,9 @@ long nearcoreleft() {
   /* Calculate total memory allocated successfully */
   memoryAvailable = (long)SAMPLE_SIZE * (long)i;
 
-//  cprintf("Memory available: %lu", memoryAvailable);
+#ifdef DEBUG_MEMCORE
+  cprintf("Memory available: %lu", memoryAvailable);
+#endif
 
   /* Free everything */
   for (j = 0; j < i; j++) {
@@ -82,7 +87,9 @@ long farcoreleft() {
   /* Calculate total memory allocated successfully */
   memoryAvailable = (long)SAMPLE_SIZE * (long)i;
 
-//  printf("Memory available: %ld %d\n", memoryAvailable, i);
+#ifdef DEBUG_MEMCORE
+  printf("Memory available: %ld %d\n", memoryAvailable, i);
+#endif
 
   /* Free everything */
   for (j = 0; j < i; j++) {
