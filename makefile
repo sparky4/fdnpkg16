@@ -39,6 +39,7 @@ GETDELIM =
 # Compiler Options: Add desired options (e.g., debugging -g, optimization -O)
 COMPILER_OPTIONS = -q -0 -lr -ml -opnr -oe=24 -oil+ -outback -ohm -sg -wx -we -d0 -k24576 -fpi -fo=.$(OBJ) -i=src
 COMPILER_OPTIONS2 = -DNOREPOS
+COMPILER_OPTIONS3 = -DNO_INTERNAL_WATTCP
 
 # Linker Options
 LINKER_OPTIONS = src$(DIRSEP)zlib$(DIRSEP)zlib_l.lib -i=src$(DIRSEP)zlib src$(DIRSEP)watt32$(DIRSEP)lib$(DIRSEP)wattcpwl.lib -i=src$(DIRSEP)watt32$(DIRSEP)inc
@@ -49,47 +50,43 @@ LINKER_OPTIONS_FDINST = src$(DIRSEP)zlib$(DIRSEP)zlib_l.lib -i=src$(DIRSEP)zlib
 C_SOURCE = src$(DIRSEP)fdnpkg16.c src$(DIRSEP)crc32.c src$(DIRSEP)fileexst.c src$(DIRSEP)kprintf.c src$(DIRSEP)loadconf.c src$(DIRSEP)parsecmd.c src$(DIRSEP)pkginst.c src$(DIRSEP)readenv.c src$(DIRSEP)inf.c src$(DIRSEP)libgz.c src$(DIRSEP)lsm.c src$(DIRSEP)parseurl.c src$(DIRSEP)pkgrem.c src$(DIRSEP)rtrim.c src$(DIRSEP)helpers.c src$(DIRSEP)kitten.c src$(DIRSEP)libunzip.c src$(DIRSEP)pkgdb.c src$(DIRSEP)pkgsrch.c src$(DIRSEP)memcore.c src$(DIRSEP)showinst.c src$(DIRSEP)net.c src$(DIRSEP)http.c $(GETDELIM)
 C_SOURCE_HTTPGET = src$(DIRSEP)exec$(DIRSEP)httpget.c src$(DIRSEP)net.c src$(DIRSEP)http.c src$(DIRSEP)parseurl.c src$(DIRSEP)helpers.c src$(DIRSEP)memcore.c
 C_SOURCE_FDINST = src$(DIRSEP)exec$(DIRSEP)fdinst16.c src$(DIRSEP)crc32.c src$(DIRSEP)fileexst.c src$(DIRSEP)helpers.c src$(DIRSEP)inf.c src$(DIRSEP)libunzip.c src$(DIRSEP)loadconf.c src$(DIRSEP)lsm.c src$(DIRSEP)parsecmd.c src$(DIRSEP)pkginst.c src$(DIRSEP)pkgrem.c src$(DIRSEP)readenv.c src$(DIRSEP)rtrim.c src$(DIRSEP)showinst.c src$(DIRSEP)kprintf0.c src$(DIRSEP)memcore.c $(GETDELIM)
-C_SOURCE_FDINK = src$(DIRSEP)exec$(DIRSEP)fdink16.c src$(DIRSEP)crc32.c src$(DIRSEP)fileexst.c src$(DIRSEP)helpers.c src$(DIRSEP)inf.c src$(DIRSEP)libunzip.c src$(DIRSEP)loadconf.c src$(DIRSEP)lsm.c src$(DIRSEP)parsecmd.c src$(DIRSEP)pkginst.c src$(DIRSEP)pkgrem.c src$(DIRSEP)readenv.c src$(DIRSEP)rtrim.c src$(DIRSEP)showinst.c src$(DIRSEP)kprintf0.c src$(DIRSEP)memcore.c $(GETDELIM)
+C_SOURCE_FDNPKGHT = src$(DIRSEP)fdnpkght.c src$(DIRSEP)crc32.c src$(DIRSEP)fileexst.c src$(DIRSEP)kprintf.c src$(DIRSEP)loadconf.c src$(DIRSEP)parsecmd.c src$(DIRSEP)pkginst.c src$(DIRSEP)readenv.c src$(DIRSEP)inf.c src$(DIRSEP)libgz.c src$(DIRSEP)lsm.c src$(DIRSEP)parseurl.c src$(DIRSEP)pkgrem.c src$(DIRSEP)rtrim.c src$(DIRSEP)helpers.c src$(DIRSEP)kitten.c src$(DIRSEP)libunzip.c src$(DIRSEP)pkgdb.c src$(DIRSEP)pkgsrch.c src$(DIRSEP)memcore.c src$(DIRSEP)showinst.c $(GETDELIM)
 
 # Object files (derived from source files, adjust extension as needed for your setup)
 OBJECTS = $(C_SOURCE:..$(DIRSEP).c=.$(OBJ))
 OBJ_HTTPGET = $(C_SOURCE_HTTPGET:..$(DIRSEP).c=.$(OBJ))
 OBJ_FDINST = $(C_SOURCE_FDINST:..$(DIRSEP).c=.$(OBJ))
-OBJ_FDINK  = $(C_SOURCE_FDINK:..$(DIRSEP).c=.$(OBJ))
+OBJ_FDNPKGHT  = $(C_SOURCE_FDNPKGHT:..$(DIRSEP).c=.$(OBJ))
 EXEC = &
      fdnpkg16.exe &
      httpget.exe &
-     fdinst16.exe
+     fdinst16.exe &
+     fdnpkght.exe
 
 # --- TARGETS ---
 
 all: $(EXEC)
 
 fdnpkg16.exe: $(OBJECTS)
-#    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJECTS) $(LINKER_OPTIONS)
     @wmake -h vomitchan
-#    @echo Finished building fdnpkg16.exe
 
 httpget.exe: $(OBJ_HTTPGET)
-#    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJ_HTTPGET) $(LINKER_OPTIONS_HTTPGET)
     @wmake -h vomitchan
-#    @echo Finished building httpget.exe
 
 fdinst16.exe: $(OBJ_FDINST)
-#    @echo Building for dos
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINST) $(LINKER_OPTIONS_FDINST)
     @$(REMOVECOMMAND) *.$(OBJ)
     @wmake -h vomitchan
-#    @echo Finished building fdinst16.exe
+    @$(COPYCOMMAND) src$(DIRSEP)fdnpkg16.c src$(DIRSEP)fdnpkght.c
 
-fdink16.exe: $(OBJ_FDINK)
-#    @echo Building for dos
-    *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINK) $(LINKER_OPTIONS_FDINST)
+fdnpkght.exe: $(OBJ_FDNPKGHT)
     @$(REMOVECOMMAND) *.$(OBJ)
+    *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS3) $(OBJ_FDNPKGHT) $(LINKER_OPTIONS_FDINST)
+    @$(REMOVECOMMAND) *.$(OBJ)
+    @$(REMOVECOMMAND) src$(DIRSEP)fdnpkght.c
     @wmake -h vomitchan
-#    @echo Finished building fdink16.exe
 
 # Generic rule to compile .c files into .$(OBJ) files
 .c.$(OBJ) :

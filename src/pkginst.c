@@ -361,13 +361,9 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         printf("coreleft() == %u\n", coreleft());
 #endif
         #else /* #ifdef USE_INTERNAL_WATTCP */
-#ifdef USE_MTCP
-        sprintf(command, "@echo off\nhtget -quiet -o %s %s", zipfile, fname);
-#else
         dlstr = percent_adding(downloadingstring);
         sprintf(command, "@httpget.exe %s %s . \"%s\"", fname, zipfile, dlstr);
         free(dlstr);
-#endif
         proxy = downloadingstring = NULL;
         proxyport = 8080;
         // lets try this
@@ -400,11 +396,6 @@ struct ziplist *pkginstall_preparepackage(struct pkgdb *pkgdb, char *pkgname, ch
         printf("htgetres returned: %ld\n", htgetres);
         #endif
       }
-//      #ifdef USE_INTERNAL_WATTCP
-//      if (htgetres <= 0) {
-//      #else
-//      if (htgetres != 21) {
-//      #endif
       if (htgetres < 0) {  /* sparky4: 0 and below is an error */
         kitten_puts(3, 7, "Error downloading package. Aborted.");
         return(NULL);

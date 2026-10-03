@@ -61,7 +61,7 @@
 #define EXECNAME "16"
 extern char *wattcpVersion(); /* provided by wattcp to poll its version */
 #else
-#define EXECNAME "16" // sparky4: can be 86
+#define EXECNAME "HT" // sparky4: can be 86 or ht
 #endif
 
 // sparky4: for possible short and long help header and such
@@ -244,7 +244,7 @@ static void printhelp2short(void) {
   puts("");
   puts(wattcpVersion());
 #else
-  kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
+  puts(""); puts(""); kitten_printf(1, 21, "FDNPKG%s is using HTTPGET.EXE", EXECNAME);
 #endif
 }
 static void printlic(void) {
@@ -748,11 +748,7 @@ int main(int argc, char **argv) {
       for (x = 0; x < repolistcount; x++) {
         if (detect_localpath(repolist[x]) == 0) {
           #ifndef USE_INTERNAL_WATTCP
-          #ifdef USE_MTCP
-          netinitres = system("dhcp");
-          #else /* USE_MTCP */
           netinitres = 0; // sparky4: use dhcp in httpget this is currently used
-          #endif /* USE_MTCP */
           #else /* #ifndef USE_INTERNAL_WATTCP */
           netinitres = net_init();
           #endif /* #ifndef USE_INTERNAL_WATTCP */
@@ -769,7 +765,7 @@ int main(int argc, char **argv) {
     if (action == ACTION_DUMPCFG) { /* if all we wanted was to print out repositories... */
       short dci;
       struct customdirs *dircursor;
-      dci = 4;
+      dci = 4;  // sparky4: this is set like this because of the 1st 4 lines below this variable
 
       PRESS_KEY()
       printf("maxcachetime: %ld seconds\n", maxcachetime);
@@ -839,11 +835,7 @@ int main(int argc, char **argv) {
               #endif
               htgetres = -1;
               #ifndef USE_INTERNAL_WATTCP
-              #ifdef USE_MTCP
-              sprintf(command, "@echo off\nhtget -quiet -o %s %s", tempfilegz, repoindex);
-              #else
               sprintf(command, "@httpget.exe %s %s /q", repoindex, tempfilegz);
-              #endif
               #endif
               for (y = 0; y < MAXINDEXRETRIES; y++) {
                 sprintf(repoindex, "%sindex.gz", repolist[x]);  // refresh the index variable
@@ -858,7 +850,6 @@ int main(int argc, char **argv) {
                 _fheapshrink();
                 _nheapshrink();
                 #else
-  //              if (htgetres == 21) break;
                 if (htgetres >= 0) break;
                 // lets try this
                 sprintf(commandforbatch, "%s\\fdnpkg16.bat", tempdir);
@@ -897,11 +888,6 @@ int main(int argc, char **argv) {
               puts("DEBUG: download stop");
               #endif
             }
-  //          #ifdef USE_INTERNAL_WATTCP
-  //          if (htgetres <= 0) {
-  //          #else
-  //          if (htgetres != 21) {
-  //              #endif
             if (htgetres < 0) {
               kitten_puts(2, 10, "Repository download failed!");
               maxcachetime = 0; /* disable cache writing this time */

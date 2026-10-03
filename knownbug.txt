@@ -19,6 +19,9 @@ cant seem to get fdnpkg16 to work on a system with lower ram
    actual solution: i need to make the program smaller there is alot of
    unused stuff
 
+> c) the first thing that I noticed was esperanto - eo - it uses cp853 - not 858. The result is that this 858 (because of header) lead to the usage of cp437/858 - reason: Esperanto has a lot of diacritics that cannot be handled by 437 und 850/858. So translation AI jumps to 437.
+ i cant seem to get iconv to encorperate this fix. it dont support cp853
+
 
 Known issue, No errorlevels at the moment. reason? complex program i need
 to talk to freedos people! On how to implement this correctly. :D

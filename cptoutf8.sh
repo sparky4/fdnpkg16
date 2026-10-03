@@ -22,13 +22,13 @@ iconv -f cp860 -t utf8 fdnpkg16.pb > fdnpkg16.pb8
 iconv -f cp852 -t utf8 fdnpkg16.pl > fdnpkg16.pl8
 iconv -f cp860 -t utf8 fdnpkg16.pt > fdnpkg16.pt8
 iconv -f cp866 -t utf8 fdnpkg16.ru > fdnpkg16.ru8
-iconv -f cp852 -t utf8 fdnpkg16.si > fdnpkg16.si8
+#iconv -f cp852 -t utf8 fdnpkg16.si > fdnpkg16.si8
 iconv -f cp852 -t utf8 fdnpkg16.sk > fdnpkg16.sk8
-#iconv -f cp852 -t utf8 fdnpkg16.sl > fdnpkg16.sl8
+iconv -f cp852 -t utf8 fdnpkg16.sl > fdnpkg16.sl8
 iconv -f cp855 -t utf8 fdnpkg16.sr > fdnpkg16.sr8
 iconv -f cp858 -t utf8 fdnpkg16.sv > fdnpkg16.sv8
 iconv -f cp857 -t utf8 fdnpkg16.tr > fdnpkg16.tr8
-iconv -f cp855 -t utf8 fdnpkg16.uk > fdnpkg16.uk8
+iconv -f cp1125 -t utf8 fdnpkg16.uk > fdnpkg16.uk8
 
 cd ../..
 fi
