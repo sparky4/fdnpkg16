@@ -809,13 +809,13 @@ int main(int argc, char **argv) {
         char repoindex[512];
         int ungzres;
 #ifndef USE_INTERNAL_WATTCP
-        char command[512];// sparky4: for the download command for external programs
+        char command[512]; // sparky4: for the download command for external programs
         FILE *batch_file;
         char commandforbatch[512];
 #endif
         sprintf(tempfile, "%s\\fdnpkg16.db", tempdir);
         if (loaddb_fromcache(pkgdb, tempfile, cfgfilecrc, maxcachetime) == 0) { /* load db from cache (if not older than 2h) */
-          // sparky4: I added this ==== line so the user know the loop is going on! :D and not have to be spammed with the kitten message below.
+          // sparky4: this is for not repeating this message everything a package is changed in the multipackage stuff. Not have to be spammed with the kitten message below.
           if (i == 0) kitten_puts(2, 13, "Package database loaded from local cache.");
         } else {
           freedb(&pkgdb);      /* recreate the db from scratch, because after */
@@ -1024,6 +1024,7 @@ int main(int argc, char **argv) {
         freedb(&pkgdb);
       } /* pkgdb != NULL */
     } /* action == ACTION_LISTREP */
+    // sparky4: I added this ==== line so the user know the loop is going on! :D
     if (i+1 < argci) puts("========================================");  // sparky4: for formatting and splitting the lines between packages!
   } /* sparky4: end of that huge for loop. This loop manages the packages in the argument list! :D */
   freeconf(repolist, repolistcount, &dirlist);
