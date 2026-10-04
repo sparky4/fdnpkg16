@@ -60,12 +60,11 @@ OBJ_FDNPKGHT  = $(C_SOURCE_FDNPKGHT:..$(DIRSEP).c=.$(OBJ))
 EXEC = &
      fdnpkg16.exe &
      httpget.exe &
-     fdinst16.exe &
-     fdnpkght.exe
+     fdinst16.exe
 
 # --- TARGETS ---
 
-all: $(EXEC)
+all: $(EXEC) fdnpkght
 
 fdnpkg16.exe: $(OBJECTS)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(OBJECTS) $(LINKER_OPTIONS)
@@ -79,7 +78,6 @@ fdinst16.exe: $(OBJ_FDINST)
     *wcl -bt=dos $(COMPILER_OPTIONS) $(COMPILER_OPTIONS2) $(OBJ_FDINST) $(LINKER_OPTIONS_FDINST)
     @$(REMOVECOMMAND) *.$(OBJ)
     @wmake -h vomitchan
-    @$(COPYCOMMAND) src$(DIRSEP)fdnpkg16.c src$(DIRSEP)fdnpkght.c
 
 fdnpkght.exe: $(OBJ_FDNPKGHT)
     @$(REMOVECOMMAND) *.$(OBJ)
@@ -115,6 +113,10 @@ vomitchan: .symbolic
 
 compress: .symbolic
 	@upx --8086 -9 *.exe
+
+fdnpkght: .symbolic
+	@$(COPYCOMMAND) src$(DIRSEP)fdnpkg16.c src$(DIRSEP)fdnpkght.c
+	@wmake -h fdnpkght.exe
 
 #DO NOT USE YET!! I AM WORKING ON THIS --sparky4
 pkgfkjdsljflkdsajflkdsajflkdsaDONTUSE: fdnpkg16.exe httpget.exe fdinst16.exe
