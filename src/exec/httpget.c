@@ -91,7 +91,7 @@ long main(int argc, char **argv) {
 #endif
   // sparky4: this segment of code is for the writing of the return error of httpget.exe
   // mostly for fdnpkght.exe
-  if ((tempdir != NULL) && (argv[3] != NULL)) {
+  if ((tempdir != NULL)) {
     sprintf(fileforerror, "%s\\httpget.err", tempdir);
     error_file = fopen(fileforerror, "w");
     if (error_file == NULL) {
