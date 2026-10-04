@@ -14,15 +14,11 @@
 #include <unistd.h>   /* unlink() */
 #include <stdlib.h>   /* getenv() */
 
-//#define DEBUG_NET
-//#define VERBOSE_HTTPGET
 //#define DEBUG_HTTPGET
 
 #include "http.h"
 #include "net.h"
 #include "memcore.h"
-
-//#define DEBUG
 
 #ifdef DEBUG_HTTPGET
 #define DEBUG
@@ -72,7 +68,7 @@ long main(int argc, char **argv) {
       res = http_get(argv[1], argv[2], NULL, 8080, '\0', 0);
     }
   } else if (argv[2] != NULL) {
-    res = http_get(argv[1], argv[2], NULL, 8080, downloadingstring, 1);
+      res = http_get(argv[1], argv[2], NULL, 8080, downloadingstring, 1);
   }
 #ifdef DEBUG_HTTPGET
   memoryeaten -= farcoreleft();
@@ -94,7 +90,7 @@ long main(int argc, char **argv) {
   printf("\tres == %ld\n", res);
 #endif
   // sparky4: this segment of code is for the writing of the return error of httpget.exe
-  // mostly for fdnpkg16.exe
+  // mostly for fdnpkght.exe
   if (tempdir != NULL) {
     sprintf(fileforerror, "%s\\httpget.err", tempdir);
     error_file = fopen(fileforerror, "w");

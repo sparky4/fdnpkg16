@@ -4,6 +4,7 @@
 FDNPKG16 v0.99.8260 [04 Oct 2026]
  - [new] Added back external httpget.exe version of the software as fdnpkght.exe. It is a backup installer incase of a problem. Like fdnpkg16.exe being deleted by accident.
  - [fix] Fixed some translations rendering errors with incorrect code pages.
+ - [fix] Fixed up the if else conditioning with httpget.exe. Added properly placed guards and code is working better now.
 
 FDNPKG16 v0.99.8254f [28 Sep 2026]
  - [fix] Fixed an insane amount of bugs. (10+) The version control log has all the changes. FDNPKG16 is very stable now. I am needing alot of long term testing on this version.
