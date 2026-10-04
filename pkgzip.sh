@@ -56,14 +56,15 @@ fi
 cd ../
 #cd ../../../
 #cd fdnpkg16/SOURCE/fdnpkg16/
-rm ../fdnpkg16.zip
+rm fdnpkg16.zip
 zip -9 -r ../fdnpkg16.zip *
 cd ../../
 #rsync -avr --delete src/ fdnpkg16/SOURCE/fdnpkg16/src/
 #cp -rp fdinst/* fdnpkg16/SOURCE/fdnpkg16/fdinst/
 #pwd
-
 rm -r SOURCE/fdnpkg16
+mkdir SOURCE/fdnpkg16
+mv SOURCE/fdnpkg16.zip SOURCE/fdnpkg16/
 zip -9 -r ../fdnpkg16.zip *
 cd ..
 mv .temp/* .
