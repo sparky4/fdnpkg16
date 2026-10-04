@@ -39,7 +39,7 @@ long main(int argc, char **argv) {
 #ifdef DEBUG_HTTPGET
   long memoryeaten;
 #endif
-  if (argc < 2) {
+  if (argc < 3) {
     printf("%s url outfile arguments... [/q]\n", argv[0]);
     puts("");
     printf("HTTPGET.EXE is linked against the Watt-32 version below:");
@@ -71,7 +71,7 @@ long main(int argc, char **argv) {
     if (strcasecmp(argv[3], "/q") == 0) {
       res = http_get(argv[1], argv[2], NULL, 8080, '\0', 0);
     }
-  } else {
+  } else if (argv[2] != NULL) {
     res = http_get(argv[1], argv[2], NULL, 8080, downloadingstring, 1);
   }
 #ifdef DEBUG_HTTPGET
