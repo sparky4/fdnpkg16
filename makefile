@@ -1,9 +1,8 @@
 #
-# Generic make file for a C program with multiple targets
+# fdnpkg16 makefile
 #
 
-!ifdef __LINUX__ || __BSD__
-#!ifdef UNIX
+!ifdef __LINUX__ || __BSD__ || __UNIX__
 to_os_path=\=/
 REMOVECOMMAND=rm -f
 COPYCOMMAND=cp -f
