@@ -385,13 +385,14 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
-  printf("fcl = %ld\n", fcl);
+  printf("fdnpkg16.fcl = %ld\n", fcl);
 #endif
   if (fcl == 0)
 #ifndef USE_INTERNAL_WATTCP
-  fcl = 327680L;
+    fcl = 327680L;
+  if (fcl < 131072L) fcl = 327680L;
 #else
-  fcl = 131072L;
+    fcl = 131072L;
 #endif /* #ifndef USE_INTERNAL_WATTCP */
     if (farcoreleft() < fcl) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
