@@ -158,6 +158,7 @@ int main(int argc, char **argv) {
   char *dosdir, *tempdir, *cfgfile;
   struct customdirs *dirlist;
   char *mapdrv = "";
+  long fcl = 0;
 
   action = parsearg(argc, argv);
   if (action == ACTION_HELP) return(showhelp());
@@ -170,7 +171,7 @@ int main(int argc, char **argv) {
   }
 
   /* read all necessary environment variables */
-  if (readenv(&dosdir, &tempdir, cfgfile, 256, argv) != 0) {
+  if (readenv(&dosdir, &tempdir, cfgfile, 256, &fcl, argv) != 0) {
     free(cfgfile);
     return(1);
   }

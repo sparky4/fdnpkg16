@@ -355,6 +355,7 @@ int main(int argc, char **argv) {
   enum actions action = ACTION_HELP;
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
+  long fcl = 0;
 
   //sparky4: new variables from me! <3
   int i, y;                 // sparky4: used in for loops... you know.. counting
@@ -373,23 +374,26 @@ int main(int argc, char **argv) {
   sprintf(downloadingstring, "%s", kittengets(11, 0, "Downloading %s... %ld bytes"));
 
   /* read all required environment variables */
-  if (readenv(&dosdir, &tempdir, cfgfile, sizeof(cfgfile), argv) != 0) {
+  if (readenv(&dosdir, &tempdir, cfgfile, sizeof(cfgfile), &fcl, argv) != 0) {
     QUIT(1)
   }
 
   /* check the available memory and display a warning if too low */
   // sparky4: farcoreleft() function from: https://forum.vcfed.org/index.php?threads/ibm-5160-memory-management-c-code-compiling-with-open-watcom.1247002/post-1369076
   /* 327680 */ // sparky4: new value of 256+64k
-  /* 196608 */ // sparky4: this is for combined packages 256-64k
+  /* 131072 */ // sparky4: this is for combined packages (64*2)k
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
+  printf("fcl = %ld\n", fcl);
 #endif
+  if (fcl == 0)
 #ifndef USE_INTERNAL_WATTCP
-  if (farcoreleft() < 327680L) {
+  fcl = 327680L;
 #else
-  if (farcoreleft() < 196608L) {
+  fcl = 131072L;
 #endif /* #ifndef USE_INTERNAL_WATTCP */
+    if (farcoreleft() < fcl) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
     netinitres = -100; // sparky4: DO NOT USE NETWORKING! no ram!
   } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
@@ -572,6 +576,7 @@ int main(int argc, char **argv) {
       } else if ((strcasecmp(actionarg, "fcl")) == 0) { // sparky4: farcoreleft() debug action
         printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
         printf("coreleft() == %ld Byte(s) Free\n", coreleft());
+        printf("fdnpkg16.fcl == %ld Byte(s) Set\n", fcl);
         QUIT(0)
       } else if ((strcasecmp(actionarg, "ci")) == 0) { // sparky4: compile info
 #if defined(__WATCOMC__)

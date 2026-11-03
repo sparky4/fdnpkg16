@@ -16,8 +16,9 @@
 #include "readenv.h"
 
 
-int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, char **argv) {
+int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, long *fcl, char **argv) {
   char *cfg;
+  char *fclc;
 
   /* check if %DOSDIR% is set, and retrieve it */
   *dosdir = getenv("DOSDIR");
@@ -33,6 +34,15 @@ int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, cha
     kitten_puts(2, 0, "%TEMP% not set! You should make it point to a writeable directory.");
     kitten_puts(2, 1, "Example: SET TEMP=C:\\TEMP");
     return(-2);
+  }
+
+  // sparky4: set the amount of required ram for networking.
+  fclc = getenv("FDNPKG16.FCL");
+  if (fclc == NULL) {
+    fcl = 0;
+  } else {
+    *fcl = atol(fclc);
+    if(*fcl < 65536L) *fcl = 65536L;
   }
 
   /* look for the FDNPKG16.CFG env. variable */
