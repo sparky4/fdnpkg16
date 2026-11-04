@@ -42,7 +42,7 @@ int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, lon
     fcl = 0;
   } else {
     *fcl = atol(fclc);
-    if(*fcl < 65536L) *fcl = 65536L;
+    if (*fcl < 4096L) *fcl = 16384L; //sparky4: we should have at least 16k! :D
   }
 
   /* look for the FDNPKG16.CFG env. variable */
