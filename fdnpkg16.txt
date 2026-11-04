@@ -53,17 +53,18 @@ Example:
   SET FDNPKG16.CFG=C:\MYDIR\FDNPKG16.CFG
 
 
-*** RAM SET variable configuration ***
+*** MEMORY REQUIREMENT SET variable configuration ***
 
-When the enviorment variable FDNPKG16.FCL is set, it overrides the value for
+When the enviorment variable FDNPKG16.MRQ is set, it overrides the value for
 the memory requirements for the networking features to run. This is useful
 for getting the program to run on systems with avalible ram lower than the
 defaults. This feature is here for systems with less ram than I personally
-own. The Default values are listed below for the respective programs:
+own.
+The Default values are listed below for the respective programs:
 fdnpkght.exe == 327680L
 fdnpkg16.exe == 131072L
 Example:
-  SET FDNPKG16.FCL=131072
+  SET FDNPKG16.MRQ=131072
 
 
 *** Requirements ***

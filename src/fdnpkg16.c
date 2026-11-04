@@ -355,12 +355,11 @@ int main(int argc, char **argv) {
   enum actions action = ACTION_HELP;
   FILE *zipfilefd;
   struct ziplist *zipfileidx;
-  long fcl = 0;
 
   //sparky4: new variables from me! <3
-  int i, y;                 // sparky4: used in for loops... you know.. counting
+  int i, y, argci;          // sparky4: used in for loops... you know.. counting also argument variable for number of variables. for multi packages
   int netinitres = 0;       // sparky4: for netowrking initialization for internal networking (external for now)
-  int argci;                // sparky4: argument variable for number of variables. for multi packages
+  long memreq = 0;          // sparky4: memory requirement limiter is set to 0 but set to a higher default if not set.
   char actionarg[24] = "";  // sparky4: this gotta be long enough for the commands
 
   #ifdef DEBUG
@@ -374,7 +373,7 @@ int main(int argc, char **argv) {
   sprintf(downloadingstring, "%s", kittengets(11, 0, "Downloading %s... %ld bytes"));
 
   /* read all required environment variables */
-  if (readenv(&dosdir, &tempdir, cfgfile, sizeof(cfgfile), &fcl, argv) != 0) {
+  if (readenv(&dosdir, &tempdir, cfgfile, sizeof(cfgfile), &memreq, argv) != 0) {
     QUIT(1)
   }
 
@@ -385,16 +384,16 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
   printf("farcoreleft() == %ld\n", farcoreleft());
   printf("coreleft() == %u\n", coreleft());
-  printf("fdnpkg16.fcl = %ld\n", fcl);
+  printf("fdnpkg16.mrq = %ld\n", memreq);
 #endif
-  if (fcl == 0)
+  if (memreq == 0)
 #ifndef USE_INTERNAL_WATTCP
-    fcl = 327680L;
-  if (fcl < 131072L) fcl = 327680L;
+    memreq = 327680L;
+  if (memreq < 131072L) memreq = 327680L;
 #else
-    fcl = 131072L;
+    memreq = 131072L;
 #endif /* #ifndef USE_INTERNAL_WATTCP */
-    if (farcoreleft() < fcl) {
+    if (farcoreleft() < memreq) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
     netinitres = -100; // sparky4: DO NOT USE NETWORKING! no ram!
   } // sparky4: seems to work now with the new farcoreleft function from vfed! Thanks guys! <3
@@ -577,7 +576,7 @@ int main(int argc, char **argv) {
       } else if ((strcasecmp(actionarg, "fcl")) == 0) { // sparky4: farcoreleft() debug action
         printf("farcoreleft() == %ld Byte(s) Free\n", farcoreleft());
         printf("coreleft() == %ld Byte(s) Free\n", coreleft());
-        printf("fdnpkg16.fcl == %ld Byte(s) Set\n", fcl);
+        printf("fdnpkg16.mrq == %ld Byte(s) Set\n", memreq);
         QUIT(0)
       } else if ((strcasecmp(actionarg, "ci")) == 0) { // sparky4: compile info
 #if defined(__WATCOMC__)

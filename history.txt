@@ -2,7 +2,7 @@
 * FDNPKG16 history file *
 
 FDNPKG16 v0.99.8260a [04 Nov 2026]
- - [new] FDNPKG16.FCL is a new enviorment variable that allows systems with lower ram specs to run the program on lower than amount needed by default. 420kb of free ram is the new requirements.
+ - [new] FDNPKG16.MRQ is a new enviorment variable that allows systems with lower ram specs to run the program on lower than amount needed by default. 420kb of free ram is the new requirements.
  - [new] Japanese language support added.
 
 FDNPKG16 v0.99.8260 [04 Oct 2026]

@@ -16,9 +16,9 @@
 #include "readenv.h"
 
 
-int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, long *fcl, char **argv) {
+int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, long *memreq, char **argv) {
   char *cfg;
-  char *fclc;
+  char *envmemreq;
 
   /* check if %DOSDIR% is set, and retrieve it */
   *dosdir = getenv("DOSDIR");
@@ -37,12 +37,12 @@ int readenv(char **dosdir, char **tempdir, char *cfgfile, int cfgfilemaxlen, lon
   }
 
   // sparky4: set the amount of required ram for networking.
-  fclc = getenv("FDNPKG16.FCL");
-  if (fclc == NULL) {
-    fcl = 0;
+  envmemreq = getenv("FDNPKG16.MRQ");
+  if (envmemreq == NULL) {
+    memreq = 0;
   } else {
-    *fcl = atol(fclc);
-    if (*fcl < 4096L) *fcl = 16384L; //sparky4: we should have at least 16k! :D
+    *memreq = atol(envmemreq);
+    if (*memreq < 4096L) *memreq = 16384L; //sparky4: we should have at least 16k! :D
   }
 
   /* look for the FDNPKG16.CFG env. variable */
