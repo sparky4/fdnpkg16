@@ -24,6 +24,7 @@ cp -p fdnpkg16.oem fdnpkg16/BIN/
 cp -p fdnpkg16.4 fdnpkg16/BIN/
 cp -p fdnpkg16.lat fdnpkg16/BIN/
 cp -p fdnpkg16.ico fdnpkg16/BIN/
+cp -p fdnpkght.ico fdnpkg16/BIN/
 cp -p fdinst16.ico fdnpkg16/BIN/
 #. ./build.sh
 wmake
