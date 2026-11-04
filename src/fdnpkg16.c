@@ -393,6 +393,7 @@ int main(int argc, char **argv) {
   if (fcl < 131072L) fcl = 327680L;
 #else
     fcl = 131072L;
+  if (fcl < 64L) fcl = 131072L;
 #endif /* #ifndef USE_INTERNAL_WATTCP */
     if (farcoreleft() < fcl) {
     kitten_printf(2, 17, "WARNING: Virtual memory too low. FDNPKG%s might behave unreliably.", EXECNAME); puts("");
